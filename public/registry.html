@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<!-- =========================================================================
+  ทะเบียนรายการ — หน้าเลื่อนธรรมดา (หัวข้อ + KPI + การ์ด + ตาราง + drawer)
+  แม่แบบของหน้า list/CRUD ทุกหน้าในโปรเจค — คัดลอกไฟล์นี้เป็นหน้าใหม่ได้เลย
+  ========================================================================= -->
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MediCore RCM — ทะเบียนรายการ</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+
+    <!-- ลำดับ CSS มาตรฐาน (ds-tokens ต้องมาก่อนเสมอ) -->
+    <link rel="stylesheet" href="css/ds-tokens.css">
+    <link rel="stylesheet" href="css/ds-base.css">
+    <link rel="stylesheet" href="css/ds-navbar.css">
+    <link rel="stylesheet" href="css/ds-layout.css">
+    <link rel="stylesheet" href="css/ds-components.css">
+    <link rel="stylesheet" href="css/ds-overlays.css">
+    <link rel="stylesheet" href="css/ds-print.css">
+
+    <!-- ds-auth ต้องเป็น script แรก — มันห่อ window.fetch -->
+    <script src="js/ds/ds-auth.js"></script>
+    <script>Auth.requireLogin();</script>
+</head>
+<!-- data-page ต้องตรงกับชื่อไฟล์ (ใช้ไฮไลต์เมนูใน navbar) -->
+<body data-page="registry">
+
+    <nav id="appNavbar"></nav>
+
+    <div class="page-container">
+
+        <div class="page-header">
+            <div>
+                <div class="page-title">
+                    <i data-lucide="clipboard-list" class="mi"></i>
+                    <span>ทะเบียนรายการ</span>
+                </div>
+                <div class="page-subtitle">เพิ่ม แก้ไข ยืนยัน และติดตามรายการงาน</div>
+            </div>
+            <div class="section-actions">
+                <button class="btn btn-outline" onclick="Registry.load()">
+                    <i data-lucide="refresh-cw" class="icon-sm"></i> รีเฟรช
+                </button>
+                <button class="btn btn-outline" onclick="Registry.openPrint()">
+                    <i data-lucide="printer" class="icon-sm"></i> พิมพ์รายงาน
+                </button>
+                <button class="btn btn-primary" onclick="Registry.openCreate()">
+                    <i data-lucide="plus" class="icon-sm"></i> เพิ่มรายการ
+                </button>
+            </div>
+        </div>
+
+        <div class="ds-kpi-grid">
+            <div class="sip-kpi">
+                <i data-lucide="inbox" class="sip-kpi-icon icon-lg"></i>
+                <div class="sip-kpi-value" id="kpiTotal">0</div>
+                <div class="sip-kpi-label">ทั้งหมด</div>
+            </div>
+            <div class="sip-kpi">
+                <i data-lucide="pencil-line" class="sip-kpi-icon icon-lg"></i>
+                <div class="sip-kpi-value" id="kpiDraft">0</div>
+                <div class="sip-kpi-label">ร่าง</div>
+            </div>
+            <div class="sip-kpi critical">
+                <i data-lucide="alert-triangle" class="sip-kpi-icon icon-lg"></i>
+                <div class="sip-kpi-value" id="kpiUrgent">0</div>
+                <div class="sip-kpi-label">ด่วน (ยังไม่ยืนยัน)</div>
+            </div>
+            <div class="sip-kpi">
+                <i data-lucide="check-circle-2" class="sip-kpi-icon icon-lg"></i>
+                <div class="sip-kpi-value" id="kpiConfirmed">0</div>
+                <div class="sip-kpi-label">ยืนยันแล้ว</div>
+            </div>
+        </div>
+
+        <div class="section-card">
+            <div class="section-header">
+                <div class="section-title">
+                    <i data-lucide="list" class="mi"></i> รายการทั้งหมด
+                    <span class="ds-pane-count" id="rowCount">0 รายการ</span>
+                </div>
+                <div class="section-actions">
+                    <select class="sip-select" id="fStatus" style="width:140px" onchange="Registry.load()">
+                        <option value="all">ทุกสถานะ</option>
+                        <option value="DRAFT">ร่าง</option>
+                        <option value="CONFIRMED">ยืนยันแล้ว</option>
+                    </select>
+                    <select class="sip-select" id="fPriority" style="width:160px" onchange="Registry.load()">
+                        <option value="all">ทุกความเร่งด่วน</option>
+                        <option value="URGENT">ด่วน</option>
+                        <option value="ROUTINE">ปกติ</option>
+                    </select>
+                    <input type="text" id="searchBox" class="sip-input" style="width:240px"
+                           placeholder="ค้นหาชื่อ/รหัส..." oninput="Registry.onSearch()">
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th style="width:1%">รหัส</th>
+                            <th>ชื่อรายการ</th>
+                            <th style="width:1%">หน่วยงาน</th>
+                            <th style="width:1%">เร่งด่วน</th>
+                            <th style="width:1%">สถานะ</th>
+                            <th style="width:1%">อัปเดตล่าสุด</th>
+                            <th style="width:1%"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="rows">
+                        <tr><td colspan="7" class="ds-empty">กำลังโหลด...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <div id="toastContainer" class="toast-container"></div>
+
+    <!-- shared ก่อน แล้วค่อย JS ของหน้า -->
+    <script src="js/ds/ds-icons.js"></script>
+    <script src="js/ds/ds-navbar.js"></script>
+    <script src="js/ds/ds-drawer.js"></script>
+    <script src="js/ds/ds-toast.js"></script>
+    <script src="js/ds/ds-doc-parts.js"></script>
+    <script src="js/ds/ds-doc-print.js"></script>
+    <script src="js/registry.js"></script>
+</body>
+</html>

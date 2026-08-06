@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<!-- =========================================================================
+  ส่งเบิก NHSO — รายงาน / Statement
+  Transaction · Statement · Statement OFC และสิทธิอื่น · Report พึงรับ พึงจ่าย
+  (doc/โครงการ NHSO Digital Platform_Commu_03082026_V4.pdf สไลด์ 40–45)
+
+  ⚠️ หน้าต้นแบบ: ข้อมูลจำลองล้วน ไม่เรียก /api จึงไม่ gate ด้วย Auth.requireLogin()
+     เมื่อผูก backend จริง ให้เพิ่มบรรทัด Auth.requireLogin(); กลับเข้าไปในส่วนหัวของหน้า
+  ========================================================================= -->
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MediCore RCM — รายงาน / Statement</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+
+    <link rel="stylesheet" href="css/ds-tokens.css">
+    <link rel="stylesheet" href="css/ds-base.css">
+    <link rel="stylesheet" href="css/ds-navbar.css">
+    <link rel="stylesheet" href="css/ds-layout.css">
+    <link rel="stylesheet" href="css/ds-components.css">
+    <link rel="stylesheet" href="css/ds-overlays.css">
+    <link rel="stylesheet" href="css/ds-print.css">
+    <link rel="stylesheet" href="css/ds-chart.css">
+
+    <script src="js/ds/ds-auth.js"></script>
+</head>
+<body data-page="nhso-reports">
+
+    <nav id="appNavbar"></nav>
+
+    <div class="page-container">
+
+        <div id="demoBanner"></div>
+
+        <div class="page-header">
+            <div>
+                <div class="page-title">
+                    <i data-lucide="receipt" class="mi"></i>
+                    <span>รายงาน / Statement</span>
+                </div>
+                <div class="page-subtitle">
+                    ดาวน์โหลดรายงานจาก NHSO Digital Platform และกระทบยอดกับบัญชีลูกหนี้ของโรงพยาบาล
+                </div>
+            </div>
+            <div class="section-actions">
+                <button class="btn btn-primary" onclick="Reports.generate()">
+                    <i data-lucide="file-plus" class="icon-sm"></i> สร้างรายงาน
+                </button>
+            </div>
+        </div>
+
+        <div class="ds-segbar" id="segType"></div>
+
+        <div class="sip-banner sip-banner-info" style="margin-bottom:16px">
+            <i data-lucide="key-round" class="icon-sm"></i>
+            <span id="pwdRule">—</span>
+        </div>
+
+        <div class="section-card">
+            <div class="section-header">
+                <div class="section-title">
+                    <i data-lucide="list" class="mi"></i> <span id="typeTitle">รายงาน</span>
+                    <span class="ds-pane-count" id="rowCount">0 รายการ</span>
+                </div>
+                <div class="section-actions">
+                    <select class="sip-select" id="fPeriod" style="width:150px" onchange="Reports.render()">
+                        <option value="all">ทุกงวด</option>
+                    </select>
+                    <select class="sip-select" id="fFund" style="width:150px" onchange="Reports.render()">
+                        <option value="all">ทุกกองทุน</option>
+                    </select>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="data-table compact">
+                    <thead><tr>
+                        <th style="width:1%">รหัส</th><th>ชื่อรายงาน</th>
+                        <th style="width:1%">งวด</th><th style="width:1%">กองทุน</th>
+                        <th style="width:1%">วันที่สร้าง</th>
+                        <th style="width:1%;text-align:right">จำนวนรายการ</th>
+                        <th style="width:1%;text-align:right">ยอดรวม (บาท)</th>
+                        <th style="width:1%">สถานะ</th><th style="width:1%"></th>
+                    </tr></thead>
+                    <tbody id="rows"><tr><td colspan="9" class="ds-empty">กำลังโหลด...</td></tr></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="cards-row">
+            <div class="section-card">
+                <div class="section-header">
+                    <div class="section-title"><i data-lucide="bar-chart-3" class="mi"></i>
+                        ยอดพึงรับเทียบยอดที่จ่ายจริง</div>
+                </div>
+                <div class="ds-chart-caption">
+                    ส่วนต่างคือยอดที่ถูกตัดจ่ายหรืออยู่ระหว่างอุทธรณ์ — เป็นตัวเลขที่ฝ่ายการเงินใช้กระทบยอดลูกหนี้
+                </div>
+                <div id="chartRecon"></div>
+            </div>
+            <div class="section-card">
+                <div class="section-header">
+                    <div class="section-title"><i data-lucide="scale" class="mi"></i>
+                        ตารางกระทบยอดรายงวด</div>
+                </div>
+                <div class="table-responsive">
+                    <table class="data-table compact">
+                        <thead><tr><th>งวด</th>
+                            <th style="width:1%;text-align:right">ยอดพึงรับ</th>
+                            <th style="width:1%;text-align:right">ยอดที่จ่ายจริง</th>
+                            <th style="width:1%;text-align:right">ส่วนต่าง</th>
+                            <th style="width:1%;text-align:right">% ที่ได้รับ</th></tr></thead>
+                        <tbody id="reconRows"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div id="toastContainer" class="toast-container"></div>
+
+    <script src="js/ds/ds-icons.js"></script>
+    <script src="js/ds/ds-navbar.js"></script>
+    <script src="js/ds/ds-drawer.js"></script>
+    <script src="js/ds/ds-toast.js"></script>
+    <script src="js/ds/ds-chart.js"></script>
+
+    <script src="js/mock/mock-core.js"></script>
+    <script src="js/mock/mock-session.js"></script>
+    <script src="js/mock/mock-admin.js"></script>
+    <script src="js/mock/mock-nhso.js"></script>
+    <script src="js/mock/mock-claims.js"></script>
+
+    <script src="js/nhso-reports.js"></script>
+</body>
+</html>

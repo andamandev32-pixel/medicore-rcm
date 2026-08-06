@@ -1,0 +1,275 @@
+/* ============================================================
+   MediCore RCM — PRESENT (สไลด์นำเสนอผู้บริหาร)
+   ------------------------------------------------------------
+   ใช้เฉพาะ present.html — prefix .pr-* ทั้งหมดเพื่อไม่ให้ชนกับ design system
+
+   กลไก slide ยืมจาก doc/Executive_Summary_Claim_Intelligence_4_Pages.html
+   แล้วเปลี่ยนพาเลตมาใช้ token ของโปรเจค (navy/amber)
+
+   ⚠️ หน้านี้โหลดแค่ ds-tokens.css + ไฟล์นี้ + present.js
+      ไม่มี navbar ไม่มี ds-auth ไม่มี Lucide — เปิดได้ออฟไลน์บนเครื่องไหนก็ได้
+   ============================================================ */
+
+* { box-sizing: border-box; }
+
+html, body {
+    margin: 0; padding: 0; height: 100%;
+    background: var(--brand-navy);
+    font-family: var(--font-main);
+    color: var(--text-primary);
+    overflow: hidden;
+}
+
+.pr-app { display: flex; flex-direction: column; height: 100vh; }
+
+/* ── แถบบน ── */
+.pr-topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 16px; padding: 0 20px; height: 52px; flex: none;
+    background: linear-gradient(105deg, var(--brand-navy-700), var(--brand-navy));
+    color: #fff; box-shadow: 0 3px 18px rgba(11, 41, 62, .35); z-index: 3;
+}
+.pr-brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 14px; }
+.pr-brand-mark {
+    width: 26px; height: 26px; border-radius: 7px; flex: none;
+    background: var(--brand-amber); color: var(--brand-navy);
+    display: grid; place-items: center; font-weight: 900; font-size: 15px;
+}
+.pr-brand-sub { font-weight: 400; font-size: 12px; opacity: .72; }
+.pr-top-actions { display: flex; align-items: center; gap: 8px; }
+.pr-btn {
+    border: 1px solid rgba(255, 255, 255, .28); background: rgba(255, 255, 255, .08);
+    color: #fff; border-radius: 8px; padding: 6px 12px; font-size: 12px; font-weight: 600;
+    cursor: pointer; font-family: inherit;
+}
+.pr-btn:hover { background: rgba(255, 255, 255, .18); }
+.pr-btn.accent { background: var(--brand-amber); color: var(--brand-navy); border-color: var(--brand-amber); }
+
+/* ── พื้นที่สไลด์ ── */
+.pr-viewport { flex: 1; display: grid; place-items: center; padding: 12px; min-height: 0; }
+
+/* ขนาดตามด้านที่บีบก่อน — สูตรนี้จงใจ อย่าแก้เป็น % เปล่า ๆ
+   128px = topbar 52 + viewport padding 24 + แถบควบคุมล่าง ~48 (+เผื่อขอบ)
+   เพดาน 1760px แทน 1420px เพื่อให้จอ 1080p/1440p ใช้ความสูงจนหมด */
+.pr-deck {
+    width: min(1760px, calc((100vh - 128px) * 1.7778), calc(100vw - 28px));
+    aspect-ratio: 16 / 9; position: relative;
+}
+.pr-slide {
+    position: absolute; inset: 0; display: none; overflow: hidden;
+    background: #fff; border: 1px solid var(--brand-border);
+    border-radius: 14px; box-shadow: 0 18px 50px rgba(15, 23, 42, .28);
+}
+.pr-slide.active { display: block; animation: prAppear .24s ease-out; }
+.pr-slide::before {
+    content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 7px;
+    background: linear-gradient(var(--brand-navy), var(--primary));
+}
+.pr-slide.accent::before { background: linear-gradient(var(--brand-amber-600), var(--brand-amber)); }
+@keyframes prAppear { from { opacity: .2; transform: translateX(14px); } to { opacity: 1; transform: none; } }
+
+/* ══════════════════════════════════════════════════════════
+   หน่วยวัดของสไลด์ — --u
+   ----------------------------------------------------------
+   ทุกขนาดตัวอักษรและระยะห่างอิง "ความกว้างของสไลด์" ไม่ใช่ viewport
+     · ขยาย .pr-deck แล้วตัวอักษรโตตามทันที (เดิม clamp(...vw) ไม่โตตาม)
+     · ความหนาแน่นของเนื้อหาเท่ากันทุกจอ — ที่จอไหนไม่ล้น ที่จออื่นก็ไม่ล้น
+     · --k คือตัวคูณรายสไลด์ (present.js ใส่ inline) สำหรับหน้าที่เนื้อหาแน่น
+   ⚠️ container-type: size ต้องอยู่บน .pr-slide (ขนาดแน่นอนจาก .pr-deck)
+      และ --u ต้องประกาศบน .pr-inner ไม่ใช่บน container เอง
+      เพราะ cqw บนตัว container จะไปวัดกับ ancestor แทน
+   ══════════════════════════════════════════════════════════ */
+.pr-slide { container-type: size; --k: 1; }
+.pr-inner { --u: calc(1.1cqw * var(--k)); }
+
+@supports not (container-type: size) {
+    /* เบราว์เซอร์เก่า: ประมาณจาก viewport (deck ≈ 86% ของความกว้างจอ) */
+    .pr-inner { --u: calc(.95vw * var(--k)); }
+}
+
+.pr-inner { height: 100%; padding: 3.1% 3.8% 2.6%; display: flex; flex-direction: column; }
+
+.pr-eyebrow {
+    font-size: calc(1.12 * var(--u)); font-weight: 800; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--primary); margin-bottom: .5em;
+}
+.pr-slide h1   { font-size: calc(3.85 * var(--u)); line-height: 1.14; color: var(--brand-navy); margin: .2em 0 .3em; }
+.pr-slide h2   { font-size: calc(2.85 * var(--u)); line-height: 1.18; color: var(--brand-navy); margin: 0 0 .4em; }
+.pr-slide h3   { font-size: calc(1.58 * var(--u)); line-height: 1.3;  color: var(--brand-navy); margin: 0 0 .35em; }
+.pr-lead       { font-size: calc(1.48 * var(--u)); line-height: 1.55; color: var(--text-secondary); margin: 0 0 .7em; }
+.pr-body { flex: 1; min-height: 0; overflow: hidden; }
+
+.pr-foot {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    font-size: calc(.9 * var(--u)); color: var(--text-muted);
+    border-top: 1px solid var(--brand-border);
+    padding-top: calc(.45 * var(--u)); margin-top: calc(.6 * var(--u)); flex: none;
+}
+
+/* ── องค์ประกอบภายในสไลด์ ── */
+.pr-grid   { display: grid; gap: calc(.85 * var(--u)); }
+.pr-g2     { grid-template-columns: 1fr 1fr; }
+.pr-g3     { grid-template-columns: repeat(3, 1fr); }
+.pr-g4     { grid-template-columns: repeat(4, 1fr); }
+.pr-g5     { grid-template-columns: repeat(5, 1fr); }
+
+.pr-card {
+    background: var(--brand-bg); border: 1px solid var(--brand-border);
+    border-radius: calc(.62 * var(--u)); padding: calc(.72 * var(--u)) calc(.88 * var(--u));
+    min-height: 0;
+}
+.pr-card.navy   { background: var(--brand-navy);        color: #fff; border-color: var(--brand-navy); }
+.pr-card.navy h3, .pr-card.navy strong { color: #fff; }
+.pr-card.amber  { background: var(--brand-amber-50);    border-color: var(--brand-amber); }
+.pr-card.danger { background: var(--status-danger-soft); border-color: var(--status-danger); }
+.pr-card.good   { background: var(--status-success-soft); border-color: var(--status-success); }
+.pr-card.info   { background: var(--primary-bg);        border-color: var(--primary-border); }
+
+.pr-kv { font-size: calc(1.24 * var(--u)); line-height: 1.6; color: var(--text-secondary); }
+.pr-kv strong { color: var(--brand-navy); }
+.pr-ul { margin: 0; padding-left: 1.05em; font-size: calc(1.24 * var(--u)); line-height: 1.62; color: var(--text-secondary); }
+.pr-ul li { margin-bottom: .18em; }
+.pr-ul b { color: var(--brand-navy); }
+
+.pr-stat { font-size: calc(3.35 * var(--u)); font-weight: 800; color: var(--brand-navy); line-height: 1.05; }
+.pr-stat.down { color: var(--status-success-strong); }
+.pr-stat.up   { color: var(--status-success-strong); }
+.pr-stat.bad  { color: var(--status-danger); }
+.pr-stat-label { font-size: calc(1.06 * var(--u)); color: var(--text-muted); margin-top: .15em; }
+
+.pr-chip {
+    display: inline-block; padding: calc(.16 * var(--u)) calc(.55 * var(--u));
+    border-radius: 999px; font-size: calc(1.06 * var(--u)); font-weight: 700;
+    background: var(--surface-2); color: var(--text-secondary);
+}
+.pr-chip.blue   { background: var(--primary-bg);         color: var(--primary-dark); }
+.pr-chip.red    { background: var(--status-danger-soft); color: var(--status-danger-strong); }
+.pr-chip.green  { background: var(--status-success-soft);color: var(--status-success-strong); }
+.pr-chip.amber  { background: var(--brand-amber-100);    color: var(--brand-amber-600); }
+.pr-chip.navy   { background: var(--brand-navy);         color: #fff; }
+
+.pr-table { width: 100%; border-collapse: collapse; font-size: calc(1.16 * var(--u)); }
+.pr-table th, .pr-table td {
+    border: 1px solid var(--brand-border-strong);
+    padding: calc(.3 * var(--u)) calc(.48 * var(--u)); text-align: left;
+}
+.pr-table th { background: var(--brand-bg-strong); font-weight: 700; color: var(--brand-navy); }
+.pr-table td.c { text-align: center; }
+.pr-table td.r { text-align: right; }
+.pr-table tr.bad td  { background: var(--status-danger-soft); }
+.pr-table tr.good td { background: var(--status-success-soft); }
+
+.pr-code {
+    font-family: var(--font-mono); font-size: calc(1.02 * var(--u)); line-height: 1.5;
+    background: var(--brand-navy); color: #cbd5e1;
+    border-radius: calc(.5 * var(--u)); padding: calc(.55 * var(--u)) calc(.7 * var(--u));
+    white-space: pre-wrap; word-break: break-word;
+}
+.pr-code .k { color: var(--brand-amber); font-weight: 700; }
+.pr-code .hl { background: rgba(251, 191, 36, .22); color: #fff; border-radius: 3px; padding: 0 2px; }
+
+.pr-open {
+    display: inline-flex; align-items: center; gap: 5px; text-decoration: none;
+    background: var(--primary); color: #fff; border-radius: calc(.42 * var(--u));
+    padding: calc(.3 * var(--u)) calc(.68 * var(--u)); font-size: calc(1.02 * var(--u)); font-weight: 700;
+}
+.pr-open:hover { background: var(--primary-dark); }
+
+.pr-note {
+    font-size: calc(1.14 * var(--u)); color: var(--text-secondary); line-height: 1.55;
+    background: var(--brand-amber-50); border-left: calc(.2 * var(--u)) solid var(--brand-amber);
+    padding: calc(.5 * var(--u)) calc(.7 * var(--u)); border-radius: 0 7px 7px 0;
+}
+.pr-note.strong { background: var(--status-danger-soft); border-left-color: var(--status-danger); }
+
+/* ══════════════════════════════════════════════════════════
+   ผังการทำงาน (SVG) — ดู js/present-flows.js
+   ----------------------------------------------------------
+   .pr-flow ใช้ position:absolute ครอบ svg เพื่อให้ height:100% แน่นอนเสมอ
+   (เปอร์เซ็นต์ความสูงบน flex item บางเบราว์เซอร์ resolve ไม่ตรง)
+   ══════════════════════════════════════════════════════════ */
+.pr-flow { flex: 1; min-height: 0; position: relative; }
+/* .pr-body เป็น block ไม่ใช่ flex — ผังที่วางตรงนั้นเลยต้องกำหนดความสูงเอง
+   (ถ้าอยู่ใน wrapper flex column อยู่แล้ว flex:1 ด้านบนจะชนะกฎนี้พอดี) */
+.pr-body > .pr-flow { height: 100%; }
+.pr-flow > .pr-svg { position: absolute; inset: 0; }
+.pr-svg      { width: 100%; height: 100%; display: block; }
+.pr-svg-auto { width: 100%; height: auto;  display: block; }
+.pr-svg text, .pr-svg-auto text { font-family: var(--font-main); }
+
+/* ── แถบควบคุมล่าง ── */
+.pr-controls {
+    display: flex; align-items: center; justify-content: center; gap: 14px;
+    padding: 8px 0 10px; flex: none;
+}
+.pr-nav-btn {
+    border: 1px solid rgba(255, 255, 255, .3); background: rgba(255, 255, 255, .1);
+    color: #fff; border-radius: 8px; width: 34px; height: 30px; cursor: pointer; font-size: 14px;
+}
+.pr-nav-btn:disabled { opacity: .3; cursor: default; }
+.pr-dots { display: flex; gap: 6px; flex-wrap: wrap; max-width: 60vw; justify-content: center; }
+.pr-dot {
+    width: 9px; height: 9px; border: 0; border-radius: 50%; padding: 0;
+    background: rgba(255, 255, 255, .35); cursor: pointer;
+}
+.pr-dot.active { background: var(--brand-amber); transform: scale(1.25); }
+.pr-counter { color: #fff; font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; min-width: 62px; text-align: center; }
+.pr-hint { color: rgba(255, 255, 255, .5); font-size: 11px; }
+
+/* ── จอเล็ก ── */
+@media (max-width: 900px) {
+    .pr-deck { width: calc(100vw - 16px); }
+    .pr-g4, .pr-g5 { grid-template-columns: repeat(2, 1fr); }
+    .pr-g3 { grid-template-columns: 1fr 1fr; }
+    .pr-hint { display: none; }
+}
+
+/* ── พิมพ์: A4 แนวนอน หน้าละสไลด์ (Ctrl+P ได้ PDF ทันที) ──
+   ยังคง override เป็น pt ไว้ ไม่พึ่ง container query ในโหมด paged media
+   ค่าที่ใช้ = สัดส่วนเดียวกับหน้าจอ (1cqw ของ 297mm ≈ 8.4pt) */
+@media print {
+    @page { size: A4 landscape; margin: 0; }
+    html, body { height: auto; overflow: visible; background: #fff; }
+    .pr-app { display: block; height: auto; }
+    .pr-topbar, .pr-controls { display: none !important; }
+    .pr-viewport { display: block; padding: 0; }
+    .pr-deck { width: auto; aspect-ratio: auto; }
+    .pr-slide {
+        display: block !important; position: relative;
+        width: 297mm; height: 210mm;
+        border: 0; border-radius: 0; box-shadow: none;
+        page-break-after: always; break-after: page;
+        animation: none;
+    }
+    .pr-slide:last-child { page-break-after: auto; }
+    .pr-inner { padding: 10mm 12mm 8mm; }
+    .pr-slide h1 { font-size: 32pt; } .pr-slide h2 { font-size: 26.5pt; }
+    .pr-slide h3 { font-size: 15pt; } .pr-lead { font-size: 13.5pt; }
+    .pr-kv, .pr-ul { font-size: 11.5pt; }
+    .pr-table { font-size: 11pt; }
+    .pr-note { font-size: 10.8pt; }
+    .pr-chip, .pr-stat-label { font-size: 10pt; }
+    .pr-code { font-size: 9.5pt; }
+    .pr-card, .pr-chip, .pr-note, .pr-code, .pr-table th, .pr-table tr.bad td, .pr-table tr.good td,
+    .pr-shot-bar, .pr-slide::before {
+        -webkit-print-color-adjust: exact; print-color-adjust: exact;
+    }
+}
+
+/* ── ภาพจำลองหน้าจอ ── */
+.pr-shot {
+    border: 1px solid var(--brand-border-strong); border-radius: calc(.5 * var(--u)); overflow: hidden;
+    background: #fff; display: flex; flex-direction: column; min-height: 0;
+}
+.pr-shot-bar {
+    background: var(--brand-navy); color: #fff; font-size: calc(1.02 * var(--u));
+    padding: calc(.28 * var(--u)) calc(.58 * var(--u));
+    display: flex; align-items: center; gap: 6px; font-weight: 700;
+}
+.pr-shot-bar::before {
+    content: ''; width: 7px; height: 7px; border-radius: 50%; background: var(--brand-amber); flex: none;
+}
+.pr-shot-body {
+    padding: calc(.5 * var(--u)) calc(.62 * var(--u));
+    font-size: calc(1.06 * var(--u)); color: var(--text-secondary); line-height: 1.5; flex: 1;
+}

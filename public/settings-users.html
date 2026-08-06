@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<!-- =========================================================================
+  ตั้งค่า — ผู้ใช้และสิทธิ์ (ADMIN เท่านั้น)
+  สาธิตการ gate ทั้งหน้า + การเตะ token ออกเมื่อปิดบัญชี
+  ========================================================================= -->
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MediCore RCM — ผู้ใช้และสิทธิ์</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+
+    <link rel="stylesheet" href="css/ds-tokens.css">
+    <link rel="stylesheet" href="css/ds-base.css">
+    <link rel="stylesheet" href="css/ds-navbar.css">
+    <link rel="stylesheet" href="css/ds-layout.css">
+    <link rel="stylesheet" href="css/ds-components.css">
+    <link rel="stylesheet" href="css/ds-overlays.css">
+    <link rel="stylesheet" href="css/ds-print.css">
+
+    <script src="js/ds/ds-auth.js"></script>
+    <!-- gate ทั้งหน้า — เป็น UX เท่านั้น ด่านจริงอยู่ที่ policy.js ฝั่ง server -->
+    <script>Auth.requireRole('ADMIN');</script>
+</head>
+<body data-page="settings-users">
+
+    <nav id="appNavbar"></nav>
+
+    <div class="page-container">
+
+        <div class="page-header">
+            <div>
+                <div class="page-title">
+                    <i data-lucide="users" class="mi"></i>
+                    <span>ผู้ใช้และสิทธิ์</span>
+                </div>
+                <div class="page-subtitle">รายชื่อผู้ใช้ในระบบ บทบาท และสถานะบัญชี</div>
+            </div>
+            <div class="section-actions">
+                <button class="btn btn-outline" onclick="Users.load()">
+                    <i data-lucide="refresh-cw" class="icon-sm"></i> รีเฟรช
+                </button>
+            </div>
+        </div>
+
+        <div class="sip-banner sip-banner-info">
+            <i data-lucide="info" class="icon-sm"></i>
+            การปิดบัญชีจะยกเลิก token ที่ออกไปแล้วภายใน ~60 วินาที
+            (token_version + cache — ดู <code>src/middleware/revocation.js</code>)
+        </div>
+
+        <div class="section-card" style="margin-top:16px">
+            <div class="section-header">
+                <div class="section-title">
+                    <i data-lucide="list" class="mi"></i> ผู้ใช้ทั้งหมด
+                    <span class="ds-pane-count" id="userCount">0 คน</span>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th style="width:1%">#</th>
+                            <th>ชื่อผู้ใช้</th>
+                            <th>ชื่อ-สกุล</th>
+                            <th>บทบาท</th>
+                            <th style="width:1%">ใบประกอบฯ</th>
+                            <th style="width:1%">สถานะ</th>
+                            <th style="width:1%"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="rows">
+                        <tr><td colspan="7" class="ds-empty">กำลังโหลด...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="section-card" style="margin-top:16px">
+            <div class="section-header">
+                <div class="section-title"><i data-lucide="building-2" class="mi"></i> หน่วยงาน</div>
+                <div class="section-actions">
+                    <button class="btn btn-primary" onclick="Users.openDept()">
+                        <i data-lucide="plus" class="icon-sm"></i> เพิ่มหน่วยงาน
+                    </button>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr><th style="width:1%">#</th><th>ชื่อหน่วยงาน</th><th style="width:1%">สถานะ</th></tr>
+                    </thead>
+                    <tbody id="deptRows">
+                        <tr><td colspan="3" class="ds-empty">กำลังโหลด...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <div id="toastContainer" class="toast-container"></div>
+
+    <script src="js/ds/ds-icons.js"></script>
+    <script src="js/ds/ds-navbar.js"></script>
+    <script src="js/ds/ds-drawer.js"></script>
+    <script src="js/ds/ds-toast.js"></script>
+    <script src="js/settings-users.js"></script>
+</body>
+</html>

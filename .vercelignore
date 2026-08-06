@@ -1,0 +1,18 @@
+# Vercel เสิร์ฟเฉพาะ public/ เป็น static — ไฟล์ที่เหลือไม่ต้องอัปโหลด
+#
+# ⚠️ สำคัญที่สุด 2 บรรทัดแรก:
+#    .env มีรหัส DB และ JWT_SECRET จริง
+#    doc/ มีเอกสารโครงการและ PDF ภายในของ สปสช.
+#    ทั้งสองอย่างไม่ควรออกไปอยู่บนเครื่อง build ของบริการภายนอก
+
+.env
+.env.*
+doc/
+
+design-system/
+src/
+scripts/
+node_modules/
+render.yaml
+package-lock.json
+*.log

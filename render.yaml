@@ -1,0 +1,39 @@
+# Render Blueprint — MediCore RCM (Express + MySQL)
+# ใช้ได้ 2 แบบ:
+#   1) Blueprint: Render → New → Blueprint → เลือก repo (อ่านไฟล์นี้อัตโนมัติ)
+#   2) Manual:    New → Web Service → ตั้งค่าตามด้านล่างด้วยมือ
+#
+# ค่า secret (DB_PASSWORD / JWT_SECRET) ตั้ง sync:false → ต้องกรอกใน dashboard
+# ไม่เก็บลงไฟล์นี้ เพื่อไม่ให้ความลับหลุดเข้า git
+
+services:
+  - type: web
+    name: medicore-rcm
+    runtime: node
+    plan: free
+    region: singapore          # ใกล้ไทยสุด (ลด latency ไป DB)
+    branch: main
+    buildCommand: npm ci
+    startCommand: node src/server.js
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DB_HOST
+        sync: false
+      - key: DB_PORT
+        value: "3306"
+      - key: DB_USER
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: DB_NAME
+        sync: false
+      # ไม่ตั้ง = server ปฏิเสธการ start บน production (src/middleware/auth.js)
+      - key: JWT_SECRET
+        sync: false
+      - key: JWT_EXPIRES
+        value: 8h
+      # deny = บังคับสิทธิ์จริง | log = บันทึกว่าจะบล็อกอะไรแต่ปล่อยผ่าน (ใช้ตอน rollout)
+      - key: AUTH_ENFORCE
+        value: deny

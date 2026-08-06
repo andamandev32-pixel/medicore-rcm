@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<!-- =========================================================================
+  หน้าแรก — login overlay + hero + การ์ดโมดูล + ผังลำดับงาน
+  แม่แบบ: design-system/templates/page-landing.html (ของโปรเจค medicore_ipd)
+  ========================================================================= -->
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MediCore RCM — หน้าแรก</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+
+    <!-- ลำดับ CSS มาตรฐาน (ds-tokens ต้องมาก่อนเสมอ) -->
+    <link rel="stylesheet" href="css/ds-tokens.css">
+    <link rel="stylesheet" href="css/ds-base.css">
+    <link rel="stylesheet" href="css/ds-navbar.css">
+    <link rel="stylesheet" href="css/ds-layout.css">
+    <link rel="stylesheet" href="css/ds-components.css">
+    <link rel="stylesheet" href="css/ds-overlays.css">
+    <link rel="stylesheet" href="css/ds-landing.css">
+
+    <!-- ds-auth ต้องเป็น script แรก — มันห่อ window.fetch -->
+    <script src="js/ds/ds-auth.js"></script>
+</head>
+<body data-page="index">
+
+    <!-- ══════════ หน้าล็อกอิน ══════════ -->
+    <div class="login-overlay" id="loginOverlay">
+        <div class="login-card">
+            <div class="login-logo-wrap">
+                <div class="login-logo-mark">
+                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2"/>
+                        <rect x="8" y="2" width="8" height="4" rx="1"/>
+                        <path d="M12 11v4"/><path d="M10 13h4"/>
+                    </svg>
+                </div>
+                <div class="login-logo-text">
+                    <h1>MediCore</h1>
+                    <p>RCM</p>
+                </div>
+            </div>
+            <div class="login-divider"></div>
+            <div class="login-error" id="loginError" style="display:none"></div>
+            <form onsubmit="Landing.login(event)">
+                <label class="login-label">ชื่อผู้ใช้</label>
+                <input class="login-input" id="loginUser" value="admin" autocomplete="username">
+                <label class="login-label">รหัสผ่าน</label>
+                <input class="login-input" id="loginPass" type="password" value="10210" autocomplete="current-password">
+                <button class="login-btn" type="submit" id="loginBtn">เข้าสู่ระบบ</button>
+            </form>
+            <div class="login-footer">v1.0 · admin / doctor01 / nurse01 / pharmacist01</div>
+
+            <!-- ══ ทางเข้าโหมดนำเสนอ — ข้ามการล็อกอินได้ ══
+                 ต้นแบบและสไลด์ใช้ข้อมูลจำลองล้วน ไม่ยิง /api จึงไม่ต้องล็อกอิน
+                 จงใจวางไว้บนหน้านี้ เพราะการนำเสนอผู้บริหารต้องเปิดได้แม้ DB/เน็ตไม่พร้อม -->
+            <div class="login-divider"></div>
+            <div style="text-align:center">
+                <div style="font-size:11px;color:rgba(255,255,255,.55);margin-bottom:10px;letter-spacing:.04em">
+                    โหมดนำเสนอ — ไม่ต้องล็อกอิน
+                </div>
+                <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+                    <a href="present.html"
+                       style="flex:1;min-width:130px;display:inline-flex;align-items:center;justify-content:center;gap:6px;
+                              padding:9px 14px;border-radius:9px;text-decoration:none;font-size:12.5px;font-weight:700;
+                              background:var(--brand-amber);color:var(--brand-navy)">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M2 3h20"/><path d="M21 3v11a2 2 0 01-2 2H5a2 2 0 01-2-2V3"/><path d="M7 21l5-5 5 5"/>
+                        </svg>
+                        สไลด์นำเสนอ
+                    </a>
+                    <a href="claim-dashboard.html"
+                       style="flex:1;min-width:130px;display:inline-flex;align-items:center;justify-content:center;gap:6px;
+                              padding:9px 14px;border-radius:9px;text-decoration:none;font-size:12.5px;font-weight:700;
+                              background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.28)">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 14l4-4"/><path d="M3.34 19a10 10 0 1117.32 0"/>
+                        </svg>
+                        เข้าชมต้นแบบ
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════ เนื้อหาหลัก ══════════ -->
+    <div id="mainApp" style="display:none">
+
+        <nav id="appNavbar"></nav>
+
+        <div class="hero">
+            <div class="hero-inner">
+                <div class="hero-top">
+                    <div>
+                        <div class="hero-greeting" id="heroGreeting">สวัสดี — ยินดีต้อนรับ</div>
+                        <h1 class="hero-title">MediCore · <span>RCM</span></h1>
+                        <p class="hero-subtitle">โครงมาตรฐานสำหรับสร้างโมดูลใหม่ให้หน้าตาเหมือนกันทั้งระบบ</p>
+                    </div>
+                    <div class="hero-date-card">
+                        <div class="hero-clock" id="heroClock">--:--</div>
+                        <div class="hero-date" id="heroDate">วันนี้</div>
+                    </div>
+                </div>
+
+                <div class="hero-stats">
+                    <div class="hstat">
+                        <div class="hstat-val" id="stTotal">–</div>
+                        <div class="hstat-label">รายการทั้งหมด</div>
+                        <div class="hstat-badge badge-purple">ในระบบ</div>
+                    </div>
+                    <div class="hstat">
+                        <div class="hstat-val" id="stDraft">–</div>
+                        <div class="hstat-label">ร่าง</div>
+                        <div class="hstat-badge badge-blue">รอยืนยัน</div>
+                    </div>
+                    <div class="hstat">
+                        <div class="hstat-val" id="stUrgent">–</div>
+                        <div class="hstat-label">ด่วน</div>
+                        <div class="hstat-badge badge-red">ต้องรีบ</div>
+                    </div>
+                    <div class="hstat">
+                        <div class="hstat-val" id="stConfirmed">–</div>
+                        <div class="hstat-label">ยืนยันแล้ว</div>
+                        <div class="hstat-badge badge-green">สำเร็จ</div>
+                    </div>
+                    <div class="hstat">
+                        <div class="hstat-val" id="stDept">–</div>
+                        <div class="hstat-label">หน่วยงาน</div>
+                        <div class="hstat-badge badge-orange">Master</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="main">
+
+            <div class="sec-hd">
+                <div class="sec-title">โมดูลหลัก</div>
+                <div class="sec-sub">เลือกหมวดงานที่ต้องการ</div>
+            </div>
+
+            <div class="module-grid">
+
+                <!-- ══ โมดูลต้นแบบ Claim Intelligence — ข้อมูลจำลอง ยังไม่ผูก backend ══ -->
+                <div class="mod-card mod-c2">
+                    <div class="mod-color-bar"></div>
+                    <div class="mod-top">
+                        <div class="mod-icon-wrap">
+                            <i data-lucide="shield-check"></i>
+                            <div class="live-dot blue"></div>
+                        </div>
+                        <div class="mod-name">Claim Intelligence</div>
+                        <div class="mod-desc">ตรวจความพร้อมก่อนส่งเคลม · กฎ · องค์ความรู้ · งานและการอนุมัติ</div>
+                        <div class="mod-stat-row">
+                            <span class="mod-stat-num">8</span>
+                            <span class="mod-stat-label">หน้าจอตาม SRS</span>
+                        </div>
+                    </div>
+                    <div class="mod-sublinks">
+                        <a class="sub-link" href="claim-dashboard.html">ภาพรวมผู้บริหาร</a>
+                        <a class="sub-link" href="claim-worklist.html">คิวเคลม</a>
+                        <a class="sub-link" href="claim-rules.html">คลังกฎ</a>
+                        <a class="sub-link" href="claim-reject.html">วิเคราะห์การตีกลับ</a>
+                    </div>
+                </div>
+
+                <div class="mod-card mod-c4">
+                    <div class="mod-color-bar"></div>
+                    <div class="mod-top">
+                        <div class="mod-icon-wrap">
+                            <i data-lucide="hospital"></i>
+                            <div class="live-dot red"></div>
+                        </div>
+                        <div class="mod-name">ส่งเบิก NHSO</div>
+                        <div class="mod-desc">NHSO Digital Platform · Standard Dataset 15 แฟ้ม · Go-Live 16 ก.ย. 2569</div>
+                        <div class="mod-stat-row">
+                            <span class="mod-stat-num">6</span>
+                            <span class="mod-stat-label">ขั้นตอนของ สปสช.</span>
+                        </div>
+                    </div>
+                    <div class="mod-sublinks">
+                        <a class="sub-link" href="nhso-submit.html">รายการส่งเบิก</a>
+                        <a class="sub-link" href="nhso-import.html">นำเข้าข้อมูล / 15 แฟ้ม</a>
+                        <a class="sub-link" href="nhso-reports.html">รายงาน / Statement</a>
+                    </div>
+                </div>
+
+                <div class="mod-card mod-c3">
+                    <div class="mod-color-bar"></div>
+                    <div class="mod-top">
+                        <div class="mod-icon-wrap"><i data-lucide="presentation"></i></div>
+                        <div class="mod-name">สไลด์นำเสนอผู้บริหาร</div>
+                        <div class="mod-desc">ปัญหา · บริบท สปสช. · สองวงจร · สถาปัตยกรรม · แผน 4 ระยะ · ตัวชี้วัด</div>
+                        <div class="mod-stat-row">
+                            <span class="mod-stat-num">20</span>
+                            <span class="mod-stat-label">สไลด์</span>
+                        </div>
+                    </div>
+                    <div class="mod-sublinks">
+                        <a class="sub-link" href="present.html">เปิดสไลด์</a>
+                        <a class="sub-link" href="present.html#page-8">สไลด์สองวงจร</a>
+                        <a class="sub-link" href="present.html#page-17">แผนส่งมอบ</a>
+                    </div>
+                </div>
+
+                <div class="mod-card mod-c1">
+                    <div class="mod-color-bar"></div>
+                    <div class="mod-top">
+                        <div class="mod-icon-wrap">
+                            <i data-lucide="folder-open"></i>
+                            <div class="live-dot green"></div>
+                        </div>
+                        <div class="mod-name">ทะเบียนรายการ</div>
+                        <div class="mod-desc">เพิ่ม แก้ไข ยืนยัน และติดตามรายการงาน</div>
+                        <div class="mod-stat-row">
+                            <span class="mod-stat-num" id="modTotal">–</span>
+                            <span class="mod-stat-label">รายการ</span>
+                        </div>
+                    </div>
+                    <div class="mod-sublinks">
+                        <a class="sub-link" href="registry.html">รายการทั้งหมด</a>
+                        <a class="sub-link" href="registry-workspace.html">พื้นที่ทำงาน</a>
+                    </div>
+                </div>
+
+                <div class="mod-card mod-c2">
+                    <div class="mod-color-bar"></div>
+                    <div class="mod-top">
+                        <div class="mod-icon-wrap">
+                            <i data-lucide="check-square"></i>
+                            <div class="live-dot blue"></div>
+                        </div>
+                        <div class="mod-name">พื้นที่ทำงาน</div>
+                        <div class="mod-desc">หน้าจอ 3 คอลัมน์สำหรับงานที่ต้องดูรายการคู่กับรายละเอียด</div>
+                        <div class="mod-stat-row">
+                            <span class="mod-stat-num" id="modDraft">–</span>
+                            <span class="mod-stat-label">รอดำเนินการ</span>
+                        </div>
+                    </div>
+                    <div class="mod-sublinks">
+                        <a class="sub-link" href="registry-workspace.html">เปิดพื้นที่ทำงาน</a>
+                    </div>
+                </div>
+
+                <div class="mod-card mod-c4">
+                    <div class="mod-color-bar"></div>
+                    <div class="mod-top">
+                        <div class="mod-icon-wrap">
+                            <i data-lucide="alert-triangle"></i>
+                            <div class="live-dot red"></div>
+                        </div>
+                        <div class="mod-name">เรื่องด่วน</div>
+                        <div class="mod-desc">รายการที่ตั้งความเร่งด่วนไว้และยังไม่ปิด</div>
+                        <div class="mod-stat-row">
+                            <span class="mod-stat-num" id="modUrgent">–</span>
+                            <span class="mod-stat-label">รอดำเนินการ</span>
+                        </div>
+                    </div>
+                    <div class="mod-sublinks">
+                        <a class="sub-link" href="registry.html?priority=URGENT">ดูรายการ</a>
+                    </div>
+                </div>
+
+                <div class="mod-card mod-c3">
+                    <div class="mod-color-bar"></div>
+                    <div class="mod-top">
+                        <div class="mod-icon-wrap"><i data-lucide="bar-chart-3"></i></div>
+                        <div class="mod-name">รายงาน</div>
+                        <div class="mod-desc">สรุปผลการดำเนินงานและส่งออกเอกสาร</div>
+                        <div class="mod-stat-row">
+                            <span class="mod-stat-num" id="modDone">–</span>
+                            <span class="mod-stat-label">ปิดงานแล้ว</span>
+                        </div>
+                    </div>
+                    <div class="mod-sublinks">
+                        <a class="sub-link" href="registry.html?status=CONFIRMED">รายการที่ยืนยันแล้ว</a>
+                    </div>
+                </div>
+
+                <div class="mod-card mod-c5" data-role-gate="ADMIN">
+                    <div class="mod-color-bar"></div>
+                    <div class="mod-top">
+                        <div class="mod-icon-wrap"><i data-lucide="settings"></i></div>
+                        <div class="mod-name">ตั้งค่าระบบ</div>
+                        <div class="mod-desc">ผู้ใช้ สิทธิ์ และหน่วยงาน</div>
+                        <div class="mod-stat-row">
+                            <span class="mod-stat-num" id="modUsers">–</span>
+                            <span class="mod-stat-label">ผู้ใช้</span>
+                        </div>
+                    </div>
+                    <div class="mod-sublinks"><a class="sub-link" href="settings-users.html">ผู้ใช้และสิทธิ์</a></div>
+                </div>
+            </div>
+
+            <div class="sec-divider"></div>
+
+            <!-- ══════ ผังลำดับงาน — แก้ให้ตรงกับกระบวนการจริงของโปรเจคใหม่ ══════ -->
+            <div class="workflow-section">
+                <div class="wf-title-row">
+                    <div class="wf-title"><i data-lucide="git-branch" class="mi"></i> ลำดับงานหลัก</div>
+                    <span class="wf-badge">Workflow</span>
+                </div>
+
+                <div class="flow-track">
+                    <div class="fn-node">
+                        <a class="fn-box fn-c1" href="registry.html">
+                            <div class="fn-icon"><i data-lucide="clipboard-list"></i></div>
+                            <div class="fn-name">เพิ่มรายการ</div>
+                            <div class="fn-sub">Create</div>
+                        </a>
+                        <div class="flow-arrow-wrap">
+                            <div class="flow-arrow-line"></div>
+                            <div class="flow-arrow-lbl">ร่าง</div>
+                        </div>
+                    </div>
+                    <div class="fn-node">
+                        <a class="fn-box fn-c2" href="registry-workspace.html">
+                            <div class="fn-icon"><i data-lucide="search-check"></i></div>
+                            <div class="fn-name">ตรวจสอบ</div>
+                            <div class="fn-sub">Review</div>
+                        </a>
+                        <div class="flow-arrow-wrap">
+                            <div class="flow-arrow-line"></div>
+                            <div class="flow-arrow-lbl">เสนอ</div>
+                        </div>
+                    </div>
+                    <div class="fn-node">
+                        <a class="fn-box fn-c4" href="registry.html?status=DRAFT">
+                            <div class="fn-icon"><i data-lucide="pen-line"></i></div>
+                            <div class="fn-name">ยืนยัน</div>
+                            <div class="fn-sub">Confirm</div>
+                        </a>
+                        <div class="flow-arrow-wrap">
+                            <div class="flow-arrow-line"></div>
+                            <div class="flow-arrow-lbl">ปิดงาน</div>
+                        </div>
+                    </div>
+                    <div class="fn-node">
+                        <a class="fn-box fn-c8" href="registry.html?status=CONFIRMED">
+                            <div class="fn-icon"><i data-lucide="check-circle-2"></i></div>
+                            <div class="fn-name">เสร็จสิ้น</div>
+                            <div class="fn-sub">Done</div>
+                        </a>
+                    </div>
+                </div>
+
+                <div class="flow-steps">
+                    <div class="flow-step"><span class="flow-step-num">1</span> ผู้ปฏิบัติงานเพิ่มรายการเป็นร่าง</div>
+                    <div class="flow-step"><span class="flow-step-num">2</span> ตรวจสอบความครบถ้วนในพื้นที่ทำงาน</div>
+                    <div class="flow-step"><span class="flow-step-num">3</span> ผู้มีสิทธิ์ยืนยัน (แพทย์/ผู้ดูแลระบบ)</div>
+                    <div class="flow-step"><span class="flow-step-num">4</span> ยืนยันแล้วแก้ไม่ได้ — ทุกการกระทำถูกบันทึกใน audit log</div>
+                </div>
+            </div>
+
+            <div class="bottom-grid">
+                <div class="panel">
+                    <div class="panel-title"><i data-lucide="zap" class="mi"></i> ทางลัด</div>
+                    <div class="quick-grid">
+                        <a class="quick-item" href="registry.html">
+                            <span class="quick-item-icon"><i data-lucide="list"></i></span> รายการ
+                        </a>
+                        <a class="quick-item" href="registry-workspace.html">
+                            <span class="quick-item-icon"><i data-lucide="columns-3"></i></span> พื้นที่ทำงาน
+                        </a>
+                        <a class="quick-item" href="settings-users.html" data-role-gate="ADMIN">
+                            <span class="quick-item-icon"><i data-lucide="users"></i></span> ผู้ใช้
+                        </a>
+                        <a class="quick-item" href="_template.html">
+                            <span class="quick-item-icon"><i data-lucide="file-plus"></i></span> แม่แบบหน้าใหม่
+                        </a>
+                        <a class="quick-item" href="showcase.html">
+                            <span class="quick-item-icon"><i data-lucide="palette"></i></span> Showcase
+                        </a>
+                        <a class="quick-item" href="registry.html?priority=URGENT">
+                            <span class="quick-item-icon"><i data-lucide="alert-triangle"></i></span> เรื่องด่วน
+                        </a>
+                        <a class="quick-item" href="registry.html?status=CONFIRMED">
+                            <span class="quick-item-icon"><i data-lucide="check-circle-2"></i></span> ยืนยันแล้ว
+                        </a>
+                        <a class="quick-item" href="registry-nursing.html">
+                            <span class="quick-item-icon"><i data-lucide="clipboard-list"></i></span> บันทึกงาน
+                        </a>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-title"><i data-lucide="activity" class="mi"></i> รายการล่าสุด</div>
+                    <div id="recentList">
+                        <div class="ds-empty-sm">กำลังโหลด...</div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <div id="toastContainer" class="toast-container"></div>
+
+    <script src="js/ds/ds-icons.js"></script>
+    <script src="js/ds/ds-navbar.js"></script>
+    <script src="js/ds/ds-drawer.js"></script>
+    <script src="js/ds/ds-toast.js"></script>
+    <script src="js/landing.js"></script>
+</body>
+</html>

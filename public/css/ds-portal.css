@@ -1,0 +1,232 @@
+/* ============================================================
+   MediCore Design System — PORTAL (หน้า home ของแต่ละบทบาท)
+   hero · KPI grid · section card · list item · ปฏิทินรายสัปดาห์
+
+   โหลดต่อท้ายชุดมาตรฐาน — เฉพาะหน้า portal เท่านั้น
+   ------------------------------------------------------------
+   ⚠️ หน้านี้เป็น "ธีมย่อย" โดยตั้งใจ
+      หน้าอื่นในระบบใช้ navy + amber เป็นสี action
+      หน้า portal ใช้ navy + น้ำเงิน --primary + ส้ม --accent แทน
+      เพราะเป็นหน้ารวมงานที่ต้องมีปุ่มเยอะ — amber จัดจ้านเกินจนอ่านลำดับความสำคัญไม่ออก
+      สีที่ทับอยู่ในไฟล์นี้จำกัดขอบเขตด้วย .dp-* / .dp-wrap ไม่หลุดไปหน้าอื่น
+   ============================================================ */
+
+.dp-wrap {
+    max-width: var(--content-max);
+    margin: 0 auto;
+    padding: 20px 24px 60px;
+}
+
+/* ══════════════ HERO ══════════════ */
+.dp-hero {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; margin-bottom: 16px; padding: 14px 18px;
+    background: linear-gradient(135deg, var(--brand-navy) 0%, var(--brand-navy-700) 100%);
+    color: var(--brand-navy-on);
+    border-radius: var(--r-lg);
+    box-shadow: var(--sip-shadow-2);
+}
+.dp-hero-left { display: flex; flex-direction: column; gap: 2px; }
+.dp-hero h1 {
+    font-size: 18px; font-weight: 800;
+    display: flex; align-items: center; gap: 8px;
+}
+.dp-hero h1 [data-lucide] { color: var(--accent); width: 22px; height: 22px; }
+.dp-hero-sub { font-size: 12px; opacity: .75; }
+.dp-hero-clock {
+    font-family: var(--font-mono); font-size: 22px; font-weight: 700;
+    color: var(--accent);
+}
+.dp-hero-actions { display: flex; align-items: center; gap: 10px; }
+
+/* ══════════════ KPI GRID ══════════════
+   ใช้ .sip-kpi เดิม แต่ย่อขนาดและเปลี่ยน accent เป็นน้ำเงิน */
+.dp-kpi-grid {
+    display: grid; grid-template-columns: repeat(5, 1fr);
+    gap: 10px; margin-bottom: 18px;
+}
+.dp-kpi-grid .sip-kpi { padding: 12px 14px; gap: 2px; cursor: pointer; }
+.dp-kpi-grid .sip-kpi-value { font-size: 22px; }
+.dp-kpi-grid .sip-kpi-label { font-size: 11px; }
+.dp-kpi-grid .sip-kpi-icon  { color: var(--primary); }
+.dp-kpi-grid .sip-kpi:hover {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(0, 104, 255, .18);
+}
+.dp-kpi-grid .sip-kpi.critical .sip-kpi-icon { color: var(--status-danger); }
+
+@media (max-width: 1100px) { .dp-kpi-grid { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 640px)  { .dp-kpi-grid { grid-template-columns: repeat(2, 1fr); } }
+
+/* ══════════════ ROW / SECTION ══════════════ */
+.dp-row {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 14px; margin-bottom: 14px;
+}
+.dp-row.full { grid-template-columns: 1fr; }
+@media (max-width: 900px) { .dp-row { grid-template-columns: 1fr; } }
+
+.dp-section {
+    background: var(--brand-white);
+    border: 1px solid var(--brand-border);
+    border-radius: var(--r-lg);
+    padding: 14px;
+    display: flex; flex-direction: column;
+    min-height: 200px;
+}
+.dp-section-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 10px; padding-bottom: 10px;
+    border-bottom: 1px solid var(--brand-border);
+}
+.dp-section-title {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 14px; font-weight: 700; color: var(--brand-navy);
+}
+.dp-section-title [data-lucide] { width: 18px; height: 18px; color: var(--primary); }
+.dp-section-count {
+    background: var(--primary-bg); color: var(--primary);
+    border: 1px solid var(--primary-border);
+    font-size: 11px; font-weight: 700;
+    padding: 2px 8px; border-radius: var(--r-pill);
+}
+/* max-height: การ์ดสูงเท่ากันทั้งแถว รายการยาวเลื่อนในตัวเอง ไม่ดันหน้ายาว */
+.dp-section-body { flex: 1; overflow-y: auto; max-height: 380px; }
+
+.dp-empty {
+    padding: 24px 12px; text-align: center;
+    color: var(--brand-navy-500); font-size: 12px; font-style: italic;
+}
+
+/* ══════════════ LIST ITEM ══════════════ */
+.dp-list-item {
+    display: flex; gap: 10px; align-items: flex-start;
+    padding: 10px;
+    border-left: 3px solid var(--brand-border-strong);
+    background: var(--brand-bg);
+    border-radius: var(--r-md);
+    margin-bottom: 6px; cursor: pointer;
+    transition: all 120ms;
+}
+.dp-list-item:hover {
+    background: var(--primary-bg);
+    border-left-color: var(--primary);
+    box-shadow: var(--sip-shadow-1);
+}
+.dp-list-item.urgent   { border-left-color: var(--status-warning); }
+.dp-list-item.critical { border-left-color: var(--status-danger); }
+.dp-list-item.done     { opacity: .65; border-left-color: var(--status-success); }
+.dp-list-item.overdue  { border-left-color: var(--status-danger); background: var(--status-danger-soft); }
+
+.dp-li-icon {
+    width: 32px; height: 32px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--primary-bg); border-radius: 50%; color: var(--primary);
+}
+.dp-li-body  { flex: 1; min-width: 0; }
+.dp-li-title { font-weight: 600; font-size: 13px; color: var(--brand-navy); margin-bottom: 2px; }
+.dp-li-meta  { font-size: 11px; color: var(--brand-navy-500); margin-top: 2px; }
+.dp-li-action{ display: flex; gap: 6px; margin-top: 6px; }
+
+/* ══════════════ ปฏิทินรายสัปดาห์ ══════════════ */
+.dp-calendar {
+    background: var(--brand-white);
+    border: 1px solid var(--brand-border);
+    border-radius: var(--r-lg);
+    padding: 14px; margin-bottom: 14px;
+}
+.dp-cal-toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+.dp-cal-nav { display: flex; gap: 4px; }
+.dp-cal-week-label { font-weight: 700; color: var(--brand-navy); font-size: 14px; }
+.dp-cal-filters { display: flex; gap: 6px; flex-wrap: wrap; font-size: 11px; }
+.dp-cal-filter {
+    display: inline-flex; align-items: center; gap: 3px;
+    padding: 2px 8px; border-radius: var(--r-pill);
+    border: 1px solid var(--brand-border-strong);
+    background: var(--brand-white); cursor: pointer; user-select: none;
+}
+.dp-cal-filter.active {
+    background: var(--primary-bg); border-color: var(--primary);
+    color: var(--primary-dark); font-weight: 600;
+}
+.dp-cal-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+
+/* เส้นตารางทำด้วย gap 1px บนพื้นสีขอบ — ไม่ต้องจัดการ border ซ้อนของแต่ละเซลล์ */
+.dp-cal-week-grid {
+    display: grid; grid-template-columns: 60px repeat(7, 1fr);
+    gap: 1px;
+    background: var(--brand-border);
+    border: 1px solid var(--brand-border);
+    border-radius: var(--r-md); overflow: hidden;
+}
+.dp-cal-week-grid > div { background: var(--brand-white); font-size: 11px; padding: 4px; min-height: 30px; }
+.dp-cal-day-header {
+    background: var(--brand-navy) !important; color: var(--brand-navy-on);
+    font-weight: 600; text-align: center; padding: 6px 4px !important;
+}
+.dp-cal-day-header.today { background: var(--primary) !important; color: #fff; }
+.dp-cal-time-label {
+    background: var(--brand-bg) !important; color: var(--brand-navy-500);
+    font-size: 10px; display: flex; align-items: center; justify-content: flex-end;
+    padding-right: 6px !important;
+}
+.dp-cal-cell { min-height: 36px; position: relative; }
+.dp-cal-event {
+    font-size: 10px; font-weight: 600;
+    padding: 3px 5px; border-radius: 4px;
+    border-left: 3px solid; margin-bottom: 1px; cursor: pointer;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* สีประจำประเภทกิจกรรม — เปลี่ยนชื่อ/เพิ่มได้ตามโดเมนของโปรเจค */
+.evt-type-1 { background: #dbeafe; border-left-color: #3b82f6; color: #1e40af; }
+.evt-type-2 { background: #dcfce7; border-left-color: #16a34a; color: #14532d; }
+.evt-type-3 { background: #fce7f3; border-left-color: #db2777; color: #831843; }
+.evt-type-4 { background: #fef3c7; border-left-color: #f59e0b; color: #78350f; }
+.evt-type-5 { background: #e9d5ff; border-left-color: #9333ea; color: #581c87; }
+.evt-type-6 { background: #fee2e2; border-left-color: #dc2626; color: #7f1d1d; }
+.evt-type-7 { background: #cffafe; border-left-color: #0891b2; color: #164e63; }
+.evt-type-8 { background: #f3f4f6; border-left-color: #6b7280; color: #1f2937; }
+
+/* ══════════════ ปุ่มเล็กในการ์ด ══════════════ */
+.dp-btn-sm {
+    padding: 3px 8px; font-size: 11px; border-radius: 6px; cursor: pointer;
+    border: 1px solid var(--brand-border-strong);
+    background: var(--brand-white); color: var(--brand-navy-500);
+    font-family: inherit;
+}
+.dp-btn-sm:hover { border-color: var(--primary); background: var(--primary-bg); color: var(--primary-dark); }
+.dp-btn-sm.primary { background: var(--primary); border-color: var(--primary-dark); color: #fff; font-weight: 600; }
+.dp-btn-sm.primary:hover { background: var(--primary-dark); color: #fff; }
+.dp-btn-sm.accent  { background: var(--accent); border-color: var(--accent-dark); color: #fff; font-weight: 600; }
+.dp-btn-sm.accent:hover { background: var(--accent-dark); color: #fff; }
+.dp-btn-sm.danger  { background: var(--status-danger-soft); border-color: var(--status-danger); color: var(--status-danger-strong); }
+
+/* ══════════════ badge กำหนดเวลา (SLA) ══════════════ */
+.dp-chip-sla {
+    display: inline-flex; align-items: center; gap: 3px;
+    padding: 1px 6px; font-size: 10px; font-weight: 600;
+    border-radius: var(--r-pill); border: 1px solid currentColor;
+}
+.dp-chip-sla.ok      { color: var(--status-success-strong); background: var(--status-success-soft); }
+.dp-chip-sla.near    { color: var(--status-warning-strong); background: var(--status-warning-soft); }
+.dp-chip-sla.over    { color: var(--status-danger-strong);  background: var(--status-danger-soft); }
+.dp-chip-sla.replied { color: var(--status-info-strong);    background: var(--status-info-soft); }
+
+/* chip amber ของชุดมาตรฐาน → โทนส้ม accent ให้เข้ากับธีมหน้านี้ */
+.dp-wrap .sip-chip-amber {
+    color: var(--accent-dark); background: #fff2e8; border-color: var(--accent);
+}
+
+/* ══════════════ ฟอร์มใน drawer ตั้งค่าส่วนตัว ══════════════ */
+.dps-group { margin-bottom: 18px; }
+.dps-group-title {
+    font-size: 13px; font-weight: 700; color: var(--brand-navy);
+    margin-bottom: 8px; padding-bottom: 6px;
+    border-bottom: 1px solid var(--brand-border);
+}
+.dps-field { margin-bottom: 10px; }
+.dps-label { display: block; font-size: 12px; font-weight: 600; color: var(--brand-navy-500); margin-bottom: 4px; }
+.dps-row2  { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.dps-hint  { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
+.dps-check { display: flex; align-items: center; gap: 6px; font-size: 13px; margin-bottom: 6px; }

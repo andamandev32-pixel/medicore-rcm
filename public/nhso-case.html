@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<!-- =========================================================================
+  ส่งเบิก NHSO — รายละเอียดรายการที่นำเข้า
+  แท็บ 7 แท็บและ sub-tab ทั้งหมดตรงตามหน้าจอจริงของ NHSO Digital Platform
+  (doc/โครงการ NHSO Digital Platform_Commu_03082026_V4.pdf สไลด์ 20–36)
+
+  ⚠️ หน้าต้นแบบ: ข้อมูลจำลองล้วน ไม่เรียก /api จึงไม่ gate ด้วย Auth.requireLogin()
+  ========================================================================= -->
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MediCore RCM — รายละเอียดรายการส่งเบิก</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+
+    <link rel="stylesheet" href="css/ds-tokens.css">
+    <link rel="stylesheet" href="css/ds-base.css">
+    <link rel="stylesheet" href="css/ds-navbar.css">
+    <link rel="stylesheet" href="css/ds-layout.css">
+    <link rel="stylesheet" href="css/ds-components.css">
+    <link rel="stylesheet" href="css/ds-overlays.css">
+    <link rel="stylesheet" href="css/ds-print.css">
+    <link rel="stylesheet" href="css/ds-chart.css">
+
+    <script src="js/ds/ds-auth.js"></script>
+</head>
+<body data-page="nhso-case" class="ds-shell-page">
+
+    <nav id="appNavbar"></nav>
+
+    <div class="ds-shell cols-2" id="shell">
+
+        <aside class="ds-pane-left" id="paneLeft">
+            <div class="ds-pane-header">
+                <h3><i data-lucide="hospital" class="mi"></i> รายการส่งเบิก</h3>
+                <span class="ds-pane-count" id="listCount">0 รายการ</span>
+            </div>
+            <div class="ds-pilltabs" id="pillTabs"></div>
+            <input type="text" class="ds-pane-search" id="listSearch"
+                   placeholder="ค้นหา SEQ / HN / ชื่อ..." oninput="NhsoCase.renderList()">
+            <div class="ds-pane-scroll" id="listContainer"></div>
+        </aside>
+
+        <main class="ds-pane-main" id="paneMain">
+
+            <div class="ds-empty-state" id="emptyState">
+                <div class="ds-empty-state-icon"><i data-lucide="mouse-pointer-click"></i></div>
+                <div class="ds-empty-state-title">เลือกรายการจากด้านซ้าย</div>
+                <div class="ds-empty-state-desc">เพื่อดูข้อมูลการเบิกและผลการตรวจสอบจาก สปสช.</div>
+            </div>
+
+            <div id="detailWrap" style="display:none">
+
+                <div class="ds-context-bar">
+                    <button class="ds-pane-toggle" onclick="NhsoCase.toggleLeft()" title="ซ่อน/แสดงรายการ">
+                        <i data-lucide="menu" class="mi"></i>
+                    </button>
+                    <div class="ds-context-avatar" id="ctxAvatar">–</div>
+                    <div class="ds-context-info">
+                        <div class="ds-context-name">
+                            <span id="ctxName">—</span>
+                            <span id="ctxChip"></span>
+                        </div>
+                        <div class="ds-context-meta" id="ctxMeta"></div>
+                    </div>
+                    <div class="ds-context-aside">
+                        <div class="ds-alert-card" id="ctxAlert" style="display:none" onclick="NhsoCase.switchTab('check')">
+                            <i data-lucide="alert-triangle" class="ac-ico"></i>
+                            <div class="ac-body">
+                                <span class="ac-label">ผลการตรวจสอบ</span>
+                                <strong id="ctxAlertText">—</strong>
+                            </div>
+                            <i data-lucide="eye" class="ac-view"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="padding:12px 16px 24px">
+
+                    <div id="preBanner"></div>
+                    <div id="refStrip"></div>
+
+                    <div class="ds-tabs" id="tabBar"></div>
+                    <div id="tabContent"></div>
+                </div>
+            </div>
+        </main>
+
+    </div>
+
+    <div id="toastContainer" class="toast-container"></div>
+
+    <script src="js/ds/ds-icons.js"></script>
+    <script src="js/ds/ds-navbar.js"></script>
+    <script src="js/ds/ds-drawer.js"></script>
+    <script src="js/ds/ds-toast.js"></script>
+    <script src="js/ds/ds-doc-parts.js"></script>
+    <script src="js/ds/ds-doc-print.js"></script>
+
+    <script src="js/mock/mock-core.js"></script>
+    <script src="js/mock/mock-session.js"></script>
+    <script src="js/mock/mock-admin.js"></script>
+    <script src="js/mock/mock-nhso.js"></script>
+    <script src="js/mock/mock-claims.js"></script>
+
+    <script src="js/nhso-case.js"></script>
+</body>
+</html>

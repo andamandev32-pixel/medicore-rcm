@@ -1,0 +1,118 @@
+/* ============================================================
+   MediCore Design System — CHART & METER
+   ------------------------------------------------------------
+   แถบวัดแบบ CSS (ไม่ใช้ JS) + เปลือกของกราฟ inline SVG
+
+   โหลดเพิ่มเฉพาะหน้าที่มีกราฟ — ต่อท้าย ds-print.css
+     <link rel="stylesheet" href="css/ds-chart.css">
+
+   สีทั้งหมดอ้าง token จาก ds-tokens.css เท่านั้น ห้ามใส่ hex ตรง
+   ============================================================ */
+
+/* ══════════════════════════════════════════════════════════
+   1. แถบวัดแบบ CSS — ไม่มี JS ไม่มี reflow listener
+   ══════════════════════════════════════════════════════════ */
+
+/* (ก) .ds-riskbar — คะแนนความเสี่ยงในตาราง (แคบ อยู่ในเซลล์ได้) */
+.ds-riskbar {
+    display: inline-flex; align-items: center; gap: 6px;
+    min-width: 92px; vertical-align: middle;
+}
+.ds-riskbar-track {
+    flex: 1; height: 6px; border-radius: 999px;
+    background: var(--surface-2); overflow: hidden;
+}
+.ds-riskbar-fill {
+    display: block; height: 100%; border-radius: 999px;
+    background: var(--status-success);
+}
+.ds-riskbar.mid  .ds-riskbar-fill { background: var(--status-warning); }
+.ds-riskbar.high .ds-riskbar-fill { background: var(--status-danger); }
+.ds-riskbar-num {
+    font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums;
+    color: var(--text-secondary); min-width: 20px; text-align: right;
+}
+.ds-riskbar.mid  .ds-riskbar-num { color: var(--status-warning-strong); }
+.ds-riskbar.high .ds-riskbar-num { color: var(--status-danger-strong); }
+
+/* (ข) .ds-hbar — แถบแนวนอนเรียงอันดับ (Pareto, Hit Rate, ความครบ Mapping) */
+.ds-hbar {
+    display: flex; align-items: center; gap: 8px;
+    min-width: 120px;
+}
+.ds-hbar-track {
+    flex: 1; height: 10px; border-radius: 4px;
+    background: var(--surface-1); overflow: hidden;
+}
+.ds-hbar-fill {
+    display: block; height: 100%; border-radius: 4px;
+    background: var(--primary);
+}
+.ds-hbar.success .ds-hbar-fill { background: var(--status-success); }
+.ds-hbar.warning .ds-hbar-fill { background: var(--status-warning); }
+.ds-hbar.danger  .ds-hbar-fill { background: var(--status-danger); }
+.ds-hbar.accent  .ds-hbar-fill { background: var(--purple); }
+.ds-hbar-num {
+    font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums;
+    color: var(--text-secondary); min-width: 44px; text-align: right;
+}
+
+/* (ค) แถวรายการ Pareto — ป้าย + แถบ + ค่า + % สะสม */
+.ds-pareto { display: flex; flex-direction: column; gap: 10px; }
+.ds-pareto-row { display: grid; grid-template-columns: 1fr 2fr auto; gap: 12px; align-items: center; }
+.ds-pareto-label { font-size: 12px; color: var(--text-primary); font-weight: 600;
+                   overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ds-pareto-label small { display: block; font-weight: 400; font-size: 11px; color: var(--text-muted); }
+.ds-pareto-cum { font-size: 11px; color: var(--text-muted); font-variant-numeric: tabular-nums;
+                 min-width: 62px; text-align: right; }
+
+/* ══════════════════════════════════════════════════════════
+   2. เปลือกกราฟ inline SVG
+   ══════════════════════════════════════════════════════════ */
+.ds-chart { width: 100%; }
+.ds-chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+.ds-chart-axis   { font-size: 10px; fill: var(--text-muted); }
+.ds-chart-grid   { stroke: var(--brand-border); stroke-width: 1; }
+.ds-chart-value  { font-size: 10px; font-weight: 700; fill: var(--text-secondary); }
+
+/* คำอธิบายสี — บังคับมีทุกกราฟ ห้ามสื่อความหมายด้วยสีอย่างเดียว */
+.ds-chart-legend {
+    display: flex; flex-wrap: wrap; gap: 6px 18px;
+    margin-top: 12px; padding: 0; list-style: none;
+}
+.ds-chart-legend li {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 11px; color: var(--text-secondary);
+}
+.ds-chart-legend .sw {
+    width: 10px; height: 10px; border-radius: 3px; flex: none;
+    background: var(--slate);
+}
+.ds-chart-legend b { font-weight: 700; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+
+/* หัวข้อย่อยเหนือกราฟ */
+.ds-chart-caption { font-size: 11px; color: var(--text-muted); margin-bottom: 10px; }
+
+/* ══════════════════════════════════════════════════════════
+   3. แถบตัวเลขเปรียบเทียบ (ก่อน → หลัง)
+   ══════════════════════════════════════════════════════════ */
+.ds-stat-delta {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 11px; font-weight: 700; padding: 1px 6px; border-radius: 999px;
+}
+.ds-stat-delta.up   { color: var(--status-success-strong); background: var(--status-success-soft); }
+.ds-stat-delta.down { color: var(--status-danger-strong);  background: var(--status-danger-soft); }
+.ds-stat-delta.flat { color: var(--text-muted);            background: var(--surface-1); }
+
+/* ══════════════════════════════════════════════════════════
+   4. พิมพ์ — บังคับให้พื้นหลังของแถบออกกระดาษจริง
+   ══════════════════════════════════════════════════════════ */
+@media print {
+    .ds-riskbar-track, .ds-riskbar-fill,
+    .ds-hbar-track, .ds-hbar-fill,
+    .ds-chart-legend .sw, .ds-stat-delta {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+    .ds-chart svg { page-break-inside: avoid; }
+}

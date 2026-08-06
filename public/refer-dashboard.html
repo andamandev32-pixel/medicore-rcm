@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<!-- =========================================================================
+  ภาพรวมการส่งต่อผู้ป่วย (Referral Dashboard)
+  ส่งไปที่ไหน · จำนวนเงิน · รายการโรค — 3 คำถามหลักของผู้บริหาร
+
+  โครงหน้า: doc/PAGE-GUIDE.md §3(ก) · KPI explain drawer ลอกจาก claim-dashboard.js
+  ⚠️ ตัวเลขและชุดกราฟทุกตัว derive จาก MockRefer ห้าม hardcode (§7B บรรทัด 345)
+  ========================================================================= -->
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>MediCore RCM — ภาพรวมการส่งต่อ</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+
+    <link rel="stylesheet" href="css/ds-tokens.css">
+    <link rel="stylesheet" href="css/ds-base.css">
+    <link rel="stylesheet" href="css/ds-navbar.css">
+    <link rel="stylesheet" href="css/ds-layout.css">
+    <link rel="stylesheet" href="css/ds-components.css">
+    <link rel="stylesheet" href="css/ds-overlays.css">
+    <link rel="stylesheet" href="css/ds-print.css">
+    <link rel="stylesheet" href="css/ds-portal.css">
+    <link rel="stylesheet" href="css/ds-chart.css">
+
+    <script src="js/ds/ds-auth.js"></script>
+</head>
+<body data-page="refer-dashboard">
+
+    <nav id="appNavbar"></nav>
+
+    <div class="page-container">
+
+        <div id="demoBanner"></div>
+
+        <div class="page-header">
+            <div>
+                <div class="page-title">
+                    <i data-lucide="gauge" class="mi"></i>
+                    <span>ภาพรวมการส่งต่อผู้ป่วย</span>
+                </div>
+                <div class="page-subtitle">
+                    ส่งไปที่ไหน · เป็นเงินเท่าไร · โรคอะไร — และภาระผูกพันที่ยังไม่ปรากฏในบัญชี
+                </div>
+            </div>
+            <div class="section-actions">
+                <select class="sip-select" id="fDir" style="width:170px" onchange="ReferDash.render()">
+                    <option value="all">ทั้งสองทิศทาง</option>
+                    <option value="OUT">ส่งต่อออก (ตามจ่าย)</option>
+                    <option value="IN">รับส่งต่อเข้า (เรียกเก็บ)</option>
+                </select>
+                <select class="sip-select" id="fFund" style="width:130px" onchange="ReferDash.render()">
+                    <option value="all">ทุกกองทุน</option>
+                </select>
+                <button class="btn btn-outline" onclick="ReferDash.openPrint()">
+                    <i data-lucide="printer" class="icon-sm"></i> พิมพ์สรุป
+                </button>
+                <button class="btn btn-primary" onclick="location.href='refer-worklist.html'">
+                    <i data-lucide="list-checks" class="icon-sm"></i> ไปที่ทะเบียนส่งต่อ
+                </button>
+            </div>
+        </div>
+
+        <div class="ds-kpi-grid" id="kpiGrid"></div>
+
+        <!-- ══ ส่งไปที่ไหน ══ -->
+        <div class="section-card" style="margin-top:16px">
+            <div class="section-header">
+                <div class="section-title"><i data-lucide="map-pin" class="mi"></i> ส่งไปที่ไหน</div>
+                <div class="section-actions">
+                    <span class="td-sub" id="destScope">—</span>
+                </div>
+            </div>
+            <div id="chartDest"></div>
+            <div class="table-responsive" style="margin-top:10px">
+                <table class="data-table compact">
+                    <thead><tr>
+                        <th>คู่สัญญา</th><th style="width:1%">ระดับ</th>
+                        <th style="width:1%;text-align:right">จำนวน</th>
+                        <th style="width:1%;text-align:right">มูลค่า (บาท)</th>
+                        <th style="width:1%;text-align:right">ชำระแล้ว</th>
+                        <th style="width:1%">สัดส่วน</th>
+                        <th style="width:1%">MOU</th>
+                        <th style="width:1%">วันเฉลี่ยปิดยอด</th>
+                    </tr></thead>
+                    <tbody id="destRows"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ══ จำนวนเงิน ══ -->
+        <div class="cards-row" style="margin-top:16px">
+            <div class="section-card">
+                <div class="section-header">
+                    <div class="section-title"><i data-lucide="banknote" class="mi"></i> จำนวนเงินรายงวด</div>
+                    <div class="section-actions">
+                        <button class="btn btn-outline btn-sm" onclick="location.href='refer-billing.html'">
+                            <i data-lucide="external-link" class="icon-sm"></i> ดูใบเรียกเก็บ</button>
+                    </div>
+                </div>
+                <div id="chartMoney"></div>
+                <div class="ds-note" style="margin-top:8px">
+                    <i data-lucide="info" class="icon-sm"></i>
+                    AP = ปลายทางเรียกเก็บมาที่เรา · AR = เราออกไปเรียกเก็บ —
+                    ยอดนี้กระทบกับรายงานพึงรับ–พึงจ่ายของ สปสช. ได้
+                </div>
+            </div>
+            <div class="section-card">
+                <div class="section-header">
+                    <div class="section-title"><i data-lucide="hourglass" class="mi"></i> อายุหนี้คงค้าง</div>
+                </div>
+                <div id="chartAging"></div>
+            </div>
+        </div>
+
+        <!-- ══ รายการโรค ══ -->
+        <div class="cards-row" style="margin-top:16px">
+            <div class="section-card">
+                <div class="section-header">
+                    <div class="section-title"><i data-lucide="stethoscope" class="mi"></i>
+                        รายการโรคที่ส่งต่อ (10 อันดับ)</div>
+                    <div class="section-actions"><span class="td-sub">นับจากการวินิจฉัยหลัก</span></div>
+                </div>
+                <div class="table-responsive">
+                    <table class="data-table compact">
+                        <thead><tr>
+                            <th style="width:1%">ICD-10</th><th>ชื่อโรค</th>
+                            <th style="width:1%">จำนวน</th>
+                            <th style="width:1%;text-align:right">มูลค่า (บาท)</th>
+                            <th style="width:1%">ปลายทางหลัก</th>
+                        </tr></thead>
+                        <tbody id="dxRows"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="section-card">
+                <div class="section-header">
+                    <div class="section-title"><i data-lucide="pie-chart" class="mi"></i> กลุ่มโรค</div>
+                </div>
+                <div id="chartDxGroup"></div>
+                <div class="ds-section-label" style="margin-top:12px">เหตุผลการส่งต่อ</div>
+                <div id="chartReason"></div>
+            </div>
+        </div>
+
+        <!-- ══ ความเสี่ยง ══ -->
+        <div class="cards-row" style="margin-top:16px">
+            <div class="section-card">
+                <div class="section-header">
+                    <div class="section-title"><i data-lucide="alert-triangle" class="mi"></i>
+                        ธงความเสี่ยงที่ตรวจพบ</div>
+                </div>
+                <div id="chartRisk"></div>
+                <div class="table-responsive" style="margin-top:10px">
+                    <table class="data-table compact">
+                        <thead><tr><th style="width:1%">รหัสธง</th><th>ประเด็น</th>
+                            <th style="width:1%">จำนวน</th>
+                            <th style="width:1%;text-align:right">มูลค่าเสี่ยง (บาท)</th></tr></thead>
+                        <tbody id="riskRows"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="section-card">
+                <div class="section-header">
+                    <div class="section-title"><i data-lucide="list-ordered" class="mi"></i>
+                        10 รายการที่เสี่ยงที่สุด</div>
+                </div>
+                <div class="table-responsive">
+                    <table class="data-table compact">
+                        <thead><tr><th style="width:1%">รหัส</th><th>ผู้ป่วย / คู่สัญญา</th>
+                            <th style="width:1%">ธง</th>
+                            <th style="width:1%;text-align:right">เสี่ยง (บาท)</th></tr></thead>
+                        <tbody id="topRiskRows"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div id="toastContainer" class="toast-container"></div>
+
+    <script src="js/ds/ds-icons.js"></script>
+    <script src="js/ds/ds-navbar.js"></script>
+    <script src="js/ds/ds-drawer.js"></script>
+    <script src="js/ds/ds-toast.js"></script>
+    <script src="js/ds/ds-doc-parts.js"></script>
+    <script src="js/ds/ds-doc-print.js"></script>
+    <script src="js/ds/ds-chart.js"></script>
+
+    <script src="js/mock/mock-core.js"></script>
+    <script src="js/mock/mock-session.js"></script>
+    <script src="js/mock/mock-admin.js"></script>
+    <script src="js/mock/mock-nhso.js"></script>
+    <script src="js/mock/mock-claims.js"></script>
+    <script src="js/mock/mock-referrals.js"></script>
+    <script src="js/mock/mock-tasks.js"></script>
+
+    <script src="js/refer-dashboard.js"></script>
+</body>
+</html>

@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<!-- =========================================================================
+  ตามจ่าย / เรียกเก็บการส่งต่อ (Referral AP–AR)
+  AP = ปลายทางเรียกเก็บมาที่เรา · AR = เราออกไปเรียกเก็บต้นทาง/สปสช.
+
+  โครงหน้า: doc/PAGE-GUIDE.md §3(ก)
+  แถบอายุหนี้ทำจาก .sip-kpi 4 ตัวใน .ds-kpi-grid ที่สอง — ไม่มี CSS ใหม่
+
+  ⚠️ หน้าต้นแบบ: ข้อมูลจำลองล้วน ไม่เรียก /api จึงไม่ gate ด้วย Auth.requireLogin()
+  ========================================================================= -->
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>MediCore RCM — ตามจ่าย / เรียกเก็บ</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+
+    <link rel="stylesheet" href="css/ds-tokens.css">
+    <link rel="stylesheet" href="css/ds-base.css">
+    <link rel="stylesheet" href="css/ds-navbar.css">
+    <link rel="stylesheet" href="css/ds-layout.css">
+    <link rel="stylesheet" href="css/ds-components.css">
+    <link rel="stylesheet" href="css/ds-overlays.css">
+    <link rel="stylesheet" href="css/ds-print.css">
+    <link rel="stylesheet" href="css/ds-portal.css">
+    <link rel="stylesheet" href="css/ds-chart.css">
+
+    <script src="js/ds/ds-auth.js"></script>
+</head>
+<body data-page="refer-billing">
+
+    <nav id="appNavbar"></nav>
+
+    <div class="page-container">
+
+        <div id="demoBanner"></div>
+
+        <div class="page-header">
+            <div>
+                <div class="page-title">
+                    <i data-lucide="banknote" class="mi"></i>
+                    <span>ตามจ่าย / เรียกเก็บการส่งต่อ</span>
+                </div>
+                <div class="page-subtitle">
+                    ใบเรียกเก็บจากปลายทาง (ตามจ่าย · AP) และใบที่เราออกไปเรียกเก็บ (AR) —
+                    ตรวจได้รายบรรทัดว่ารายการไหนอยู่ในขอบเขตใบส่งตัว
+                </div>
+            </div>
+            <div class="section-actions">
+                <button class="btn btn-outline" onclick="ReferBilling.reload()">
+                    <i data-lucide="refresh-cw" class="icon-sm"></i> รีเฟรช
+                </button>
+                <button class="btn btn-outline" onclick="ReferBilling.openPrint()">
+                    <i data-lucide="printer" class="icon-sm"></i> พิมพ์รายงาน
+                </button>
+                <button class="btn btn-primary" onclick="ReferBilling.approveSelected()">
+                    <i data-lucide="check-circle-2" class="icon-sm"></i> อนุมัติจ่ายที่เลือก
+                </button>
+            </div>
+        </div>
+
+        <div class="ds-segbar" id="segDir"></div>
+
+        <div class="ds-kpi-grid">
+            <div class="sip-kpi" onclick="ReferBilling.setStatus('open')" style="cursor:pointer">
+                <i data-lucide="inbox" class="sip-kpi-icon icon-lg"></i>
+                <div class="sip-kpi-value" id="kpiPending">0</div>
+                <div class="sip-kpi-label">ใบเรียกเก็บรอตรวจ</div>
+            </div>
+            <div class="sip-kpi">
+                <i data-lucide="arrow-up-from-line" class="sip-kpi-icon icon-lg"></i>
+                <div class="sip-kpi-value" id="kpiAp">0</div>
+                <div class="sip-kpi-label">ยอดตามจ่ายค้าง (บาท)</div>
+            </div>
+            <div class="sip-kpi">
+                <i data-lucide="arrow-down-to-line" class="sip-kpi-icon icon-lg"></i>
+                <div class="sip-kpi-value" id="kpiAr">0</div>
+                <div class="sip-kpi-label">ยอดเรียกเก็บค้าง (บาท)</div>
+            </div>
+            <div class="sip-kpi critical" onclick="ReferBilling.setFlag('LATE')" style="cursor:pointer">
+                <i data-lucide="calendar-x" class="sip-kpi-icon icon-lg"></i>
+                <div class="sip-kpi-value" id="kpiLate">0</div>
+                <div class="sip-kpi-label">เกินกำหนดยื่นเรียกเก็บ</div>
+            </div>
+            <div class="sip-kpi critical" onclick="ReferBilling.setFlag('DUP')" style="cursor:pointer">
+                <i data-lucide="copy" class="sip-kpi-icon icon-lg"></i>
+                <div class="sip-kpi-value" id="kpiDup">0</div>
+                <div class="sip-kpi-label">เรียกเก็บซ้ำซ้อน</div>
+            </div>
+            <div class="sip-kpi" onclick="ReferBilling.setFlag('UNBILLED')" style="cursor:pointer">
+                <i data-lucide="file-question" class="sip-kpi-icon icon-lg"></i>
+                <div class="sip-kpi-value" id="kpiUnbilled">0</div>
+                <div class="sip-kpi-label">ยังไม่มีใบเรียกเก็บ</div>
+            </div>
+        </div>
+
+        <!-- แถบอายุหนี้ — .sip-kpi 4 ตัว ไม่ต้องมีคลาสใหม่ -->
+        <div class="ds-section-label" style="margin:14px 0 6px">
+            อายุหนี้คงค้าง <span id="agingScope" class="td-sub">ทั้งสองทิศทาง</span>
+        </div>
+        <div class="ds-kpi-grid" id="agingGrid"></div>
+
+        <div class="section-card" style="margin-top:16px">
+            <div class="section-header">
+                <div class="section-title">
+                    <i data-lucide="receipt" class="mi"></i> ใบเรียกเก็บ
+                    <span class="ds-pane-count" id="rowCount">0 ใบ</span>
+                </div>
+                <div class="section-actions">
+                    <select class="sip-select" id="fPartner" style="width:200px" onchange="ReferBilling.render()">
+                        <option value="all">ทุกคู่สัญญา</option>
+                    </select>
+                    <select class="sip-select" id="fStatus" style="width:170px" onchange="ReferBilling.render()">
+                        <option value="all">ทุกสถานะ</option>
+                    </select>
+                    <select class="sip-select" id="fChannel" style="width:190px" onchange="ReferBilling.render()">
+                        <option value="all">ทุกช่องทาง</option>
+                    </select>
+                    <select class="sip-select" id="fAging" style="width:140px" onchange="ReferBilling.render()">
+                        <option value="all">ทุกอายุหนี้</option>
+                        <option value="0-30">0–30 วัน</option>
+                        <option value="31-60">31–60 วัน</option>
+                        <option value="61-90">61–90 วัน</option>
+                        <option value="90+">90+ วัน</option>
+                    </select>
+                    <input type="text" id="searchBox" class="sip-input" style="width:220px"
+                           placeholder="ค้นหาเลขที่ใบ / ผู้ป่วย / คู่สัญญา..." oninput="ReferBilling.render()">
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="data-table compact">
+                    <thead>
+                        <tr>
+                            <th style="width:1%"><input type="checkbox" id="chkAll" onclick="ReferBilling.toggleAll(this)"></th>
+                            <th style="width:1%">เลขที่ใบ</th>
+                            <th style="width:1%">รายการส่งต่อ</th>
+                            <th>ผู้ป่วย / คู่สัญญา</th>
+                            <th style="width:1%">ช่องทาง</th>
+                            <th style="width:1%">วันที่</th>
+                            <th style="width:1%">กำหนดชำระ</th>
+                            <th style="width:1%;text-align:right">ยอด</th>
+                            <th style="width:1%;text-align:right">อนุมัติจ่าย</th>
+                            <th style="width:1%;text-align:right">โต้แย้ง</th>
+                            <th style="width:1%;text-align:right">คงค้าง</th>
+                            <th style="width:1%">อายุหนี้</th>
+                            <th style="width:1%">ธง</th>
+                            <th style="width:1%">สถานะ</th>
+                            <th style="width:1%"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="rows">
+                        <tr><td colspan="15" class="ds-empty">กำลังโหลด...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="ds-note" style="margin-top:14px">
+            <i data-lucide="link" class="icon-sm"></i>
+            ยอดชุดนี้เป็นส่วนหนึ่งของ <a href="nhso-reports.html">รายงานพึงรับ–พึงจ่าย</a> ในหน้ารายงาน สปสช. —
+            ต่างกันตรงที่หน้านี้แยกได้ถึงรายบรรทัดว่ารายการไหนอยู่นอกขอบเขตใบส่งตัว จึงโต้แย้งเฉพาะส่วนนั้นได้
+        </div>
+
+    </div>
+
+    <div id="toastContainer" class="toast-container"></div>
+
+    <script src="js/ds/ds-icons.js"></script>
+    <script src="js/ds/ds-navbar.js"></script>
+    <script src="js/ds/ds-drawer.js"></script>
+    <script src="js/ds/ds-toast.js"></script>
+    <script src="js/ds/ds-doc-parts.js"></script>
+    <script src="js/ds/ds-doc-print.js"></script>
+    <script src="js/ds/ds-chart.js"></script>
+
+    <script src="js/mock/mock-core.js"></script>
+    <script src="js/mock/mock-session.js"></script>
+    <script src="js/mock/mock-admin.js"></script>
+    <script src="js/mock/mock-nhso.js"></script>
+    <script src="js/mock/mock-claims.js"></script>
+    <script src="js/mock/mock-referrals.js"></script>
+    <script src="js/mock/mock-tasks.js"></script>
+
+    <script src="js/refer-billing.js"></script>
+</body>
+</html>

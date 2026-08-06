@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<!-- =========================================================================
+  ภาพรวมผู้บริหาร (Executive Dashboard) — SRS §10
+  ความพร้อม · ความเสี่ยง · มูลค่า Reject · แนวโน้ม · ผลกฎ · สถานะฝั่ง สปสช.
+
+  ⚠️ หน้าต้นแบบ: ข้อมูลจำลองล้วน ไม่เรียก /api จึงไม่ gate ด้วย Auth.requireLogin()
+     เมื่อผูก backend จริง ให้เพิ่มบรรทัด Auth.requireLogin(); กลับเข้าไปในส่วนหัวของหน้า
+  ========================================================================= -->
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MediCore RCM — ภาพรวมผู้บริหาร</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+
+    <link rel="stylesheet" href="css/ds-tokens.css">
+    <link rel="stylesheet" href="css/ds-base.css">
+    <link rel="stylesheet" href="css/ds-navbar.css">
+    <link rel="stylesheet" href="css/ds-layout.css">
+    <link rel="stylesheet" href="css/ds-components.css">
+    <link rel="stylesheet" href="css/ds-overlays.css">
+    <link rel="stylesheet" href="css/ds-print.css">
+    <link rel="stylesheet" href="css/ds-chart.css">
+
+    <script src="js/ds/ds-auth.js"></script>
+</head>
+<body data-page="claim-dashboard">
+
+    <nav id="appNavbar"></nav>
+
+    <div class="page-container">
+
+        <div id="demoBanner"></div>
+
+        <div class="page-header">
+            <div>
+                <div class="page-title">
+                    <i data-lucide="gauge" class="mi"></i>
+                    <span>ภาพรวมผู้บริหาร — Claim Control Tower</span>
+                </div>
+                <div class="page-subtitle" id="asOf">—</div>
+            </div>
+            <div class="section-actions">
+                <select class="sip-select" id="fPeriod" style="width:140px" onchange="Dash.render()">
+                    <option value="30">30 วันล่าสุด</option>
+                    <option value="90">ไตรมาสนี้</option>
+                    <option value="365">ปีงบประมาณ</option>
+                </select>
+                <select class="sip-select" id="fFund" style="width:130px" onchange="Dash.render()">
+                    <option value="all">ทุกกองทุน</option>
+                </select>
+                <button class="btn btn-outline" onclick="Dash.openPrint()">
+                    <i data-lucide="printer" class="icon-sm"></i> พิมพ์สรุป
+                </button>
+                <button class="btn btn-primary" onclick="location.href='claim-worklist.html'">
+                    <i data-lucide="list-checks" class="icon-sm"></i> ไปที่คิวเคส
+                </button>
+            </div>
+        </div>
+
+        <!-- KPI 6 ช่อง — กดเพื่อดูสูตรและที่มาของตัวเลข -->
+        <div class="ds-kpi-grid" id="kpiGrid"></div>
+
+        <div class="cards-row">
+            <div class="section-card">
+                <div class="section-header">
+                    <div class="section-title"><i data-lucide="trending-down" class="mi"></i>
+                        แนวโน้ม Reject Rate เทียบ First-pass (12 เดือน)</div>
+                </div>
+                <!-- ⚠️ เส้นแนวโน้มมาจาก MOCK_TREND ทั้งเส้น — ป้ายนี้ต้องอยู่เหนือกราฟเสมอ -->
+                <div class="sip-mock-note">
+                    <span class="sip-mock-tag">MOCKUP</span>
+                    <span>กราฟเส้นนี้เป็นข้อมูลสมมติเพื่อสาธิตรูปแบบรายงาน ไม่ใช่ผลที่วัดได้จริง
+                        — เส้นจริงจะเกิดขึ้นหลังเก็บ Baseline และใช้งานระบบจริง</span>
+                </div>
+                <div class="ds-chart-caption" id="trendCaption">—</div>
+                <div id="chartTrend"></div>
+            </div>
+            <div class="section-card">
+                <div class="section-header">
+                    <div class="section-title"><i data-lucide="shield-check" class="mi"></i>
+                        มูลค่าที่ดักได้ก่อนส่ง (บาท/สัปดาห์)</div>
+                </div>
+                <!-- ⚠️ ยอดรายสัปดาห์มาจาก MOCK_WEEKLY_PREVENTED — ป้ายนี้ต้องอยู่เหนือกราฟเสมอ -->
+                <div class="sip-mock-note">
+                    <span class="sip-mock-tag">MOCKUP</span>
+                    <span>ยอดรายสัปดาห์เป็นข้อมูลสมมติเพื่อสาธิตรูปแบบรายงาน ไม่ใช่มูลค่าที่ป้องกันได้จริง</span>
+                </div>
+                <div class="ds-chart-caption">
+                    มูลค่ารายการเสี่ยงที่กฎตรวจพบและได้รับการแก้ไขก่อนกดส่งเบิก
+                </div>
+                <div id="chartPrevented"></div>
+            </div>
+        </div>
+
+        <div class="cards-row">
+            <div class="section-card">
+                <div class="section-header">
+                    <div class="section-title"><i data-lucide="pie-chart" class="mi"></i>
+                        ผลการตรวจด้วยกฎ — 5 ระดับตาม SRS</div>
+                </div>
+                <div id="chartResult"></div>
+                <div class="table-responsive" style="margin-top:12px">
+                    <table class="data-table compact" id="resultTable"></table>
+                </div>
+            </div>
+            <div class="section-card">
+                <div class="section-header">
+                    <div class="section-title"><i data-lucide="hospital" class="mi"></i>
+                        สถานะฝั่ง สปสช. (NHSO Digital Platform)</div>
+                    <div class="section-actions">
+                        <button class="btn btn-ghost btn-sm" onclick="location.href='nhso-submit.html'">
+                            <i data-lucide="external-link" class="icon-sm"></i> เปิดหน้าส่งเบิก</button>
+                    </div>
+                </div>
+                <div class="ds-stepper" id="nhsoStepper" style="margin-bottom:14px"></div>
+                <div id="chartFunnel"></div>
+            </div>
+        </div>
+
+        <div class="section-card">
+            <div class="section-header">
+                <div class="section-title"><i data-lucide="git-branch" class="mi"></i>
+                    ผลของกฎที่เปิดใช้อยู่</div>
+                <div class="section-actions">
+                    <button class="btn btn-ghost btn-sm" onclick="location.href='claim-rules.html'">
+                        <i data-lucide="external-link" class="icon-sm"></i> คลังกฎทั้งหมด</button>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="data-table compact">
+                    <thead><tr>
+                        <th style="width:1%">รหัสกฎ</th><th>ชื่อกฎ</th><th style="width:1%">Ver</th>
+                        <th style="width:1%">รหัส NHSO</th>
+                        <th style="width:1%;text-align:right">Hit</th>
+                        <th style="width:1%">True Issue</th><th style="width:1%">False Positive</th>
+                        <th style="width:1%;text-align:right">Override</th>
+                        <th style="width:1%;text-align:right">มูลค่าที่ป้องกันได้</th>
+                    </tr></thead>
+                    <tbody id="ruleRows"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ══ ภาระผูกพันจากการส่งต่อ — เดิมไม่เคยปรากฏบน dashboard ใดของโรงพยาบาล ══ -->
+        <div class="section-card">
+            <div class="section-header">
+                <div class="section-title"><i data-lucide="ambulance" class="mi"></i>
+                    ภาระผูกพันจากการส่งต่อผู้ป่วย (AP / AR)</div>
+                <div class="section-actions">
+                    <button class="btn btn-ghost btn-sm" onclick="location.href='refer-dashboard.html'">
+                        <i data-lucide="external-link" class="icon-sm"></i> ภาพรวมการส่งต่อ</button>
+                </div>
+            </div>
+            <div class="ds-kpi-grid" id="referMini"></div>
+            <div id="chartDashRefer" style="margin-top:12px"></div>
+            <div class="ds-note" style="margin-top:10px">
+                <i data-lucide="info" class="icon-sm"></i>
+                ยอดตามจ่ายคือหนี้ที่เกิดขึ้นแล้วจากการส่งผู้ป่วยออกไปรักษาข้างนอก —
+                ถ้าไม่มีที่บันทึกตั้งแต่ขั้นขออนุมัติ จะรู้ยอดอีกทีตอนใบเรียกเก็บมาถึง ซึ่งโต้แย้งได้ยากแล้ว
+            </div>
+        </div>
+
+        <div class="section-card">
+            <div class="section-header">
+                <div class="section-title"><i data-lucide="alert-triangle" class="mi"></i>
+                    10 เคสเสี่ยงสูงสุดที่ยังไม่ปิดประเด็น</div>
+                <div class="section-actions">
+                    <button class="btn btn-ghost btn-sm" onclick="location.href='claim-worklist.html?result=FIX'">
+                        <i data-lucide="external-link" class="icon-sm"></i> ดูทั้งหมด</button>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="data-table compact">
+                    <thead><tr>
+                        <th style="width:1%">รหัสเคส</th><th>ผู้ป่วย</th>
+                        <th style="width:1%">กองทุน</th><th style="width:1%;text-align:right">มูลค่าเสี่ยง</th>
+                        <th style="width:1%">คะแนน</th><th style="width:1%">ผลตรวจ</th>
+                        <th style="width:1%">จะติดที่ NHSO</th><th style="width:1%">ผู้รับผิดชอบ</th>
+                    </tr></thead>
+                    <tbody id="riskRows"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="section-card">
+            <div class="section-header">
+                <div class="section-title"><i data-lucide="calendar-range" class="mi"></i>
+                    แผนส่งมอบ 4 ระยะ (SRS §13) เทียบไทม์ไลน์ NHSO</div>
+            </div>
+            <div id="phaseBody"></div>
+        </div>
+
+    </div>
+
+    <div id="toastContainer" class="toast-container"></div>
+
+    <script src="js/ds/ds-icons.js"></script>
+    <script src="js/ds/ds-navbar.js"></script>
+    <script src="js/ds/ds-drawer.js"></script>
+    <script src="js/ds/ds-toast.js"></script>
+    <script src="js/ds/ds-doc-parts.js"></script>
+    <script src="js/ds/ds-doc-print.js"></script>
+    <script src="js/ds/ds-chart.js"></script>
+
+    <script src="js/mock/mock-core.js"></script>
+    <script src="js/mock/mock-session.js"></script>
+    <script src="js/mock/mock-admin.js"></script>
+    <script src="js/mock/mock-nhso.js"></script>
+    <script src="js/mock/mock-claims.js"></script>
+    <script src="js/mock/mock-referrals.js"></script>
+    <script src="js/mock/mock-rules.js"></script>
+    <script src="js/mock/mock-tasks.js"></script>
+    <script src="js/mock/mock-metrics.js"></script>
+
+    <script src="js/claim-dashboard.js"></script>
+</body>
+</html>

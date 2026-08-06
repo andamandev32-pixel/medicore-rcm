@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<!-- =========================================================================
+  ทะเบียนการส่งต่อผู้ป่วย (Referral Worklist)
+  ส่งต่อออก–ตามจ่าย · รับส่งต่อเข้า–เรียกเก็บ · ใบส่งตัว · เลขอนุมัติ · ขอบเขต · วงเงิน
+
+  โครงหน้า: doc/PAGE-GUIDE.md §3(ก) — ลอกจาก claim-worklist.html
+
+  ⚠️ หน้าต้นแบบ: ข้อมูลจำลองล้วน ไม่เรียก /api จึงไม่ gate ด้วย Auth.requireLogin()
+     เมื่อผูก backend จริง ให้เพิ่ม Auth.requireLogin(); กลับเข้าไปในส่วนหัวของหน้า
+     และเปลี่ยน MockDB.* เป็น fetch('/api/...') ตาม doc/PAGE-GUIDE.md §4
+  ========================================================================= -->
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>MediCore RCM — ทะเบียนการส่งต่อ</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+
+    <link rel="stylesheet" href="css/ds-tokens.css">
+    <link rel="stylesheet" href="css/ds-base.css">
+    <link rel="stylesheet" href="css/ds-navbar.css">
+    <link rel="stylesheet" href="css/ds-layout.css">
+    <link rel="stylesheet" href="css/ds-components.css">
+    <link rel="stylesheet" href="css/ds-overlays.css">
+    <link rel="stylesheet" href="css/ds-print.css">
+    <link rel="stylesheet" href="css/ds-portal.css">
+    <link rel="stylesheet" href="css/ds-chart.css">
+
+    <script src="js/ds/ds-auth.js"></script>
+</head>
+<body data-page="refer-worklist">
+
+    <nav id="appNavbar"></nav>
+
+    <div class="page-container">
+
+        <div id="demoBanner"></div>
+
+        <div class="page-header">
+            <div>
+                <div class="page-title">
+                    <i data-lucide="ambulance" class="mi"></i>
+                    <span>ทะเบียนการส่งต่อผู้ป่วย</span>
+                </div>
+                <div class="page-subtitle">
+                    ส่งต่อออก–ตามจ่าย · รับส่งต่อเข้า–เรียกเก็บ —
+                    เห็นใบส่งตัว เลขอนุมัติ ขอบเขต และวงเงิน ตั้งแต่ก่อนเกิดภาระผูกพัน
+                </div>
+            </div>
+            <div class="section-actions">
+                <button class="btn btn-outline" onclick="ReferList.reload()">
+                    <i data-lucide="refresh-cw" class="icon-sm"></i> รีเฟรช
+                </button>
+                <button class="btn btn-outline" onclick="ReferList.openPrint()">
+                    <i data-lucide="printer" class="icon-sm"></i> พิมพ์รายการ
+                </button>
+                <button class="btn btn-primary" onclick="ReferList.submitSelected()">
+                    <i data-lucide="send" class="icon-sm"></i> ส่งขออนุมัติที่เลือก
+                </button>
+            </div>
+        </div>
+
+        <!-- แถบกรองตามทิศทาง — จำนวนนับมาจาก MockRefer ทั้งหมด -->
+        <div class="ds-segbar" id="segDir"></div>
+
+        <div class="ds-kpi-grid">
+            <div class="sip-kpi" onclick="ReferList.setDir('all')" style="cursor:pointer">
+                <i data-lucide="inbox" class="sip-kpi-icon icon-lg"></i>
+                <div class="sip-kpi-value" id="kpiTotal">0</div>
+                <div class="sip-kpi-label">รายการส่งต่อในขอบเขต</div>
+            </div>
+            <div class="sip-kpi critical" onclick="ReferList.setRisk('ERROR')" style="cursor:pointer">
+                <i data-lucide="alert-triangle" class="sip-kpi-icon icon-lg"></i>
+                <div class="sip-kpi-value" id="kpiError">0</div>
+                <div class="sip-kpi-label">ใบส่งตัวที่มีปัญหา</div>
+            </div>
+            <div class="sip-kpi" onclick="ReferList.setRisk('EXPIRE')" style="cursor:pointer">
+                <i data-lucide="clock" class="sip-kpi-icon icon-lg"></i>
+                <div class="sip-kpi-value" id="kpiExpire">0</div>
+                <div class="sip-kpi-label">หมดอายุ / ใกล้หมด ≤7 วัน</div>
+            </div>
+            <div class="sip-kpi">
+                <i data-lucide="arrow-up-from-line" class="sip-kpi-icon icon-lg"></i>
+                <div class="sip-kpi-value" id="kpiAp">0</div>
+                <div class="sip-kpi-label">ยอดตามจ่ายค้าง (บาท)</div>
+            </div>
+            <div class="sip-kpi">
+                <i data-lucide="arrow-down-to-line" class="sip-kpi-icon icon-lg"></i>
+                <div class="sip-kpi-value" id="kpiAr">0</div>
+                <div class="sip-kpi-label">ยอดเรียกเก็บค้าง (บาท)</div>
+            </div>
+            <div class="sip-kpi">
+                <i data-lucide="wallet" class="sip-kpi-icon icon-lg"></i>
+                <div class="sip-kpi-value" id="kpiRisk">0</div>
+                <div class="sip-kpi-label">มูลค่าที่เสี่ยง (บาท)</div>
+            </div>
+        </div>
+
+        <div class="section-card">
+            <div class="section-header">
+                <div class="section-title">
+                    <i data-lucide="list" class="mi"></i> รายการส่งต่อ
+                    <span class="ds-pane-count" id="rowCount">0 รายการ</span>
+                </div>
+                <div class="section-actions">
+                    <select class="sip-select" id="fPartner" style="width:200px" onchange="ReferList.render()">
+                        <option value="all">ทุกคู่สัญญา</option>
+                    </select>
+                    <select class="sip-select" id="fStatus" style="width:170px" onchange="ReferList.render()">
+                        <option value="all">ทุกสถานะ</option>
+                    </select>
+                    <select class="sip-select" id="fReason" style="width:150px" onchange="ReferList.render()">
+                        <option value="all">ทุกเหตุผล</option>
+                    </select>
+                    <select class="sip-select" id="fFund" style="width:120px" onchange="ReferList.render()">
+                        <option value="all">ทุกกองทุน</option>
+                    </select>
+                    <select class="sip-select" id="fRisk" style="width:170px" onchange="ReferList.render()">
+                        <option value="all">ทุกสถานะความเสี่ยง</option>
+                        <option value="ERROR">มีปัญหา (ERROR)</option>
+                        <option value="WARN">เฝ้าระวัง (WARNING)</option>
+                        <option value="EXPIRE">หมดอายุ / ใกล้หมด</option>
+                        <option value="CLEAN">ไม่มีธง</option>
+                    </select>
+                    <input type="text" id="searchBox" class="sip-input" style="width:220px"
+                           placeholder="ค้นหา HN / ชื่อ / เลขที่ใบส่งตัว / เลขอนุมัติ..." oninput="ReferList.render()">
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="data-table compact">
+                    <thead>
+                        <tr>
+                            <th style="width:1%"><input type="checkbox" id="chkAll" onclick="ReferList.toggleAll(this)"></th>
+                            <th style="width:1%">รหัส</th>
+                            <th style="width:1%">ทิศทาง</th>
+                            <th>ผู้ป่วย</th>
+                            <th style="width:1%">คู่สัญญา</th>
+                            <th style="width:1%">เหตุผล</th>
+                            <th style="width:1%">เลขที่ใบส่งตัว</th>
+                            <th style="width:1%">เลขอนุมัติ</th>
+                            <th style="width:1%">หมดอายุ</th>
+                            <th style="width:1%">ขอบเขต / วงเงิน</th>
+                            <th style="width:1%;text-align:right">ยอดเรียกเก็บ</th>
+                            <th style="width:1%">ธงความเสี่ยง</th>
+                            <th style="width:1%">สถานะ</th>
+                            <th style="width:1%">ผู้รับผิดชอบ</th>
+                            <th style="width:1%"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="rows">
+                        <tr><td colspan="15" class="ds-empty">กำลังโหลด...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="ds-note" style="margin-top:14px">
+            <i data-lucide="lightbulb" class="icon-sm"></i>
+            คอลัมน์ <strong>"ธงความเสี่ยง"</strong> คือประเด็นที่ระบบตรวจพบก่อนจะเกิดภาระผูกพันจริง —
+            ใบส่งตัวหมดอายุ ทำเกินขอบเขต ไม่มีเลขอนุมัติ หรือเรียกเก็บซ้ำซ้อน
+            ล้วนเป็นเรื่องที่รู้ตอนใบเรียกเก็บมาถึงแล้วจะสายเกินแก้
+        </div>
+
+    </div>
+
+    <div id="toastContainer" class="toast-container"></div>
+
+    <script src="js/ds/ds-icons.js"></script>
+    <script src="js/ds/ds-navbar.js"></script>
+    <script src="js/ds/ds-drawer.js"></script>
+    <script src="js/ds/ds-toast.js"></script>
+    <script src="js/ds/ds-doc-parts.js"></script>
+    <script src="js/ds/ds-doc-print.js"></script>
+    <script src="js/ds/ds-chart.js"></script>
+
+    <script src="js/mock/mock-core.js"></script>
+    <script src="js/mock/mock-session.js"></script>
+    <script src="js/mock/mock-admin.js"></script>
+    <script src="js/mock/mock-nhso.js"></script>
+    <script src="js/mock/mock-claims.js"></script>
+    <script src="js/mock/mock-referrals.js"></script>
+    <script src="js/mock/mock-tasks.js"></script>
+
+    <script src="js/refer-worklist.js"></script>
+</body>
+</html>

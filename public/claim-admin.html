@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<!-- =========================================================================
+  ผู้ดูแลระบบ / Audit (Administration & Audit) — SRS §10 · FR-10
+  ผู้ใช้ · สิทธิ์ · Mapping · Integration · Configuration · Audit Trail
+
+  ⚠️ หน้าต้นแบบ: ข้อมูลจำลองล้วน ไม่เรียก /api จึงไม่ gate ด้วย Auth.requireLogin()
+     เมื่อผูก backend จริง ให้เพิ่มบรรทัด Auth.requireLogin(); กลับเข้าไปในส่วนหัวของหน้า
+     และหน้าจริงต้องใช้ Auth.requireRole('ADMIN')
+  ========================================================================= -->
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MediCore RCM — ผู้ดูแลระบบ / Audit</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+
+    <link rel="stylesheet" href="css/ds-tokens.css">
+    <link rel="stylesheet" href="css/ds-base.css">
+    <link rel="stylesheet" href="css/ds-navbar.css">
+    <link rel="stylesheet" href="css/ds-layout.css">
+    <link rel="stylesheet" href="css/ds-components.css">
+    <link rel="stylesheet" href="css/ds-overlays.css">
+    <link rel="stylesheet" href="css/ds-print.css">
+    <link rel="stylesheet" href="css/ds-chart.css">
+
+    <script src="js/ds/ds-auth.js"></script>
+</head>
+<body data-page="claim-admin">
+
+    <nav id="appNavbar"></nav>
+
+    <div class="page-container">
+
+        <div id="demoBanner"></div>
+
+        <div class="page-header">
+            <div>
+                <div class="page-title">
+                    <i data-lucide="shield" class="mi"></i>
+                    <span>ผู้ดูแลระบบ / Audit</span>
+                </div>
+                <div class="page-subtitle">
+                    ผู้ใช้และสิทธิ์ · Mapping · การเชื่อมต่อ · ค่าระบบ · ประวัติการใช้งานที่ตรวจย้อนหลังได้
+                </div>
+            </div>
+        </div>
+
+        <div class="section-card">
+            <div class="ds-tabs" id="tabBar"></div>
+            <div id="tabContent"></div>
+        </div>
+
+    </div>
+
+    <div id="toastContainer" class="toast-container"></div>
+
+    <script src="js/ds/ds-icons.js"></script>
+    <script src="js/ds/ds-navbar.js"></script>
+    <script src="js/ds/ds-drawer.js"></script>
+    <script src="js/ds/ds-toast.js"></script>
+    <script src="js/ds/ds-chart.js"></script>
+
+    <script src="js/mock/mock-core.js"></script>
+    <script src="js/mock/mock-session.js"></script>
+    <script src="js/mock/mock-admin.js"></script>
+    <script src="js/mock/mock-nhso.js"></script>
+    <script src="js/mock/mock-claims.js"></script>
+    <script src="js/mock/mock-rules.js"></script>
+    <script src="js/mock/mock-metrics.js"></script>
+
+    <script src="js/claim-admin.js"></script>
+</body>
+</html>

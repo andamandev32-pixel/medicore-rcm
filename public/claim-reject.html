@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<!-- =========================================================================
+  วิเคราะห์การตีกลับ (Reject Analysis) — SRS §10 · FR-08
+  นำเข้าผลตีกลับ → จัดหมวดสาเหตุ → Pareto → สร้างร่างกฎ
+
+  ⚠️ หน้าต้นแบบ: ข้อมูลจำลองล้วน ไม่เรียก /api จึงไม่ gate ด้วย Auth.requireLogin()
+     เมื่อผูก backend จริง ให้เพิ่มบรรทัด Auth.requireLogin(); กลับเข้าไปในส่วนหัวของหน้า
+  ========================================================================= -->
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MediCore RCM — วิเคราะห์การตีกลับ</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+
+    <link rel="stylesheet" href="css/ds-tokens.css">
+    <link rel="stylesheet" href="css/ds-base.css">
+    <link rel="stylesheet" href="css/ds-navbar.css">
+    <link rel="stylesheet" href="css/ds-layout.css">
+    <link rel="stylesheet" href="css/ds-components.css">
+    <link rel="stylesheet" href="css/ds-overlays.css">
+    <link rel="stylesheet" href="css/ds-print.css">
+    <link rel="stylesheet" href="css/ds-chart.css">
+
+    <script src="js/ds/ds-auth.js"></script>
+</head>
+<body data-page="claim-reject">
+
+    <nav id="appNavbar"></nav>
+
+    <div class="page-container">
+
+        <div id="demoBanner"></div>
+
+        <div class="page-header">
+            <div>
+                <div class="page-title">
+                    <i data-lucide="undo-2" class="mi"></i>
+                    <span>วิเคราะห์การตีกลับ</span>
+                </div>
+                <div class="page-subtitle">
+                    เปลี่ยนผลตีกลับจาก สปสช. ให้เป็นกฎของโรงพยาบาล — เพื่อไม่ให้ประเด็นเดิมกลับมาซ้ำ
+                </div>
+            </div>
+            <div class="section-actions">
+                <button class="btn btn-outline" onclick="Reject.openImport()">
+                    <i data-lucide="upload" class="icon-sm"></i> นำเข้าไฟล์ผลตีกลับ
+                </button>
+                <button class="btn btn-outline" onclick="Reject.openPrint()">
+                    <i data-lucide="printer" class="icon-sm"></i> พิมพ์รายงาน
+                </button>
+                <button class="btn btn-primary" onclick="Reject.openDraftFromTop()">
+                    <i data-lucide="git-branch-plus" class="icon-sm"></i> สร้างร่างกฎจากสาเหตุที่ยังไม่ครอบคลุม
+                </button>
+            </div>
+        </div>
+
+        <div class="ds-kpi-grid">
+            <div class="sip-kpi">
+                <i data-lucide="undo-2" class="sip-kpi-icon icon-lg"></i>
+                <div class="sip-kpi-value" id="kpiCount">0</div>
+                <div class="sip-kpi-label">รายการที่ถูกตีกลับ</div>
+            </div>
+            <div class="sip-kpi">
+                <i data-lucide="wallet" class="sip-kpi-icon icon-lg"></i>
+                <div class="sip-kpi-value" id="kpiAmount">0</div>
+                <div class="sip-kpi-label">มูลค่าที่ถูกตัดจ่าย (บาท)</div>
+            </div>
+            <div class="sip-kpi">
+                <i data-lucide="trophy" class="sip-kpi-icon icon-lg"></i>
+                <div class="sip-kpi-value" id="kpiTop" style="font-size:18px">—</div>
+                <div class="sip-kpi-label">สาเหตุอันดับ 1</div>
+            </div>
+            <div class="sip-kpi">
+                <i data-lucide="shield-check" class="sip-kpi-icon icon-lg"></i>
+                <div class="sip-kpi-value" id="kpiCovered">0%</div>
+                <div class="sip-kpi-label">มูลค่าที่มีกฎครอบคลุมแล้ว</div>
+            </div>
+            <div class="sip-kpi critical">
+                <i data-lucide="shield-off" class="sip-kpi-icon icon-lg"></i>
+                <div class="sip-kpi-value" id="kpiUncovered">0</div>
+                <div class="sip-kpi-label">สาเหตุที่ยังไม่มีกฎครอบคลุม</div>
+            </div>
+        </div>
+
+        <div class="cards-row">
+            <div class="section-card">
+                <div class="section-header">
+                    <div class="section-title"><i data-lucide="bar-chart-big" class="mi"></i>
+                        Pareto — สาเหตุการตีกลับเรียงตามมูลค่า</div>
+                </div>
+                <div class="ds-chart-caption">
+                    แถบยาว = มูลค่าที่เสียไป · ตัวเลขขวา = % สะสม — แก้สามอันดับแรกก็ครอบคลุมเกินครึ่ง
+                </div>
+                <div class="ds-pareto" id="paretoBody"></div>
+            </div>
+            <div class="section-card">
+                <div class="section-header">
+                    <div class="section-title"><i data-lucide="trending-down" class="mi"></i>
+                        แนวโน้มการตีกลับรายเดือน</div>
+                </div>
+                <div class="ds-chart-caption">จำนวนรายการที่ถูกตีกลับต่อเดือน</div>
+                <div id="chartTrend"></div>
+                <div class="ds-note" style="margin-top:10px">
+                    <i data-lucide="lightbulb" class="icon-sm"></i>
+                    ตัวเลขเริ่มลดลงชัดเจนตั้งแต่ มิ.ย. 2569 ซึ่งเป็นเดือนที่เปิดใช้กฎ RUL-DRG-007 v3
+                    และ RUL-ELG-004
+                </div>
+            </div>
+        </div>
+
+        <div class="section-card">
+            <div class="section-header">
+                <div class="section-title">
+                    <i data-lucide="list" class="mi"></i> สาเหตุการตีกลับ
+                    <span class="ds-pane-count" id="rowCount">0 สาเหตุ</span>
+                </div>
+                <div class="section-actions">
+                    <select class="sip-select" id="fBatch" style="width:160px" onchange="Reject.render()">
+                        <option value="all">ทุกงวด</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="ds-segbar" id="segGroup" style="margin-bottom:12px"></div>
+
+            <div class="table-responsive">
+                <table class="data-table compact">
+                    <thead>
+                        <tr>
+                            <th style="width:1%">รหัส</th>
+                            <th>สาเหตุ</th>
+                            <th style="width:1%">ขั้นที่พบ</th>
+                            <th style="width:1%">หน่วยงานที่เกี่ยวข้อง</th>
+                            <th style="width:1%;text-align:right">จำนวน</th>
+                            <th style="width:1%;text-align:right">มูลค่า</th>
+                            <th style="width:1%">มีกฎครอบคลุม?</th>
+                            <th style="width:1%"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="rows"><tr><td colspan="8" class="ds-empty">กำลังโหลด...</td></tr></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="section-card">
+            <div class="section-header">
+                <div class="section-title"><i data-lucide="folder-input" class="mi"></i> งวดที่นำเข้าแล้ว</div>
+            </div>
+            <div class="table-responsive">
+                <table class="data-table compact">
+                    <thead><tr><th style="width:1%">รหัสงวด</th><th style="width:1%">งวด</th>
+                        <th style="width:1%">นำเข้าเมื่อ</th><th style="width:1%;text-align:right">จำนวนรายการ</th>
+                        <th style="width:1%;text-align:right">มูลค่ารวม</th><th style="width:1%">ผู้นำเข้า</th></tr></thead>
+                    <tbody id="batchRows"></tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <div id="toastContainer" class="toast-container"></div>
+
+    <script src="js/ds/ds-icons.js"></script>
+    <script src="js/ds/ds-navbar.js"></script>
+    <script src="js/ds/ds-drawer.js"></script>
+    <script src="js/ds/ds-toast.js"></script>
+    <script src="js/ds/ds-doc-parts.js"></script>
+    <script src="js/ds/ds-doc-print.js"></script>
+    <script src="js/ds/ds-chart.js"></script>
+
+    <script src="js/mock/mock-core.js"></script>
+    <script src="js/mock/mock-session.js"></script>
+    <script src="js/mock/mock-admin.js"></script>
+    <script src="js/mock/mock-nhso.js"></script>
+    <script src="js/mock/mock-claims.js"></script>
+    <script src="js/mock/mock-rules.js"></script>
+    <script src="js/mock/mock-rejects.js"></script>
+
+    <script src="js/claim-reject.js"></script>
+</body>
+</html>

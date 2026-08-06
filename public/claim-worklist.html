@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<!-- =========================================================================
+  รายการเคลม (Claim Worklist) — SRS §10
+  คิวเคสก่อนส่งเบิก · ตัวกรอง · คะแนนความเสี่ยง · ผลตรวจกฎ · SLA
+
+  ⚠️ หน้าต้นแบบ: ข้อมูลจำลองล้วน ไม่เรียก /api จึงไม่ gate ด้วย Auth.requireLogin()
+     เมื่อผูก backend จริง ให้เพิ่มบรรทัด Auth.requireLogin(); กลับเข้าไปในส่วนหัวของหน้า
+     และเปลี่ยน MockDB.* เป็น fetch('/api/...') ตาม doc/PAGE-GUIDE.md §4
+  ========================================================================= -->
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MediCore RCM — รายการเคลม</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+
+    <link rel="stylesheet" href="css/ds-tokens.css">
+    <link rel="stylesheet" href="css/ds-base.css">
+    <link rel="stylesheet" href="css/ds-navbar.css">
+    <link rel="stylesheet" href="css/ds-layout.css">
+    <link rel="stylesheet" href="css/ds-components.css">
+    <link rel="stylesheet" href="css/ds-overlays.css">
+    <link rel="stylesheet" href="css/ds-print.css">
+    <link rel="stylesheet" href="css/ds-portal.css">
+    <link rel="stylesheet" href="css/ds-chart.css">
+
+    <script src="js/ds/ds-auth.js"></script>
+</head>
+<body data-page="claim-worklist">
+
+    <nav id="appNavbar"></nav>
+
+    <div class="page-container">
+
+        <div id="demoBanner"></div>
+
+        <div class="page-header">
+            <div>
+                <div class="page-title">
+                    <i data-lucide="list-checks" class="mi"></i>
+                    <span>รายการเคลม (Worklist)</span>
+                </div>
+                <div class="page-subtitle">
+                    ตรวจความพร้อมก่อนส่งเบิก — เห็นประเด็น เจ้าของงาน และรหัสที่จะติดฝั่ง NHSO ตั้งแต่ก่อนส่ง
+                </div>
+            </div>
+            <div class="section-actions">
+                <button class="btn btn-outline" onclick="Worklist.reload()">
+                    <i data-lucide="refresh-cw" class="icon-sm"></i> รีเฟรช
+                </button>
+                <button class="btn btn-outline" onclick="Worklist.openPrint()">
+                    <i data-lucide="printer" class="icon-sm"></i> พิมพ์รายการ
+                </button>
+                <button class="btn btn-primary" onclick="Worklist.submitSelected()">
+                    <i data-lucide="send" class="icon-sm"></i> ส่งเบิกที่เลือก
+                </button>
+            </div>
+        </div>
+
+        <!-- แถบกรองตามผลตรวจ 5 ระดับของ SRS -->
+        <div class="ds-segbar" id="segResult"></div>
+
+        <div class="ds-kpi-grid">
+            <div class="sip-kpi" onclick="Worklist.setResult('all')" style="cursor:pointer">
+                <i data-lucide="inbox" class="sip-kpi-icon icon-lg"></i>
+                <div class="sip-kpi-value" id="kpiTotal">0</div>
+                <div class="sip-kpi-label">เคสทั้งหมดในคิว</div>
+            </div>
+            <div class="sip-kpi critical" onclick="Worklist.setResult('FIX')" style="cursor:pointer">
+                <i data-lucide="alert-triangle" class="sip-kpi-icon icon-lg"></i>
+                <div class="sip-kpi-value" id="kpiFix">0</div>
+                <div class="sip-kpi-label">ต้องแก้ไขก่อนส่ง</div>
+            </div>
+            <div class="sip-kpi" onclick="Worklist.setResult('APPROVE')" style="cursor:pointer">
+                <i data-lucide="user-check" class="sip-kpi-icon icon-lg"></i>
+                <div class="sip-kpi-value" id="kpiApprove">0</div>
+                <div class="sip-kpi-label">รออนุมัติ</div>
+            </div>
+            <div class="sip-kpi">
+                <i data-lucide="wallet" class="sip-kpi-icon icon-lg"></i>
+                <div class="sip-kpi-value" id="kpiRisk">0</div>
+                <div class="sip-kpi-label">มูลค่าที่เสี่ยงถูกตัด (บาท)</div>
+            </div>
+            <div class="sip-kpi">
+                <i data-lucide="clock" class="sip-kpi-icon icon-lg"></i>
+                <div class="sip-kpi-value" id="kpiSla">0</div>
+                <div class="sip-kpi-label">งานเกิน SLA</div>
+            </div>
+        </div>
+
+        <div class="section-card">
+            <div class="section-header">
+                <div class="section-title">
+                    <i data-lucide="list" class="mi"></i> คิวเคส
+                    <span class="ds-pane-count" id="rowCount">0 รายการ</span>
+                </div>
+                <div class="section-actions">
+                    <select class="sip-select" id="fFund" style="width:130px" onchange="Worklist.render()">
+                        <option value="all">ทุกกองทุน</option>
+                    </select>
+                    <select class="sip-select" id="fService" style="width:120px" onchange="Worklist.render()">
+                        <option value="all">ทุกบริการ</option>
+                        <option value="OPD">OPD</option>
+                        <option value="IPD">IPD</option>
+                        <option value="PP">PP</option>
+                    </select>
+                    <select class="sip-select" id="fProvider" style="width:180px" onchange="Worklist.render()">
+                        <option value="all">ทุกหน่วยบริการ</option>
+                    </select>
+                    <select class="sip-select" id="fRisk" style="width:130px" onchange="Worklist.render()">
+                        <option value="all">ทุกระดับเสี่ยง</option>
+                        <option value="high">สูง (70+)</option>
+                        <option value="mid">กลาง (40–69)</option>
+                        <option value="low">ต่ำ (0–39)</option>
+                    </select>
+                    <select class="sip-select" id="fStage" style="width:170px" onchange="Worklist.render()">
+                        <option value="all">ทุกสถานะ NHSO</option>
+                    </select>
+                    <input type="text" id="searchBox" class="sip-input" style="width:220px"
+                           placeholder="ค้นหา HN / ชื่อ / รหัสเคส..." oninput="Worklist.render()">
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="data-table compact">
+                    <thead>
+                        <tr>
+                            <th style="width:1%"><input type="checkbox" id="chkAll" onclick="Worklist.toggleAll(this)"></th>
+                            <th style="width:1%">รหัสเคส</th>
+                            <th style="width:1%">HN</th>
+                            <th>ชื่อ-สกุล</th>
+                            <th style="width:1%">วันที่รับบริการ</th>
+                            <th style="width:1%">กองทุน</th>
+                            <th style="width:1%">บริการ</th>
+                            <th style="width:1%;text-align:right">มูลค่า</th>
+                            <th style="width:1%">คะแนนเสี่ยง</th>
+                            <th style="width:1%">ผลตรวจ</th>
+                            <th style="width:1%">จะติดที่ NHSO</th>
+                            <th style="width:1%">ผู้รับผิดชอบ</th>
+                            <th style="width:1%">SLA</th>
+                            <th style="width:1%"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="rows">
+                        <tr><td colspan="14" class="ds-empty">กำลังโหลด...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="ds-note" style="margin-top:14px">
+            <i data-lucide="lightbulb" class="icon-sm"></i>
+            คอลัมน์ <strong>"จะติดที่ NHSO"</strong> คือรหัสข้อผิดพลาดที่ระบบคาดว่าจะได้กลับมาถ้าส่งทั้งอย่างนี้
+            — กฎชุดเดียวกับที่ สปสช. ใช้ตรวจ แต่ยิงก่อนส่ง จึงแก้จบได้ในรอบเดียว
+        </div>
+
+    </div>
+
+    <div id="toastContainer" class="toast-container"></div>
+
+    <script src="js/ds/ds-icons.js"></script>
+    <script src="js/ds/ds-navbar.js"></script>
+    <script src="js/ds/ds-drawer.js"></script>
+    <script src="js/ds/ds-toast.js"></script>
+    <script src="js/ds/ds-doc-parts.js"></script>
+    <script src="js/ds/ds-doc-print.js"></script>
+    <script src="js/ds/ds-chart.js"></script>
+
+    <script src="js/mock/mock-core.js"></script>
+    <script src="js/mock/mock-session.js"></script>
+    <script src="js/mock/mock-admin.js"></script>
+    <script src="js/mock/mock-nhso.js"></script>
+    <script src="js/mock/mock-claims.js"></script>
+    <script src="js/mock/mock-tasks.js"></script>
+
+    <script src="js/claim-worklist.js"></script>
+</body>
+</html>

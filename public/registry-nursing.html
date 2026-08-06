@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<!-- =========================================================================
+  บันทึกงาน — workspace 2 คอลัมน์ (รายการซ้าย / พื้นที่ทำงานกลางที่สลับด้วยแท็บ)
+
+  ต่างจาก registry-workspace.html ตรงที่ไม่มีแผงขวา — ใช้ .ds-shell.cols-2
+  "คอลัมน์ที่ 3" คือ Drawer ที่เลื่อนออกมาเมื่อต้องกรอกฟอร์ม
+  เป็นแม่แบบของหน้าที่มีหลายมุมมองต่อเรื่องเดียว + ต้องออกเอกสาร
+  ========================================================================= -->
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MediCore RCM — บันทึกงาน</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+
+    <link rel="stylesheet" href="css/ds-tokens.css">
+    <link rel="stylesheet" href="css/ds-base.css">
+    <link rel="stylesheet" href="css/ds-navbar.css">
+    <link rel="stylesheet" href="css/ds-layout.css">
+    <link rel="stylesheet" href="css/ds-components.css">
+    <link rel="stylesheet" href="css/ds-overlays.css">
+    <link rel="stylesheet" href="css/ds-print.css">
+
+    <script src="js/ds/ds-auth.js"></script>
+    <script>Auth.requireLogin();</script>
+</head>
+<body data-page="registry-nursing" class="ds-shell-page">
+
+    <nav id="appNavbar"></nav>
+
+    <div class="ds-shell cols-2" id="shell">
+
+        <!-- ══════════ คอลัมน์ซ้าย — รายการ ══════════ -->
+        <aside class="ds-pane-left" id="paneLeft">
+            <div class="ds-pane-header">
+                <h3><i data-lucide="clipboard-list" class="mi"></i> บันทึกงาน</h3>
+                <span class="ds-pane-count" id="listCount">0 รายการ</span>
+            </div>
+
+            <div class="ds-pane-tools">
+                <select class="sip-select" id="deptSelect" onchange="Work.load()">
+                    <option value="">ทุกหน่วยงาน</option>
+                </select>
+            </div>
+
+            <div class="ds-pilltabs">
+                <button class="ds-pilltab active" onclick="Work.setFilter('all', this)">
+                    ทั้งหมด <span class="tab-count" id="cntAll">0</span></button>
+                <button class="ds-pilltab" onclick="Work.setFilter('draft', this)">
+                    ร่าง <span class="tab-count" id="cntDraft">0</span></button>
+                <button class="ds-pilltab" onclick="Work.setFilter('urgent', this)">
+                    ด่วน <span class="tab-count" id="cntUrgent">0</span></button>
+            </div>
+
+            <span class="ds-section-label" id="shiftLabel" style="padding:0 16px;">—</span>
+
+            <input type="text" class="ds-pane-search" id="listSearch"
+                   placeholder="ค้นหาชื่อ / รหัส..." oninput="Work.onSearch()">
+
+            <div class="ds-pane-scroll" id="listContainer"></div>
+        </aside>
+
+        <!-- ══════════ คอลัมน์กลาง — พื้นที่ทำงาน ══════════ -->
+        <main class="ds-pane-main" id="paneMain">
+
+            <div class="ds-empty-state" id="emptyState">
+                <div class="ds-empty-state-icon"><i data-lucide="mouse-pointer-click"></i></div>
+                <div class="ds-empty-state-title">เลือกรายการจากด้านซ้าย</div>
+                <div class="ds-empty-state-desc">เพื่อดูรายละเอียดและเริ่มบันทึก</div>
+            </div>
+
+            <div id="detailWrap" style="display:none">
+                <!-- การ์ดสรุปเรื่องที่เลือก (sticky) -->
+                <div class="ds-context-bar">
+                    <button class="ds-pane-toggle" onclick="Work.toggleLeft()" title="ซ่อน/แสดงรายการ">
+                        <i data-lucide="menu" class="mi"></i>
+                    </button>
+                    <div class="ds-context-avatar" id="ctxAvatar">–</div>
+                    <div class="ds-context-info">
+                        <div class="ds-context-name">
+                            <span id="ctxName">—</span>
+                            <span class="sip-chip sip-chip-muted" id="ctxChip">—</span>
+                        </div>
+                        <div class="ds-context-meta">
+                            <span id="ctxCode">รหัส: —</span>
+                            <span id="ctxDept">หน่วยงาน: —</span>
+                            <span id="ctxBy">ผู้บันทึก: —</span>
+                            <span id="ctxDate">อัปเดต: —</span>
+                        </div>
+                    </div>
+                    <div class="ds-context-aside">
+                        <div class="ds-alert-card" id="ctxAlert" style="display:none" onclick="Work.showAlert()">
+                            <i data-lucide="alert-triangle" class="ac-ico"></i>
+                            <div class="ac-body">
+                                <span class="ac-label">ความเร่งด่วน</span>
+                                <strong>ด่วน — ต้องจัดการก่อน</strong>
+                            </div>
+                            <i data-lucide="eye" class="ac-view"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="padding:0 16px 24px">
+                    <div class="ds-tabs" id="tabBar"></div>
+                    <div id="tabContent"></div>
+                </div>
+            </div>
+        </main>
+
+    </div>
+
+    <div id="toastContainer" class="toast-container"></div>
+
+    <script src="js/ds/ds-icons.js"></script>
+    <script src="js/ds/ds-navbar.js"></script>
+    <script src="js/ds/ds-drawer.js"></script>
+    <script src="js/ds/ds-toast.js"></script>
+    <script src="js/ds/ds-doc-parts.js"></script>
+    <script src="js/ds/ds-doc-print.js"></script>
+    <script src="js/registry-nursing.js"></script>
+</body>
+</html>

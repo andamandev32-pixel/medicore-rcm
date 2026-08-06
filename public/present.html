@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<!-- =========================================================================
+  สไลด์นำเสนอผู้บริหาร — Claim Intelligence & Readiness Platform
+
+  หน้านี้ตั้งใจให้ "เปิดได้เสมอ": โหลดแค่ ds-tokens.css + ds-present.css + present.js
+  ไม่มี navbar ไม่มี ds-auth ไม่มีไอคอนจาก CDN — เปิดบนโปรเจกเตอร์ได้โดยไม่มีเน็ตและไม่มี DB
+
+  ปุ่มลูกศร / PageUp-PageDown (presenter clicker) / Home-End เลื่อนสไลด์
+  Ctrl+P ได้ PDF A4 แนวนอน หน้าละสไลด์ทันที
+  ========================================================================= -->
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claim Intelligence & Readiness Platform — นำเสนอผู้บริหาร</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+
+    <link rel="stylesheet" href="css/ds-tokens.css">
+    <link rel="stylesheet" href="css/ds-present.css">
+</head>
+<body>
+
+<div class="pr-app">
+
+    <header class="pr-topbar">
+        <div class="pr-brand">
+            <span class="pr-brand-mark">+</span>
+            <span>Claim Intelligence &amp; Readiness Platform</span>
+            <span class="pr-brand-sub">ระบบตรวจสอบความพร้อมก่อนส่งเคลม · 6 ส.ค. 2569</span>
+        </div>
+        <div class="pr-top-actions">
+            <button class="pr-btn" type="button" onclick="Deck.toggleFullscreen()">เต็มจอ</button>
+            <button class="pr-btn" type="button" onclick="window.print()">พิมพ์ / PDF</button>
+            <a class="pr-btn accent" href="claim-dashboard.html" target="_blank" rel="noopener">เปิดระบบต้นแบบ</a>
+        </div>
+    </header>
+
+    <div class="pr-viewport">
+        <div class="pr-deck" id="deck"><!-- สไลด์ render ด้วย present.js --></div>
+    </div>
+
+    <div class="pr-controls">
+        <button class="pr-nav-btn" id="prev" type="button" aria-label="สไลด์ก่อนหน้า">&#8249;</button>
+        <div class="pr-dots" id="dots"></div>
+        <span class="pr-counter" id="counter">1 / 1</span>
+        <button class="pr-nav-btn" id="next" type="button" aria-label="สไลด์ถัดไป">&#8250;</button>
+        <span class="pr-hint">ใช้ปุ่ม ← → หรือ presenter clicker</span>
+    </div>
+
+</div>
+
+<!-- ⚠️ ลำดับสำคัญ: present-slides.js เรียกฟังก์ชันวาดผังตอนสร้างอาร์เรย์ทันที
+     present-flows.js จึงต้องโหลดก่อนเสมอ -->
+<script src="js/present-flows.js"></script>
+<script src="js/present-slides.js"></script>
+<script src="js/present.js"></script>
+</body>
+</html>

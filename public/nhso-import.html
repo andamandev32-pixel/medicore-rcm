@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<!-- =========================================================================
+  ส่งเบิก NHSO — นำเข้าข้อมูล / โครงสร้าง 15 แฟ้ม / งานก่อน UAT
+  เนื้อหาถอดจาก doc/โครงการ NHSO Digital Platform_Commu_03082026_V4.pdf
+  (สไลด์ 4 ชุดข้อมูลมาตรฐาน · สไลด์ 7 Pre Tasks · สไลด์ 15–18 การนำเข้า)
+
+  ⚠️ หน้าต้นแบบ: ข้อมูลจำลองล้วน ไม่เรียก /api จึงไม่ gate ด้วย Auth.requireLogin()
+     เมื่อผูก backend จริง ให้เพิ่มบรรทัด Auth.requireLogin(); กลับเข้าไปในส่วนหัวของหน้า
+  ========================================================================= -->
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MediCore RCM — นำเข้าข้อมูล NHSO</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+
+    <link rel="stylesheet" href="css/ds-tokens.css">
+    <link rel="stylesheet" href="css/ds-base.css">
+    <link rel="stylesheet" href="css/ds-navbar.css">
+    <link rel="stylesheet" href="css/ds-layout.css">
+    <link rel="stylesheet" href="css/ds-components.css">
+    <link rel="stylesheet" href="css/ds-overlays.css">
+    <link rel="stylesheet" href="css/ds-print.css">
+    <link rel="stylesheet" href="css/ds-chart.css">
+
+    <script src="js/ds/ds-auth.js"></script>
+</head>
+<body data-page="nhso-import">
+
+    <nav id="appNavbar"></nav>
+
+    <div class="page-container">
+
+        <div id="demoBanner"></div>
+
+        <div class="page-header">
+            <div>
+                <div class="page-title">
+                    <i data-lucide="upload" class="mi"></i>
+                    <span>นำเข้าข้อมูล NHSO</span>
+                </div>
+                <div class="page-subtitle">
+                    เชื่อมต่อ API · อัปโหลดไฟล์ · ประวัติการนำเข้า · โครงสร้าง Standard Dataset 15 แฟ้ม · งานก่อน UAT
+                </div>
+            </div>
+            <div class="section-actions">
+                <button class="btn btn-outline" onclick="location.href='nhso-submit.html'">
+                    <i data-lucide="list" class="icon-sm"></i> ไปที่รายการส่งเบิก
+                </button>
+            </div>
+        </div>
+
+        <div class="ds-segbar" id="segTab"></div>
+
+        <div id="tabContent"></div>
+
+    </div>
+
+    <div id="toastContainer" class="toast-container"></div>
+
+    <script src="js/ds/ds-icons.js"></script>
+    <script src="js/ds/ds-navbar.js"></script>
+    <script src="js/ds/ds-drawer.js"></script>
+    <script src="js/ds/ds-toast.js"></script>
+    <script src="js/ds/ds-chart.js"></script>
+
+    <script src="js/mock/mock-core.js"></script>
+    <script src="js/mock/mock-session.js"></script>
+    <script src="js/mock/mock-admin.js"></script>
+    <script src="js/mock/mock-nhso.js"></script>
+    <script src="js/mock/mock-claims.js"></script>
+
+    <script src="js/nhso-import.js"></script>
+</body>
+</html>

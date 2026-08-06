@@ -1,0 +1,80 @@
+// ============================================================
+// Policy layer — ตารางสิทธิ์กลางของทั้ง API
+//
+// ทำไมรวมไว้ที่เดียวแทนกระจาย requireRole ตาม router:
+//   เพราะมีตารางเดียวจึงเขียนเทสต์เดินทุก route ที่ mount จริง แล้วยืนยันว่า
+//   ไม่มี route ไหนหลุดการจัดประเภทได้ (scripts/check-policy.js)
+//   ถ้าไม่มีเทสต์ตัวนั้น การใส่ requireRole ตาม router จะดีกว่าเพราะ grep ง่ายกว่า
+//   — ตารางนี้จึงมีค่าก็ต่อเมื่อ check-policy ยังรันอยู่
+//
+// requireRole ที่ใส่ในแต่ละ router เป็นชั้นที่สองและเป็นเอกสารในตัวไฟล์
+// ทุกอันต้องแคบกว่าหรือเท่ากับกฎในตารางนี้
+//
+// ลำดับสำคัญ: match แรกชนะ กฎเฉพาะต้องมาก่อนกฎกว้าง
+// เทียบกับ req.path (Express ตัด '/api' ออกแล้ว ไม่มี query string)
+// ห้ามเทียบ req.originalUrl เพราะมี query string ติดมา เปิดช่องให้เล่นกับ pattern
+// ============================================================
+
+const ADMIN  = 'ADMIN';
+const DOCTOR = 'DOCTOR';
+const NURSE  = 'NURSE';
+const PHARM  = 'PHARMACIST';
+const AIDE   = 'NURSE_AIDE';
+
+// ผู้ปฏิบัติงานที่เขียนข้อมูลได้
+const STAFF = [DOCTOR, NURSE, PHARM, ADMIN];
+// ทุกคนที่ล็อกอิน (รวมผู้ช่วย — อ่านได้ แต่เขียนไม่ได้)
+const ANY   = [DOCTOR, NURSE, PHARM, AIDE, ADMIN];
+
+const POLICY = [
+    // ── สาธารณะ (ต้องตรงกับ PUBLIC ใน gateway.js) ──
+    { m: 'POST', p: /^\/auth\/login$/, public: true },
+    { m: 'GET',  p: /^\/health$/,      public: true },
+
+    // ── บัญชีผู้ใช้ตัวเอง ──
+    { m: '*', p: /^\/auth\/(me|logout|switch-role)$/, roles: ANY },
+
+    // ── ตั้งค่าระบบ: ADMIN ยกเว้น master data ที่หน้างานต้องอ่าน ──
+    //    กฎ GET ต้องมาก่อนกฎ '*' ด้านล่าง (match แรกชนะ)
+    { m: 'GET', p: /^\/settings\/(departments|users)(\/|$)/, roles: ANY },
+    { m: '*',   p: /^\/settings(\/|$)/,                      roles: [ADMIN] },
+
+    // ── โมดูลตัวอย่าง: ทะเบียนรายการ ──
+    //    "ยืนยัน" เป็นการรับผิดชอบทางวิชาชีพ จึงแคบกว่าการแก้ทั่วไป
+    //    ต้องอยู่ก่อนกฎ /registry กว้าง
+    { m: 'PUT', p: /^\/registry\/[^/]+\/confirm$/, roles: [DOCTOR, ADMIN] },
+    { m: 'GET', p: /^\/registry(\/|$)/,            roles: ANY },
+    { m: '*',   p: /^\/registry(\/|$)/,            roles: STAFF },
+
+    // ── ปิดท้าย: อะไรที่ไม่เข้ากฎไหนเลย = ปฏิเสธ ──
+    // check-policy.js จะ fail ถ้ามี route ตกมาถึงบรรทัดนี้
+    { m: '*', p: /.*/, roles: [], fallthrough: true },
+];
+
+function match(method, path) {
+    return POLICY.find(r => (r.m === '*' || r.m === method) && r.p.test(path));
+}
+
+function policy(req, res, next) {
+    const rule = match(req.method, req.path);
+
+    if (rule.public) return next();
+
+    if (rule.fallthrough) {
+        console.error(`[policy] ไม่มีกฎครอบคลุม: ${req.method} ${req.baseUrl}${req.path} — ปฏิเสธไว้ก่อน`);
+        return res.status(403).json({ error: 'ยังไม่ได้กำหนดสิทธิ์ของเส้นทางนี้', code: 'NO_POLICY' });
+    }
+
+    // gateway ทำ authn มาแล้ว แต่กันไว้เผื่อลำดับ mount เปลี่ยน
+    if (!req.user) return res.status(401).json({ error: 'กรุณาเข้าสู่ระบบก่อน' });
+
+    if (!rule.roles.includes(req.user.active_role)) {
+        return res.status(403).json({
+            error: `ไม่มีสิทธิ์ดำเนินการ (ต้องการ: ${rule.roles.join(' หรือ ')})`,
+            code: 'FORBIDDEN',
+        });
+    }
+    return next();
+}
+
+module.exports = { policy, POLICY, match };

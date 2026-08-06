@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<!-- =========================================================================
+  Portal — หน้า home ของบทบาท (hero + KPI + การ์ดงาน + ปฏิทินรายสัปดาห์)
+  แม่แบบของหน้า "รวมงานของฉัน" ทุกบทบาท — คัดลอกแล้วเปลี่ยน KPI/section ได้เลย
+  โหลด ds-portal.css เพิ่มจากชุดมาตรฐาน
+  ========================================================================= -->
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MediCore RCM — Portal</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+
+    <link rel="stylesheet" href="css/ds-tokens.css">
+    <link rel="stylesheet" href="css/ds-base.css">
+    <link rel="stylesheet" href="css/ds-navbar.css">
+    <link rel="stylesheet" href="css/ds-layout.css">
+    <link rel="stylesheet" href="css/ds-components.css">
+    <link rel="stylesheet" href="css/ds-overlays.css">
+    <link rel="stylesheet" href="css/ds-print.css">
+    <link rel="stylesheet" href="css/ds-portal.css">
+
+    <script src="js/ds/ds-auth.js"></script>
+    <script>Auth.requireLogin();</script>
+</head>
+<body data-page="portal">
+
+    <nav id="appNavbar"></nav>
+
+    <div class="dp-wrap">
+
+        <div class="dp-hero">
+            <div class="dp-hero-left">
+                <h1><i data-lucide="layout-dashboard"></i> <span id="dpGreet">งานของฉัน</span></h1>
+                <div class="dp-hero-sub" id="dpDateLine">—</div>
+            </div>
+            <div class="dp-hero-actions">
+                <button class="dp-btn-sm" onclick="Portal.openSettings()">
+                    <i data-lucide="settings" class="icon-xs"></i> ตั้งค่าของฉัน
+                </button>
+                <div class="dp-hero-clock" id="dpClock">--:--</div>
+            </div>
+        </div>
+
+        <!-- KPI คลิกแล้วเลื่อนไปที่ section ที่เกี่ยวข้อง -->
+        <div class="dp-kpi-grid" id="dpKpiGrid"></div>
+
+        <div class="dp-row">
+            <div class="dp-section" id="sec-draft">
+                <div class="dp-section-header">
+                    <div class="dp-section-title"><i data-lucide="pencil-line"></i> ร่างที่รอยืนยัน</div>
+                    <span class="dp-section-count" id="cntDraft">0</span>
+                </div>
+                <div class="dp-section-body" id="listDraft"><div class="dp-empty">กำลังโหลด...</div></div>
+            </div>
+
+            <div class="dp-section" id="sec-urgent">
+                <div class="dp-section-header">
+                    <div class="dp-section-title"><i data-lucide="alert-triangle"></i> เรื่องด่วน</div>
+                    <span class="dp-section-count" id="cntUrgent">0</span>
+                </div>
+                <div class="dp-section-body" id="listUrgent"><div class="dp-empty">กำลังโหลด...</div></div>
+            </div>
+        </div>
+
+        <div class="dp-row">
+            <div class="dp-section" id="sec-done">
+                <div class="dp-section-header">
+                    <div class="dp-section-title"><i data-lucide="check-circle-2"></i> ยืนยันแล้วล่าสุด</div>
+                    <span class="dp-section-count" id="cntDone">0</span>
+                </div>
+                <div class="dp-section-body" id="listDone"><div class="dp-empty">กำลังโหลด...</div></div>
+            </div>
+
+            <div class="dp-section" id="sec-dept">
+                <div class="dp-section-header">
+                    <div class="dp-section-title"><i data-lucide="building-2"></i> แยกตามหน่วยงาน</div>
+                    <span class="dp-section-count" id="cntDept">0</span>
+                </div>
+                <div class="dp-section-body" id="listDept"><div class="dp-empty">กำลังโหลด...</div></div>
+            </div>
+        </div>
+
+        <!-- ปฏิทินรายสัปดาห์ — โครงพร้อมใช้ เนื้อหาต่อ API จริงภายหลัง -->
+        <div class="dp-calendar" id="sec-cal">
+            <div class="dp-cal-toolbar">
+                <div class="dp-cal-nav">
+                    <button class="dp-btn-sm" onclick="Portal.shiftWeek(-1)"><i data-lucide="chevron-left" class="icon-xs"></i></button>
+                    <button class="dp-btn-sm" onclick="Portal.shiftWeek(0)">สัปดาห์นี้</button>
+                    <button class="dp-btn-sm" onclick="Portal.shiftWeek(1)"><i data-lucide="chevron-right" class="icon-xs"></i></button>
+                </div>
+                <div class="dp-cal-week-label" id="dpCalWeekLabel">—</div>
+                <div class="dp-cal-filters" id="dpCalFilters"></div>
+            </div>
+            <div class="dp-cal-week-grid" id="dpCalGrid"></div>
+        </div>
+
+    </div>
+
+    <div id="toastContainer" class="toast-container"></div>
+
+    <script src="js/ds/ds-icons.js"></script>
+    <script src="js/ds/ds-navbar.js"></script>
+    <script src="js/ds/ds-drawer.js"></script>
+    <script src="js/ds/ds-toast.js"></script>
+    <script src="js/portal.js"></script>
+</body>
+</html>

@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<!-- =========================================================================
+  ส่งเบิก NHSO — รายการส่งเบิก
+  เนื้อหาถอดจาก doc/โครงการ NHSO Digital Platform_Commu_03082026_V4.pdf (3 ส.ค. 2569)
+  · ขั้นตอนการทำงาน 6 ขั้น + สถานะย่อย 1000/1100/4103/3101 + กิจกรรม F000/F001/F002
+  · Business Journey 4 เลน
+
+  ⚠️ หน้าต้นแบบ: ข้อมูลจำลองล้วน ไม่เรียก /api จึงไม่ gate ด้วย Auth.requireLogin()
+     เมื่อผูก backend จริง ให้เพิ่มบรรทัด Auth.requireLogin(); กลับเข้าไปในส่วนหัวของหน้า
+  ========================================================================= -->
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MediCore RCM — ส่งเบิก NHSO</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+
+    <link rel="stylesheet" href="css/ds-tokens.css">
+    <link rel="stylesheet" href="css/ds-base.css">
+    <link rel="stylesheet" href="css/ds-navbar.css">
+    <link rel="stylesheet" href="css/ds-layout.css">
+    <link rel="stylesheet" href="css/ds-components.css">
+    <link rel="stylesheet" href="css/ds-overlays.css">
+    <link rel="stylesheet" href="css/ds-print.css">
+    <link rel="stylesheet" href="css/ds-chart.css">
+
+    <script src="js/ds/ds-auth.js"></script>
+</head>
+<body data-page="nhso-submit">
+
+    <nav id="appNavbar"></nav>
+
+    <div class="page-container">
+
+        <div id="demoBanner"></div>
+
+        <div class="page-header">
+            <div>
+                <div class="page-title">
+                    <i data-lucide="hospital" class="mi"></i>
+                    <span>ส่งเบิก NHSO</span>
+                </div>
+                <div class="page-subtitle">
+                    NHSO Digital Platform · Standard Dataset 15 แฟ้ม · Single Claim System
+                </div>
+            </div>
+            <div class="section-actions">
+                <button class="btn btn-outline" onclick="NhsoSubmit.openSteps()">
+                    <i data-lucide="workflow" class="icon-sm"></i> ดูขั้นตอนการทำงาน
+                </button>
+                <button class="btn btn-outline" onclick="location.href='nhso-import.html'">
+                    <i data-lucide="upload" class="icon-sm"></i> นำเข้าข้อมูล
+                </button>
+                <button class="btn btn-primary" onclick="NhsoSubmit.submitSelected()">
+                    <i data-lucide="send" class="icon-sm"></i> ส่งเบิกที่เลือก
+                </button>
+            </div>
+        </div>
+
+        <!-- ขั้นตอน 6 ขั้น — กดกรองได้ -->
+        <div class="section-card" style="padding:16px">
+            <div class="section-title" style="margin-bottom:12px">
+                <i data-lucide="git-commit-horizontal" class="mi"></i> ขั้นตอนการทำงาน
+                <span class="td-sub" style="font-weight:400">— กดที่ขั้นเพื่อกรองรายการ</span>
+            </div>
+            <div class="ds-stepper" id="stageStepper"></div>
+        </div>
+
+        <div class="ds-kpi-grid">
+            <div class="sip-kpi" onclick="NhsoSubmit.setStage('AWAIT_SUBMIT')" style="cursor:pointer">
+                <i data-lucide="inbox" class="sip-kpi-icon icon-lg"></i>
+                <div class="sip-kpi-value" id="kpiAwait">0</div>
+                <div class="sip-kpi-label">รายการรอส่งเบิก</div>
+            </div>
+            <div class="sip-kpi critical" onclick="NhsoSubmit.setStage('AWAIT_FIX')" style="cursor:pointer">
+                <i data-lucide="wrench" class="sip-kpi-icon icon-lg"></i>
+                <div class="sip-kpi-value" id="kpiFix">0</div>
+                <div class="sip-kpi-label">รายการรอแก้ไข (ถูกตีกลับ)</div>
+            </div>
+            <div class="sip-kpi">
+                <i data-lucide="banknote" class="sip-kpi-icon icon-lg"></i>
+                <div class="sip-kpi-value" id="kpiPay">0</div>
+                <div class="sip-kpi-label">มูลค่ารอจ่าย (บาท)</div>
+            </div>
+            <div class="sip-kpi">
+                <i data-lucide="shield-check" class="sip-kpi-icon icon-lg"></i>
+                <div class="sip-kpi-value" id="kpiPre">0%</div>
+                <div class="sip-kpi-label">ผ่านการตรวจก่อนส่งของเรา</div>
+            </div>
+        </div>
+
+        <div class="section-card">
+            <div class="section-header">
+                <div class="section-title">
+                    <i data-lucide="list" class="mi"></i> <span id="stageTitle">รายการทั้งหมด</span>
+                    <span class="ds-pane-count" id="rowCount">0 รายการ</span>
+                </div>
+                <div class="section-actions">
+                    <select class="sip-select" id="fFund" style="width:130px" onchange="NhsoSubmit.render()">
+                        <option value="all">ทุกกองทุน</option>
+                    </select>
+                    <select class="sip-select" id="fService" style="width:120px" onchange="NhsoSubmit.render()">
+                        <option value="all">ทุกบริการ</option>
+                        <option value="OPD">OP</option>
+                        <option value="PP">PP</option>
+                        <option value="IPD">IP</option>
+                    </select>
+                    <input type="text" id="searchBox" class="sip-input" style="width:240px"
+                           placeholder="ค้นหา SEQ / HN / AN / ชื่อ..." oninput="NhsoSubmit.render()">
+                </div>
+            </div>
+
+            <!-- สถานะย่อย — เปลี่ยนตามขั้นที่เลือก -->
+            <div id="subBar" style="padding:0 0 12px"></div>
+
+            <div class="table-responsive">
+                <table class="data-table compact">
+                    <thead>
+                        <tr>
+                            <th style="width:1%"><input type="checkbox" onclick="NhsoSubmit.toggleAll(this)"></th>
+                            <th style="width:1%">SEQ</th>
+                            <th style="width:1%">HN</th>
+                            <th style="width:1%">AN</th>
+                            <th>ชื่อ-สกุล</th>
+                            <th style="width:1%">หน่วยบริการ</th>
+                            <th style="width:1%">วันที่รับบริการ</th>
+                            <th style="width:1%">บริการ</th>
+                            <th style="width:1%;text-align:right">ยอดขอเบิก</th>
+                            <th style="width:1%">สถานะรายการ</th>
+                            <th style="width:1%">ตรวจก่อนส่ง (ระบบเรา)</th>
+                            <th style="width:1%">หมายเลขอ้างอิง</th>
+                            <th style="width:1%"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="rows"><tr><td colspan="13" class="ds-empty">กำลังโหลด...</td></tr></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Business Journey — พับไว้ ไม่ให้บังรายการงาน -->
+        <div class="section-card">
+            <div class="section-header" style="cursor:pointer" onclick="NhsoSubmit.toggleJourney()">
+                <div class="section-title">
+                    <i data-lucide="route" class="mi"></i> เส้นทางธุรกิจ (Business Journey) — NHSO Digital Platform
+                </div>
+                <div class="section-actions">
+                    <button class="btn btn-ghost btn-sm" id="journeyBtn">
+                        <i data-lucide="chevron-down" class="icon-sm"></i> แสดง
+                    </button>
+                </div>
+            </div>
+            <div id="journeyBody" style="display:none"></div>
+        </div>
+
+    </div>
+
+    <div id="toastContainer" class="toast-container"></div>
+
+    <script src="js/ds/ds-icons.js"></script>
+    <script src="js/ds/ds-navbar.js"></script>
+    <script src="js/ds/ds-drawer.js"></script>
+    <script src="js/ds/ds-toast.js"></script>
+
+    <script src="js/mock/mock-core.js"></script>
+    <script src="js/mock/mock-session.js"></script>
+    <script src="js/mock/mock-admin.js"></script>
+    <script src="js/mock/mock-nhso.js"></script>
+    <script src="js/mock/mock-claims.js"></script>
+
+    <script src="js/nhso-submit.js"></script>
+</body>
+</html>
