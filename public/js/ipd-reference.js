@@ -25,6 +25,12 @@ const IpdReference = {
         if (this.TABS.includes(p.get('tab'))) this.state.tab = p.get('tab');
         this.render();
         this.switchTab(this.state.tab);
+
+        /* mock-refdata.js hydrate ตาราง DRG จริงเสร็จ → วาดใหม่ (คง tab เดิม) */
+        document.addEventListener('refdata:updated', () => {
+            this.render();
+            this.switchTab(this.state.tab);
+        });
     },
 
     reload() { this.state.pending = null; this.render(); this.switchTab(this.state.tab); showToast('รีเฟรชแล้ว'); },

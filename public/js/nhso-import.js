@@ -27,6 +27,9 @@ const NhsoImport = {
         if (p.get('tab')) this.state.tab = p.get('tab');
         this.renderSeg();
         this.render();
+
+        /* mock-refdata.js hydrate โครงสร้างแฟ้ม/เมทริกซ์กองทุนจริงเสร็จ → วาดใหม่ */
+        document.addEventListener('refdata:updated', () => this.render());
     },
 
     renderSeg() {

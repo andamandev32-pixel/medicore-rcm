@@ -22,6 +22,12 @@ const CaseView = {
 
         const first = this.visible()[0];
         this.select(this.state.id || (first ? first.id : null));
+
+        /* mock-refdata.js hydrate ข้อความ error จริงเสร็จ → วาด tooltip ใหม่ */
+        document.addEventListener('refdata:updated', () => {
+            this.renderList();
+            if (this.state.id) this.select(this.state.id);
+        });
     },
 
     reload() { this.select(this.state.id); showToast('ยกเลิกการแก้ไขแล้ว', 'info'); },

@@ -32,6 +32,12 @@ const Rules = {
         this.select(this.state.id || (first ? first.id : null));
 
         if (this._fromQa) this.openBuilder(null, this._fromQa);
+
+        /* mock-refdata.js hydrate ข้อมูลอ้างอิงจากฐานข้อมูลจริงเสร็จ → วาดใหม่ */
+        document.addEventListener('refdata:updated', () => {
+            this.renderList();
+            if (this.state.id) this.select(this.state.id);
+        });
     },
 
     current() { return this.state.id ? MockRules.byId(this.state.id) : null; },

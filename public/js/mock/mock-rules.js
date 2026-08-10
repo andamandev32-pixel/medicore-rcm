@@ -635,6 +635,10 @@ const MockRules = {
         }
         if (rule.origin_doc) return { text: rule.origin_doc, verified: true };
         if (rule.maps_to_nhso) {
+            /* ถ้า mock-refdata.js hydrate ตาราง ref_error_codes มาแล้ว
+               ใช้ที่มา + สถานะยืนยันจากฐานข้อมูลจริงแทนข้อความตายตัว */
+            const meta = (window.REF_ERR_META || {})[rule.maps_to_nhso];
+            if (meta && meta.source_doc) return { text: meta.source_doc, verified: !!meta.verified };
             return {
                 text: 'โครงการ NHSO Digital Platform Communication V4 · 3 ส.ค. 2569 (ภาพหน้าจอ)',
                 verified: false,

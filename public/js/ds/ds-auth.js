@@ -272,12 +272,14 @@ const Auth = (() => {
         try {
             res = await _origFetch(input, { ...init, headers });
         } catch (err) {
-            _noticeStaticMode();        // ต่อ /api ไม่ติดเลย
+            // dsOptional: คำขอ "มีก็ดี ไม่มีก็ได้" (เช่น mock-refdata.js hydrate)
+            // ล้มบน static deploy เป็นเรื่องปกติ — ไม่ต้องขึ้นป้ายโหมดนำเสนอ
+            if (!init.dsOptional) _noticeStaticMode();      // ต่อ /api ไม่ติดเลย
             throw err;
         }
 
         if (res.status === 404 && !(res.headers.get('content-type') || '').includes('json')) {
-            _noticeStaticMode();        // มีคนตอบ แต่ไม่ใช่ API — เสิร์ฟไฟล์ static อยู่
+            if (!init.dsOptional) _noticeStaticMode();      // มีคนตอบ แต่ไม่ใช่ API — เสิร์ฟไฟล์ static อยู่
         }
 
         if (res.status === 401) {

@@ -15,6 +15,9 @@ const Reject = {
         this.fillBatches();
         this.renderSeg();
         this.render();
+
+        /* mock-refdata.js hydrate ข้อความ error จริงเสร็จ → วาดใหม่ */
+        document.addEventListener('refdata:updated', () => this.render());
     },
 
     fillBatches() {
