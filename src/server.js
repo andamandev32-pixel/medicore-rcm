@@ -5,9 +5,10 @@ const path    = require('path');
 const { testConnection } = require('./database/connection');
 
 // Import routes
-const authRoutes     = require('./routes/auth');
-const settingsRoutes = require('./routes/settings');
-const registryRoutes = require('./routes/registry');
+const authRoutes      = require('./routes/auth');
+const settingsRoutes  = require('./routes/settings');
+const registryRoutes  = require('./routes/registry');
+const referenceRoutes = require('./routes/reference');
 
 const app = express();
 
@@ -42,9 +43,10 @@ app.use('/api', gateway, checkRevoked, policy);
 // ⚠️ เพิ่ม mount ใหม่ที่นี่ ต้องเพิ่ม 2 ที่คู่กันเสมอ:
 //    1) กฎใน src/middleware/policy.js
 //    2) รายการใน scripts/check-policy.js (MOUNTS)
-app.use('/api/auth',     authRoutes);
-app.use('/api/settings', settingsRoutes);
-app.use('/api/registry', registryRoutes);
+app.use('/api/auth',      authRoutes);
+app.use('/api/settings',  settingsRoutes);
+app.use('/api/registry',  registryRoutes);
+app.use('/api/reference', referenceRoutes);
 
 // ไม่มี SPA route — express.static เสิร์ฟ public/*.html ให้อยู่แล้ว
 // วางไฟล์ .html ใน public/ ได้เลย ไม่ต้อง register

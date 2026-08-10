@@ -1,0 +1,16 @@
+file_no,group_key,name_th,name_en,description_th,origin,req_count,cond_count,opt_count,field_count,condition_key,condition_label,mapping_status,source_doc,source_ref,source_date,verified
+1,MASTER,แฟ้มข้อมูลทั่วไป,NHSO Patient,ข้อมูลทั่วไปของผู้เข้ารับบริการ,16 แฟ้ม,3,0,15,18,,,DONE,NHSO Digital Platform Overview 23.06.2569,น.9-13,2026-06-23,1
+2,MASTER,แฟ้มข้อมูลหน่วยบริการ,NHSO Provider,ข้อมูลหน่วยบริการที่ให้บริการผู้เข้ารับบริการ,16 แฟ้ม,2,0,5,7,,,DONE,NHSO Digital Platform Overview 23.06.2569,น.9-13,2026-06-23,1
+3,MASTER,แฟ้มข้อมูลผู้ให้บริการ,NHSO Practitioner,ข้อมูลผู้ให้บริการสุขภาพของหน่วยบริการ,16 แฟ้ม,3,0,5,8,,,DONE,NHSO Digital Platform Overview 23.06.2569,น.9-13,2026-06-23,1
+4,CLINICAL,แฟ้มข้อมูลการรับบริการผู้ป่วยนอก,NHSO OPD,ข้อมูลการรับบริการผู้ป่วยนอก (OPD),16 แฟ้ม,4,0,13,17,,,DONE,NHSO Digital Platform Overview 23.06.2569,น.9-13,2026-06-23,1
+5,CLINICAL,แฟ้มข้อมูลวินิจฉัยโรคของผู้เข้ารับบริการ,NHSO Diagnosis,ข้อมูลวินิจฉัยโรคของผู้เข้ารับบริการ (รหัส ICD-10),16 แฟ้ม,4,0,2,6,,,DONE,NHSO Digital Platform Overview 23.06.2569,น.9-13,2026-06-23,1
+6,CLINICAL,แฟ้มข้อมูลการทำหัตถการของผู้เข้ารับบริการ,NHSO Procedure,ข้อมูลการทำหัตถการของผู้เข้ารับบริการ (รหัส ICD-9-CM),16 แฟ้ม,4,0,2,6,,,PARTIAL,NHSO Digital Platform Overview 23.06.2569,น.9-13,2026-06-23,1
+7,FINANCE,แฟ้มข้อมูลรายละเอียดค่าใช้จ่ายรายรายการ,NHSO CHAD,ข้อมูลรายละเอียดค่าใช้จ่ายรายรายการตามรหัสมาตรฐาน,16 แฟ้ม,8,1,6,15,,,PARTIAL,NHSO Digital Platform Overview 23.06.2569,น.9-13,2026-06-23,1
+8,FINANCE,แฟ้มข้อมูลรายละเอียดทางการเงิน,NHSO CHA,ข้อมูลรายละเอียดทางการเงินของผู้เข้ารับบริการ,16 แฟ้ม,7,0,1,8,,,DONE,NHSO Digital Platform Overview 23.06.2569,น.9-13,2026-06-23,1
+9,SPECIFIC,แฟ้มข้อมูลอุบัติเหตุฉุกเฉินฯ,NHSO AER,ข้อมูลอุบัติเหตุ ฉุกเฉิน และรับส่งเพื่อรักษา,16 แฟ้ม,3,11,1,15,emergency,กรณีอุบัติเหตุ ฉุกเฉิน หรือรับส่งต่อ,TODO,NHSO Digital Platform Overview 23.06.2569,น.9-13,2026-06-23,1
+10,SPECIFIC,แฟ้มข้อมูลประวัติการตั้งครรภ์ฯ,NHSO Prenatal,ข้อมูลประวัติการตั้งครรภ์สำหรับหญิงตั้งครรภ์,DMIS,5,0,3,8,prenatal,กรณีหญิงตั้งครรภ์,PARTIAL,NHSO Digital Platform Overview 23.06.2569,น.9-13,2026-06-23,1
+11,SPECIFIC,แฟ้มข้อมูลประวัติการคลอดของทารก,NHSO Newborn,ข้อมูลประวัติการคลอดของทารกที่เข้ารับบริการ,DMIS,4,2,2,8,newborn,กรณีคลอดทารก,PARTIAL,NHSO Digital Platform Overview 23.06.2569,น.9-13,2026-06-23,1
+12,SPECIFIC,แฟ้มข้อมูลการให้บริการผู้ป่วยจิตเวชฯ,NHSO CMHS,ข้อมูลการให้บริการผู้ป่วยจิตเวชเรื้อรังในชุมชน,DMIS,6,0,0,6,psych,กรณีผู้ป่วยจิตเวชเรื้อรังในชุมชน,TODO,NHSO Digital Platform Overview 23.06.2569,น.9-13,2026-06-23,1
+13,SPECIFIC,แฟ้มข้อมูลการให้บริการผู้พิการ,NHSO Disability,ข้อมูลการให้บริการผู้พิการที่เข้ารับบริการ,DMIS,5,0,4,9,disability,กรณีผู้พิการ,TODO,NHSO Digital Platform Overview 23.06.2569,น.9-13,2026-06-23,1
+14,ADMISSION,แฟ้มข้อมูลการให้บริการผู้ป่วยใน,NHSO IPD,ข้อมูลการให้บริการผู้ป่วยในที่เข้ารับบริการ,ผู้ป่วยใน,9,2,12,23,,,PARTIAL,NHSO Digital Platform Overview 23.06.2569,น.9-13,2026-06-23,1
+15,ADMISSION,แฟ้มข้อมูลผู้ป่วยในกรณีมีการลากลับบ้าน,NHSO LVD,ข้อมูลผู้ป่วยในกรณีมีการลากลับบ้าน (Leave day),ผู้ป่วยใน,5,0,1,6,leaveDay,กรณีผู้ป่วยในลากลับบ้าน,TODO,NHSO Digital Platform Overview 23.06.2569,น.9-13,2026-06-23,1

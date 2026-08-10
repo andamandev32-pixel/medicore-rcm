@@ -1,0 +1,13 @@
+fund_key,label_th,sort_order,source_doc,source_ref,source_date,verified
+OP,บริการผู้ป่วยนอกทั่วไป,1,NHSO Digital Platform Overview 23.06.2569,น.14-16,2026-06-23,1
+PP,บริการสร้างเสริมสุขภาพและป้องกันโรค (PP),2,NHSO Digital Platform Overview 23.06.2569,น.14-16,2026-06-23,1
+QOF,บริการสาธารณสุขเพิ่มเติมสำหรับบริการปฐมภูมิ (QOF),3,NHSO Digital Platform Overview 23.06.2569,น.14-16,2026-06-23,1
+LTC,บริการสำหรับผู้ที่มีภาวะพึ่งพิงในชุมชน (LTC),4,NHSO Digital Platform Overview 23.06.2569,น.14-16,2026-06-23,1
+CMHS,บริการผู้ป่วยจิตเวชเรื้อรังในชุมชน,5,NHSO Digital Platform Overview 23.06.2569,น.14-16,2026-06-23,1
+DMHT,ค่าบริการผู้ป่วยโรคเบาหวานและความดันโลหิตสูง,6,NHSO Digital Platform Overview 23.06.2569,น.14-16,2026-06-23,1
+TTM,ค่าบริการแพทย์แผนไทยและการแพทย์ทางเลือก,7,NHSO Digital Platform Overview 23.06.2569,น.14-16,2026-06-23,1
+REHAB,บริการฟื้นฟูสมรรถภาพด้านการแพทย์,8,NHSO Digital Platform Overview 23.06.2569,น.14-16,2026-06-23,1
+CANCER,บริการกลุ่มโรคมะเร็ง,9,NHSO Digital Platform Overview 23.06.2569,น.14-16,2026-06-23,1
+TELEMED,บริการ TeleMed / TeleHealth,10,NHSO Digital Platform Overview 23.06.2569,น.14-16,2026-06-23,1
+AE,ค่าบริการกรณีอุบัติเหตุ หรือเจ็บป่วยฉุกเฉิน,11,NHSO Digital Platform Overview 23.06.2569,น.14-16,2026-06-23,1
+IP,ค่าบริการสาธารณสุขกรณีผู้ป่วยใน (IP),12,NHSO Digital Platform Overview 23.06.2569,น.14-16,2026-06-23,1

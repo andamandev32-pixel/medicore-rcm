@@ -17,6 +17,7 @@ require('dotenv').config({ path: path.join(__dirname, '..', '..', '.env') });
 // เพิ่มไฟล์ใหม่ต่อท้าย ห้ามแทรกกลาง — ลำดับคือสัญญาว่าอะไรมาก่อนอะไร
 const SQL_FILES = [
     'schema.sql',
+    'reference.sql',    // ข้อมูลอ้างอิงมาตรฐานการเบิกจ่าย (รหัสติด C / 15 แฟ้ม / TMT / DRG)
 ];
 
 const DB_NAME = process.env.DB_NAME || 'medicore_rcm';

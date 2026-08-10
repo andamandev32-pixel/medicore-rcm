@@ -13,6 +13,8 @@
     "seed": "node src/database/seed-users.js && node src/database/seed-demo.js",
     "seed:users": "node src/database/seed-users.js",
     "seed:demo": "node src/database/seed-demo.js",
+    "seed:reference": "node src/database/seed-reference.js",
+    "seed:tmt": "node src/database/load-tmt.js",
     "check:policy": "node scripts/check-policy.js"
   },
   "dependencies": {

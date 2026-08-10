@@ -1,0 +1,6 @@
+tmt_id,level,fsn,manufacturer,strength,dosage_form,unit_of_use,ref_price,price_source,change_flag
+100001,TPU,PARACETAMOL 500 mg film-coated tablet (ตัวอย่างโครงไฟล์ — ไม่ใช่รหัส TMT จริง),DEMO PHARMA,500 mg,tablet,tablet,0.50,ตัวอย่าง,A
+100002,TPU,AMOXICILLIN 500 mg capsule (ตัวอย่างโครงไฟล์ — ไม่ใช่รหัส TMT จริง),DEMO PHARMA,500 mg,capsule,capsule,2.00,ตัวอย่าง,A
+100003,TPU,OMEPRAZOLE 20 mg gastro-resistant capsule (ตัวอย่างโครงไฟล์ — ไม่ใช่รหัส TMT จริง),DEMO PHARMA,20 mg,capsule,capsule,1.50,ตัวอย่าง,A
+100004,GPU,SODIUM CHLORIDE 0.9% injection 100 mL (ตัวอย่างโครงไฟล์ — ไม่ใช่รหัส TMT จริง),,0.9%,injection,bottle,25.00,ตัวอย่าง,A
+100005,TPU,METFORMIN 500 mg tablet (ตัวอย่างโครงไฟล์ — ไม่ใช่รหัส TMT จริง),DEMO PHARMA,500 mg,tablet,tablet,0.75,ตัวอย่าง,A

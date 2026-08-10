@@ -2,3 +2,6 @@ node_modules/
 .env
 *.log
 .DS_Store
+
+# Master TMT release เต็ม (หลักหมื่นแถว) — โหลดเองตาม data/reference/README.md
+data/reference/tmt/

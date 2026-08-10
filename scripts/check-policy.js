@@ -15,9 +15,10 @@ const { match } = require('../src/middleware/policy');
 
 // ต้องตรงกับลำดับ mount ใน server.js — เพิ่ม router ใหม่ต้องเพิ่มที่นี่ด้วย
 const MOUNTS = [
-    ['/api/auth',     'auth'],
-    ['/api/settings', 'settings'],
-    ['/api/registry', 'registry'],
+    ['/api/auth',      'auth'],
+    ['/api/settings',  'settings'],
+    ['/api/registry',  'registry'],
+    ['/api/reference', 'reference'],
 ];
 
 const showAll = process.argv.includes('--all');

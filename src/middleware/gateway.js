@@ -14,6 +14,16 @@ const PUBLIC = [
     { method: 'POST', path: '/auth/login' },
     // render.yaml healthCheckPath ชี้มาที่นี่ — ถ้าโดนบล็อก Render จะ restart วนไม่จบ
     { method: 'GET',  path: '/health' },
+    // ข้อมูลอ้างอิงมาตรฐาน (อ่านอย่างเดียว) — มาตรฐานราชการเผยแพร่อยู่แล้ว
+    // และหน้าต้นแบบที่ hydrate (mock-refdata.js) ตั้งใจไม่ล็อกอิน
+    { method: 'GET',  path: '/reference/error-codes' },
+    { method: 'GET',  path: '/reference/files' },
+    { method: 'GET',  path: '/reference/file-fields' },
+    { method: 'GET',  path: '/reference/fund-files' },
+    { method: 'GET',  path: '/reference/drg' },
+    { method: 'GET',  path: '/reference/drg-versions' },
+    { method: 'GET',  path: '/reference/tmt' },
+    { method: 'GET',  path: '/reference/meta' },
 ];
 
 // log  = บันทึกว่าจะบล็อกอะไร แต่ปล่อยผ่าน (ใช้ตอน rollout ดูว่ามี caller ไหนตกหล่น)
