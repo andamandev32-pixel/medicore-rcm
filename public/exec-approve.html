@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<!-- =========================================================================
+  อนุมัติวงเงินระดับผู้บริหาร (Executive Budget Approval)
+
+  ชั้นที่ 2 ของการอนุมัติส่งต่อ — รับเฉพาะรายการที่วงเงินเกิน
+  REFER_APPROVAL.EXEC_THRESHOLD และผ่านชั้นเจ้าหน้าที่มาแล้ว
+
+  โครงหน้า: doc/PAGE-GUIDE.md §3(ก) — หน้าเลื่อน + KPI + ตาราง + drawer
+  ทำไมเป็นตารางหลายรายการ ไม่ใช่กล่องงานทีละใบแบบ claim-tasks.html:
+  ผู้บริหารตัดสินจากการ "เทียบกันทั้งคิว" ว่าเงินก้อนไหนควรผ่านก่อน
+  ถ้าดูทีละใบจะไม่เห็นยอดรวมที่กำลังจะผูกพันในงวดเดียวกัน
+
+  ⚠️ หน้าต้นแบบ: ข้อมูลจำลองล้วน ไม่เรียก /api จึงไม่ gate ด้วย Auth.requireLogin()
+     (PAGE-GUIDE §7B) — ด่านบทบาทในหน้านี้เป็นการสาธิต ไม่ใช่ระบบสิทธิ์จริง
+  ========================================================================= -->
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>MediClearing — อนุมัติวงเงินระดับผู้บริหาร</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+
+    <link rel="stylesheet" href="css/ds-tokens.css">
+    <link rel="stylesheet" href="css/ds-base.css">
+    <link rel="stylesheet" href="css/ds-navbar.css">
+    <link rel="stylesheet" href="css/ds-layout.css">
+    <link rel="stylesheet" href="css/ds-components.css">
+    <link rel="stylesheet" href="css/ds-overlays.css">
+    <link rel="stylesheet" href="css/ds-print.css">
+    <link rel="stylesheet" href="css/ds-portal.css">
+
+    <script src="js/ds/ds-auth.js"></script>
+</head>
+<body data-page="exec-approve">
+
+    <nav id="appNavbar"></nav>
+
+    <div class="page-container">
+
+        <div id="demoBanner"></div>
+
+        <div class="page-header">
+            <div>
+                <div class="page-title">
+                    <i data-lucide="shield-check" class="mi"></i>
+                    <span>อนุมัติวงเงินระดับผู้บริหาร</span>
+                </div>
+                <div class="page-subtitle" id="pageSub">
+                    คำขอส่งต่อที่ผ่านชั้นเจ้าหน้าที่แล้ว แต่วงเงินเกินเกณฑ์จึงต้องให้ผู้บริหารตัดสิน
+                </div>
+            </div>
+            <div class="section-actions">
+                <button class="btn btn-outline" onclick="ExecApprove.reload()">
+                    <i data-lucide="refresh-cw" class="icon-sm"></i> รีเฟรช
+                </button>
+                <button class="btn btn-outline" onclick="ExecApprove.openPrint()">
+                    <i data-lucide="printer" class="icon-sm"></i> พิมพ์วาระอนุมัติ
+                </button>
+                <button class="btn btn-danger" onclick="ExecApprove.decideSelected(false)">
+                    <i data-lucide="corner-up-left" class="icon-sm"></i> ตีกลับที่เลือก
+                </button>
+                <button class="btn btn-primary" onclick="ExecApprove.decideSelected(true)">
+                    <i data-lucide="check-circle-2" class="icon-sm"></i> อนุมัติที่เลือก
+                </button>
+            </div>
+        </div>
+
+        <!-- ด่านบทบาท — เติมโดย ExecApprove.renderGuard() -->
+        <div id="roleGuard"></div>
+
+        <div class="ds-kpi-grid">
+            <div class="sip-kpi critical">
+                <i data-lucide="inbox" class="sip-kpi-icon icon-lg"></i>
+                <div class="sip-kpi-value" id="kpiCount">0</div>
+                <div class="sip-kpi-label">รายการรอผู้บริหารอนุมัติ</div>
+            </div>
+            <div class="sip-kpi">
+                <i data-lucide="wallet" class="sip-kpi-icon icon-lg"></i>
+                <div class="sip-kpi-value" id="kpiTotal">0</div>
+                <div class="sip-kpi-label">วงเงินรวมที่รอตัดสิน (บาท)</div>
+            </div>
+            <div class="sip-kpi">
+                <i data-lucide="trending-up" class="sip-kpi-icon icon-lg"></i>
+                <div class="sip-kpi-value" id="kpiExcess">0</div>
+                <div class="sip-kpi-label">ส่วนที่เกินเกณฑ์รวม (บาท)</div>
+            </div>
+            <div class="sip-kpi">
+                <i data-lucide="clock" class="sip-kpi-icon icon-lg"></i>
+                <div class="sip-kpi-value" id="kpiOverdue">0</div>
+                <div class="sip-kpi-label">เกินกำหนดตัดสิน</div>
+            </div>
+        </div>
+
+        <div class="section-card">
+            <div class="section-header">
+                <div class="section-title">
+                    <i data-lucide="list-checks" class="mi"></i> วาระที่ต้องตัดสิน
+                    <span class="ds-pane-count" id="rowCount">0 รายการ</span>
+                </div>
+                <div class="section-actions">
+                    <select class="sip-select" id="fFund" style="width:140px" onchange="ExecApprove.render()">
+                        <option value="all">ทุกกองทุน</option>
+                    </select>
+                    <select class="sip-select" id="fPartner" style="width:220px" onchange="ExecApprove.render()">
+                        <option value="all">ทุกปลายทาง</option>
+                    </select>
+                    <input type="text" id="searchBox" class="sip-input" style="width:240px"
+                           placeholder="ค้นหา HN / ชื่อ / รหัสรายการ..." oninput="ExecApprove.render()">
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="data-table compact">
+                    <thead>
+                        <tr>
+                            <th style="width:1%"><input type="checkbox" id="chkAll" onclick="ExecApprove.toggleAll(this)"></th>
+                            <th style="width:1%">รหัส</th>
+                            <th>ผู้ป่วย</th>
+                            <th style="width:1%">ปลายทาง</th>
+                            <th style="width:1%">ขอบเขต</th>
+                            <th style="width:1%;text-align:right">วงเงินที่ขอ</th>
+                            <th style="width:1%;text-align:right">เกินเกณฑ์</th>
+                            <th style="width:1%">อนุมัติชั้นเจ้าหน้าที่</th>
+                            <th style="width:1%">ธง</th>
+                            <th style="width:1%">กำหนดตัดสิน</th>
+                            <th style="width:1%"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="rows">
+                        <tr><td colspan="11" class="ds-empty">กำลังโหลด...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="ds-note" style="margin-top:14px">
+            <i data-lucide="lightbulb" class="icon-sm"></i>
+            เกณฑ์ยกระดับอยู่ที่ <strong id="noteThreshold">—</strong> —
+            ต่ำกว่านี้จบที่ชั้นเจ้าหน้าที่เพื่อไม่ให้ผู้บริหารจมกับงานประจำ
+            ส่วนที่เกินขึ้นมาถึงโต๊ะนี้เพราะเป็นภาระผูกพันที่เปลี่ยนใจทีหลังไม่ได้ —
+            เมื่ออนุมัติแล้วระบบจะออกเลขที่ใบส่งตัวและเลขอนุมัติทันที
+        </div>
+
+    </div>
+
+    <div id="toastContainer" class="toast-container"></div>
+
+    <script src="js/ds/ds-icons.js"></script>
+    <script src="js/ds/ds-navbar.js"></script>
+    <script src="js/ds/ds-drawer.js"></script>
+    <script src="js/ds/ds-toast.js"></script>
+    <script src="js/ds/ds-doc-parts.js"></script>
+    <script src="js/ds/ds-doc-print.js"></script>
+
+    <script src="js/mock/mock-core.js"></script>
+    <script src="js/mock/mock-session.js"></script>
+    <script src="js/mock/mock-admin.js"></script>
+    <script src="js/mock/mock-nhso.js"></script>
+    <script src="js/mock/mock-claims.js"></script>
+    <script src="js/mock/mock-referrals.js"></script>
+    <script src="js/mock/mock-tasks.js"></script>
+
+    <script src="js/exec-approve.js"></script>
+</body>
+</html>

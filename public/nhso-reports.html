@@ -11,7 +11,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MediCore RCM — รายงาน / Statement</title>
+    <title>MediClearing — รายงาน / Statement</title>
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
 
     <link rel="stylesheet" href="css/ds-tokens.css">
@@ -75,14 +75,18 @@
             <div class="table-responsive">
                 <table class="data-table compact">
                     <thead><tr>
-                        <th style="width:1%">รหัส</th><th>ชื่อรายงาน</th>
+                        <th style="width:1%">รหัส</th><th>ชื่อรายงาน<div class="ds-th-sub">ชื่อไฟล์</div></th>
                         <th style="width:1%">งวด</th><th style="width:1%">กองทุน</th>
                         <th style="width:1%">วันที่สร้าง</th>
                         <th style="width:1%;text-align:right">จำนวนรายการ</th>
-                        <th style="width:1%;text-align:right">ยอดรวม (บาท)</th>
+                        <th style="width:1%;text-align:right">ยอดเรียกเก็บ</th>
+                        <th style="width:1%;text-align:right">จ่ายชดเชย</th>
+                        <th style="width:1%;text-align:right">จ่ายเพิ่ม</th>
+                        <th style="width:1%;text-align:right">เรียกคืน</th>
+                        <th style="width:1%;text-align:right">เงินโอนเข้าบัญชี</th>
                         <th style="width:1%">สถานะ</th><th style="width:1%"></th>
                     </tr></thead>
-                    <tbody id="rows"><tr><td colspan="9" class="ds-empty">กำลังโหลด...</td></tr></tbody>
+                    <tbody id="rows"><tr><td colspan="13" class="ds-empty">กำลังโหลด...</td></tr></tbody>
                 </table>
             </div>
         </div>
@@ -113,6 +117,32 @@
                         <tbody id="reconRows"></tbody>
                     </table>
                 </div>
+            </div>
+        </div>
+
+        <!-- ตัดบัญชีลูกหนี้รายบุคคล — วัตถุประสงค์ข้อ 6 ของ สปสช. -->
+        <div class="section-card">
+            <div class="section-header">
+                <div class="section-title"><i data-lucide="user-check" class="mi"></i>
+                    ตัดบัญชีลูกหนี้รายบุคคล</div>
+            </div>
+            <div class="ds-chart-caption">
+                “หน่วยบริการกระทบยอดบัญชีลำบาก เนื่องจากมีกองทุนย่อยจำนวนมาก
+                และการจ่ายเงินไม่พร้อมกันใน 1 รายการ” — เป้าหมายของ NHSO Digital Platform
+                คือเคลียร์บัญชีลูกหนี้ได้เป็นรายบุคคล ตารางนี้จึงกางให้เห็นถึงรายเคส
+            </div>
+            <div class="table-responsive">
+                <table class="data-table compact">
+                    <thead><tr>
+                        <th style="width:1%">รหัสเคส</th><th style="width:18%">ผู้ป่วย</th>
+                        <th style="width:1%;text-align:right">ยอดเรียกเก็บ</th>
+                        <th>งวด / กองทุนย่อยที่จ่ายมาแล้ว</th>
+                        <th style="width:1%;text-align:right">เรียกคืน</th>
+                        <th style="width:1%;text-align:right">รับสุทธิ</th>
+                        <th style="width:1%;text-align:right">ยอดค้าง</th>
+                    </tr></thead>
+                    <tbody id="arLines"></tbody>
+                </table>
             </div>
         </div>
 

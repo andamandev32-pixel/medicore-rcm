@@ -11,7 +11,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
-    <title>MediCore RCM — ภาพรวมการส่งต่อ</title>
+    <title>MediClearing — ภาพรวมการส่งต่อ</title>
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
 
     <link rel="stylesheet" href="css/ds-tokens.css">
@@ -62,7 +62,10 @@
             </div>
         </div>
 
+        <!-- กดการ์ดเพื่อดูรายการจริงที่ประกอบเป็นตัวเลข แล้วเจาะต่อไปหน้าปลายทางได้
+             เนื้อหามาจาก MockKpi.forPage('refer-dashboard') เรนเดอร์โดย DSKpi -->
         <div class="ds-kpi-grid" id="kpiGrid"></div>
+        <div id="kpiFootnote"></div>
 
         <!-- ══ ส่งไปที่ไหน ══ -->
         <div class="section-card" style="margin-top:16px">
@@ -184,6 +187,8 @@
     <script src="js/ds/ds-icons.js"></script>
     <script src="js/ds/ds-navbar.js"></script>
     <script src="js/ds/ds-drawer.js"></script>
+    <!-- ds-kpi.js ต้องอยู่หลัง ds-drawer.js — การ์ด KPI เปิด drawer ผ่าน Drawer.open() -->
+    <script src="js/ds/ds-kpi.js"></script>
     <script src="js/ds/ds-toast.js"></script>
     <script src="js/ds/ds-doc-parts.js"></script>
     <script src="js/ds/ds-doc-print.js"></script>
@@ -196,6 +201,8 @@
     <script src="js/mock/mock-claims.js"></script>
     <script src="js/mock/mock-referrals.js"></script>
     <script src="js/mock/mock-tasks.js"></script>
+    <!-- mock-kpi.js ต้องเป็นไฟล์ mock สุดท้าย — นิยาม KPI อ้างตัวช่วยของโมดูลข้างบน -->
+    <script src="js/mock/mock-kpi.js"></script>
 
     <script src="js/refer-dashboard.js"></script>
 </body>

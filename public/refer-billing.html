@@ -13,7 +13,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
-    <title>MediCore RCM — ตามจ่าย / เรียกเก็บ</title>
+    <title>MediClearing — ตามจ่าย / เรียกเก็บ</title>
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
 
     <link rel="stylesheet" href="css/ds-tokens.css">
@@ -101,6 +101,9 @@
         </div>
         <div class="ds-kpi-grid" id="agingGrid"></div>
 
+        <!-- แถบบอกว่ารายการกำลังถูกกรองด้วย ?kpi= ที่ Dashboard ส่งมา
+             ถ้าไม่บอก ผู้ใช้จะนึกว่าข้อมูลหายไปเอง (MockKpi.mountBanner) -->
+        <div id="kpiFilterBar"></div>
         <div class="section-card" style="margin-top:16px">
             <div class="section-header">
                 <div class="section-title">
@@ -182,6 +185,8 @@
     <script src="js/mock/mock-claims.js"></script>
     <script src="js/mock/mock-referrals.js"></script>
     <script src="js/mock/mock-tasks.js"></script>
+    <!-- mock-kpi.js — ใช้ตีความ ?kpi= ที่ Dashboard ส่งมา ต้องอยู่หลัง mock ที่มันอ้าง -->
+    <script src="js/mock/mock-kpi.js"></script>
 
     <script src="js/refer-billing.js"></script>
 </body>

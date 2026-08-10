@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<!-- =========================================================================
+  ตารางอ้างอิงงานผู้ป่วยใน (IPD Reference Data)
+
+  หน้านี้ตอบคำถามเดียว: "ค่าไหนในระบบมีเอกสารรองรับแล้ว ค่าไหนยังจำลอง
+  และถ้ายังไม่มีเอกสารฉบับนั้น ระบบตรวจอะไรไม่ได้บ้าง"
+
+  เมื่อได้คู่มือ Thai DRG / ประกาศอัตราจ่ายฉบับจริงมาแล้ว นำเข้าที่แท็บสุดท้าย
+  ค่าที่นำเข้าจะยืนยันอัตโนมัติและป้าย "รอยืนยัน" จะหายจากหน้าอื่นเฉพาะแถวนั้น
+
+  ⚠️ หน้าต้นแบบ: ข้อมูลจำลองล้วน ไม่เรียก /api จึงไม่ gate ด้วย Auth.requireLogin()
+     ไฟล์ที่นำเข้าถูกอ่านในเบราว์เซอร์เท่านั้น ไม่ถูกส่งไปที่ใด
+  ========================================================================= -->
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>MediClearing — ตารางอ้างอิงงานผู้ป่วยใน</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+
+    <link rel="stylesheet" href="css/ds-tokens.css">
+    <link rel="stylesheet" href="css/ds-base.css">
+    <link rel="stylesheet" href="css/ds-navbar.css">
+    <link rel="stylesheet" href="css/ds-layout.css">
+    <link rel="stylesheet" href="css/ds-components.css">
+    <link rel="stylesheet" href="css/ds-overlays.css">
+    <link rel="stylesheet" href="css/ds-print.css">
+    <link rel="stylesheet" href="css/ds-portal.css">
+    <link rel="stylesheet" href="css/ds-chart.css">
+
+    <script src="js/ds/ds-auth.js"></script>
+</head>
+<body data-page="ipd-reference">
+
+    <nav id="appNavbar"></nav>
+
+    <div class="page-container">
+
+        <div id="demoBanner"></div>
+
+        <div class="page-header">
+            <div>
+                <div class="page-title">
+                    <i data-lucide="book-open" class="mi"></i>
+                    <span>ตารางอ้างอิงงานผู้ป่วยใน</span>
+                </div>
+                <div class="page-subtitle">
+                    กลุ่ม DRG · อัตราจ่ายต่อ RW · เงื่อนไขรายกองทุน — พร้อมที่มาของทุกค่า
+                    และรายการเอกสารที่ยังต้องหามาก่อนจะใช้ตัวเลขอ้างอิงได้
+                </div>
+            </div>
+            <div class="section-actions">
+                <button class="btn btn-outline" onclick="IpdReference.reload()">
+                    <i data-lucide="refresh-cw" class="icon-sm"></i> รีเฟรช
+                </button>
+                <button class="btn btn-primary" onclick="IpdReference.switchTab('import')">
+                    <i data-lucide="upload" class="icon-sm"></i> นำเข้าตารางอ้างอิง
+                </button>
+            </div>
+        </div>
+
+        <div class="ds-kpi-grid">
+            <div class="sip-kpi">
+                <i data-lucide="files" class="sip-kpi-icon icon-lg"></i>
+                <div class="sip-kpi-value" id="kpiDocs">0</div>
+                <div class="sip-kpi-label">เอกสารที่มีแล้ว / ที่ต้องมี</div>
+            </div>
+            <div class="sip-kpi critical">
+                <i data-lucide="file-question" class="sip-kpi-icon icon-lg"></i>
+                <div class="sip-kpi-value" id="kpiMissing">0</div>
+                <div class="sip-kpi-label">เอกสารที่ยังขาด</div>
+            </div>
+            <div class="sip-kpi critical">
+                <i data-lucide="badge-check" class="sip-kpi-icon icon-lg"></i>
+                <div class="sip-kpi-value" id="kpiVerified">0%</div>
+                <div class="sip-kpi-label">ค่าอ้างอิงที่ยืนยันกับเอกสารแล้ว</div>
+            </div>
+            <div class="sip-kpi critical">
+                <i data-lucide="lock" class="sip-kpi-icon icon-lg"></i>
+                <div class="sip-kpi-value" id="kpiLocked">0</div>
+                <div class="sip-kpi-label">กฎที่ยังเปิดใช้ไม่ได้</div>
+            </div>
+            <div class="sip-kpi">
+                <i data-lucide="layers" class="sip-kpi-icon icon-lg"></i>
+                <div class="sip-kpi-value" id="kpiDrg">0</div>
+                <div class="sip-kpi-label">กลุ่ม DRG ในตาราง</div>
+            </div>
+        </div>
+
+        <div class="ds-warn">
+            <i data-lucide="alert-triangle" class="icon-sm"></i>
+            <span id="refBanner">—</span>
+        </div>
+
+        <div class="section-card" style="margin-top:14px">
+            <div class="ds-tabs" style="margin:-4px 0 12px">
+                <button class="ds-tab active" onclick="IpdReference.switchTab('sources', this)">
+                    <i data-lucide="files" class="mi"></i> ทะเบียนเอกสาร
+                    <span class="tab-notif" id="srcBadge" style="display:none">0</span></button>
+                <button class="ds-tab" onclick="IpdReference.switchTab('drg', this)">
+                    <i data-lucide="layers" class="mi"></i> ตาราง DRG</button>
+                <button class="ds-tab" onclick="IpdReference.switchTab('rate', this)">
+                    <i data-lucide="banknote" class="mi"></i> อัตราจ่ายต่อ RW</button>
+                <button class="ds-tab" onclick="IpdReference.switchTab('fund', this)">
+                    <i data-lucide="shield-check" class="mi"></i> เงื่อนไขกองทุน</button>
+                <button class="ds-tab" onclick="IpdReference.switchTab('import', this)">
+                    <i data-lucide="upload" class="mi"></i> นำเข้า</button>
+            </div>
+
+            <div class="ds-tab-content active" id="tabSources"></div>
+            <div class="ds-tab-content" id="tabDrg"></div>
+            <div class="ds-tab-content" id="tabRate"></div>
+            <div class="ds-tab-content" id="tabFund"></div>
+            <div class="ds-tab-content" id="tabImport"></div>
+        </div>
+
+    </div>
+
+    <div id="toastContainer" class="toast-container"></div>
+
+    <script src="js/ds/ds-icons.js"></script>
+    <script src="js/ds/ds-navbar.js"></script>
+    <script src="js/ds/ds-drawer.js"></script>
+    <script src="js/ds/ds-toast.js"></script>
+    <script src="js/ds/ds-doc-parts.js"></script>
+    <script src="js/ds/ds-doc-print.js"></script>
+
+    <script src="js/mock/mock-core.js"></script>
+    <script src="js/mock/mock-session.js"></script>
+    <script src="js/mock/mock-admin.js"></script>
+    <script src="js/mock/mock-nhso.js"></script>
+    <script src="js/mock/mock-claims.js"></script>
+    <script src="js/mock/mock-ipd.js"></script>
+    <script src="js/mock/mock-rules.js"></script>
+
+    <script src="js/ipd-reference.js"></script>
+</body>
+</html>

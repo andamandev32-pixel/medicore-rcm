@@ -14,8 +14,12 @@ const NhsoImport = {
         { key: 'upload',   label: 'Upload ไฟล์' },
         { key: 'history',  label: 'ประวัติการนำเข้า' },
         { key: 'dataset',  label: 'โครงสร้าง 15 แฟ้ม' },
+        { key: 'fundfile', label: 'แฟ้มที่ต้องส่งตามกองทุน' },
         { key: 'pretask',  label: 'งานก่อน UAT' },
     ],
+
+    /** ตัวกรองของแท็บเมทริกซ์กองทุน — '' = ทุกกองทุน */
+    fundFilter: '',
 
     init() {
         MockSession.mountBanner('demoBanner');
@@ -41,7 +45,8 @@ const NhsoImport = {
     render() {
         const fn = {
             api: () => this.tabApi(), upload: () => this.tabUpload(), history: () => this.tabHistory(),
-            dataset: () => this.tabDataset(), pretask: () => this.tabPretask(),
+            dataset: () => this.tabDataset(), fundfile: () => this.tabFundFile(),
+            pretask: () => this.tabPretask(),
         }[this.state.tab];
         document.getElementById('tabContent').innerHTML = fn ? fn() : '';
         if (this.state.tab === 'dataset') this.renderMappingChart();
@@ -118,8 +123,8 @@ const NhsoImport = {
             { code: 'HIS',  label: 'ดึงข้อมูลจาก HIS (แฟ้ม 1–8)' },
             { code: 'RULE', label: 'ตรวจก่อนส่งด้วยกฎที่มีผล ณ วันที่รับบริการ' },
             { code: 'F000', label: 'กำลังนำเข้าไฟล์' },
-            { code: 'F001', label: 'กำลังตรวจสอบขั้นต้น' },
-            { code: 'F002', label: 'ตรวจสอบขั้นต้นเสร็จสิ้น' },
+            { code: 'F001', label: 'กำลังตรวจสอบเบื้องต้น' },
+            { code: 'F002', label: 'ตรวจสอบเบื้องต้นเสร็จสิ้น' },
         ];
         let i = 0;
         const tick = () => {
@@ -270,7 +275,7 @@ const NhsoImport = {
                         <tr><td class="l">ช่องทาง</td><td class="l">${esc(b.channel)}</td></tr>
                         <tr><td class="l">วันที่นำเข้า</td><td class="l">${esc(MockFmt.dateTimeTH(b.at))}</td></tr>
                         <tr><td class="l">จำนวนรายการ</td><td class="l">${MockFmt.int(b.rows)} รายการ</td></tr>
-                        <tr><td class="l">ผ่านการตรวจสอบขั้นต้น</td><td class="l">${MockFmt.int(b.ok)} รายการ</td></tr>
+                        <tr><td class="l">ผ่านการตรวจสอบเบื้องต้น</td><td class="l">${MockFmt.int(b.ok)} รายการ</td></tr>
                         <tr><td class="l">ไม่ผ่าน</td><td class="l">${b.err
                             ? `<strong style="color:var(--status-danger)">${MockFmt.int(b.err)}</strong> รายการ` : '0'}</td></tr>
                         <tr><td class="l">สถานะล่าสุด</td><td class="l"><strong>${esc(b.code)}</strong> — ${esc(b.status)}</td></tr>
@@ -294,7 +299,15 @@ const NhsoImport = {
 
     tabDataset() {
         const pct = MockNhso.mappingPct();
+        const t = MockNhso.fieldTotals();
         return `
+        <div class="sip-banner sip-banner-info" style="margin-bottom:14px">
+            <i data-lucide="scale" class="icon-sm"></i>
+            <span><strong>ที่มา:</strong> ${esc(NHSO_DATASET_ANNOUNCE.short)} —
+            อาศัยอำนาจตาม${esc(NHSO_DATASET_ANNOUNCE.legal)} ·
+            ดาวน์โหลดได้ที่ ${esc(NHSO_DATASET_ANNOUNCE.source)}</span>
+        </div>
+
         <div class="cards-row" style="grid-template-columns:2fr 1fr">
             <div class="section-card">
                 <div class="section-title" style="margin-bottom:6px">
@@ -302,6 +315,8 @@ const NhsoImport = {
                     แฟ้มข้อมูลมาตรฐานสำหรับการเบิกจ่ายชดเชย (Standard Dataset)</div>
                 <div class="td-sub" style="margin-bottom:10px">
                     โครงสร้างข้อมูลที่หน่วยบริการต้องจัดส่งตามประกาศ สปสช. — 15 แฟ้ม ใน 5 กลุ่มข้อมูลหลัก
+                    รวม <strong>${t.total} Data Points</strong>
+                    (บังคับ ${t.req} · มีเงื่อนไข ${t.cond} · อื่น ๆ ${t.opt})
                 </div>
                 <div id="chartMapping"></div>
             </div>
@@ -326,39 +341,83 @@ const NhsoImport = {
 
         ${NHSO_FILE_GROUPS.map(g => {
             const files = MockNhso.filesByGroup(g.key);
+            const sub = files.reduce((a, f) => ({
+                req: a.req + f.req, cond: a.cond + f.cond, opt: a.opt + f.opt, total: a.total + f.fields,
+            }), { req: 0, cond: 0, opt: 0, total: 0 });
             return `<div class="section-card">
                 <div class="section-header">
                     <div class="section-title"><i data-lucide="${g.icon}" class="mi"></i>
                         ${esc(g.label)}
                         <span class="sip-chip sip-chip-muted">${esc(g.hint)}</span></div>
                     <div class="section-actions">
-                        <span class="ds-pane-count">${files.length} แฟ้ม</span></div>
+                        <span class="ds-pane-count">${files.length} แฟ้ม · ${sub.total} ฟิลด์</span></div>
                 </div>
                 <div class="table-responsive">
                 <table class="data-table compact">
                     <thead><tr>
-                        <th style="width:1%">ลำดับ</th><th style="width:26%">ชื่อแฟ้ม (ไทย)</th>
+                        <th style="width:1%">ลำดับ</th><th style="width:24%">ชื่อแฟ้ม (ไทย)</th>
                         <th style="width:1%">ชื่อแฟ้ม (English)</th><th>คำอธิบาย</th>
-                        <th style="width:1%;text-align:right">จำนวนฟิลด์</th>
+                        <th style="width:1%">ที่มาโครงสร้าง</th>
+                        <th style="width:1%;text-align:right">บังคับ</th>
+                        <th style="width:1%;text-align:right">มีก็ได้</th>
+                        <th style="width:1%;text-align:right">อื่น ๆ</th>
+                        <th style="width:1%;text-align:right">รวม</th>
                         <th style="width:1%">สถานะ Mapping</th><th style="width:1%"></th>
                     </tr></thead>
                     <tbody>${files.map(f => {
                         const t = NHSO_MAPPING_TONE[f.mapping];
+                        const cond = MockNhso.fileCondition(f.no);
                         return `<tr>
                             <td class="td-sub" style="text-align:center"><strong>${esc(f.no)}</strong></td>
-                            <td class="td-name">${esc(f.th)}</td>
+                            <td class="td-name">${esc(f.th)}${cond
+                                ? `<div class="td-sub">ส่งเมื่อ ${esc(cond.label)}</div>` : ''}</td>
                             <td class="td-sub" style="white-space:nowrap"><code>${esc(f.en)}</code></td>
                             <td class="td-sub">${esc(f.desc)}</td>
+                            <td class="td-sub" style="white-space:nowrap">${esc(f.origin)}</td>
+                            <td style="text-align:right"><strong>${esc(f.req)}</strong></td>
+                            <td style="text-align:right" class="td-sub">${esc(f.cond || '–')}</td>
+                            <td style="text-align:right" class="td-sub">${esc(f.opt || '–')}</td>
                             <td style="text-align:right">${esc(f.fields)}</td>
                             <td><span class="sip-chip ${esc(t.chip)}">${esc(t.label)}</span></td>
                             <td><button class="ds-icon-btn" title="ดูรายการฟิลด์"
                                 onclick="NhsoImport.openFile(${esc(f.no)})">
                                 <i data-lucide="eye" class="icon-sm"></i></button></td>
                         </tr>`;
-                    }).join('')}</tbody>
+                    }).join('')}
+                    <tr class="ds-row-total">
+                        <td colspan="5" style="text-align:right"><strong>รวมกลุ่มนี้</strong></td>
+                        <td style="text-align:right"><strong>${sub.req}</strong></td>
+                        <td style="text-align:right"><strong>${sub.cond}</strong></td>
+                        <td style="text-align:right"><strong>${sub.opt}</strong></td>
+                        <td style="text-align:right"><strong>${sub.total}</strong></td>
+                        <td colspan="2"></td>
+                    </tr></tbody>
                 </table></div>
             </div>`;
-        }).join('')}`;
+        }).join('')}
+
+        <div class="section-card">
+            <div class="table-responsive">
+            <table class="data-table compact">
+                <tbody><tr class="ds-row-total">
+                    <td><strong>รวมทั้งชุดข้อมูลมาตรฐาน — ${NHSO_FILES.length} แฟ้ม</strong></td>
+                    <td style="width:1%;text-align:right;white-space:nowrap">
+                        บังคับ <strong>${t.req}</strong></td>
+                    <td style="width:1%;text-align:right;white-space:nowrap">
+                        มีก็ได้ <strong>${t.cond}</strong></td>
+                    <td style="width:1%;text-align:right;white-space:nowrap">
+                        อื่น ๆ <strong>${t.opt}</strong></td>
+                    <td style="width:1%;text-align:right;white-space:nowrap">
+                        รวม <strong>${t.total} Data Points</strong></td>
+                </tr></tbody>
+            </table></div>
+            <div class="ds-note" style="margin-top:10px">
+                <i data-lucide="git-branch" class="icon-sm"></i>
+                <strong>ของเดิมไปไหน</strong> —
+                ${NHSO_FILE_ORIGINS.map(o =>
+                    `แฟ้ม ${esc(o.files)} ${esc(o.desc)}`).join(' · ')}
+            </div>
+        </div>`;
     },
 
     renderMappingChart() {
@@ -405,7 +464,16 @@ const NhsoImport = {
                         <tr><td class="l" style="width:32%">ชื่อแฟ้ม (English)</td><td class="l"><code>${esc(f.en)}</code></td></tr>
                         <tr><td class="l">กลุ่มข้อมูล</td><td class="l">${esc(g.label)} — ${esc(g.hint)}</td></tr>
                         <tr><td class="l">คำอธิบาย</td><td class="l">${esc(f.desc)}</td></tr>
-                        <tr><td class="l">จำนวนฟิลด์</td><td class="l">${esc(f.fields)} ฟิลด์</td></tr>
+                        <tr><td class="l">ที่มาโครงสร้าง</td><td class="l">${esc(f.origin)}</td></tr>
+                        <tr><td class="l">จำนวนฟิลด์</td><td class="l">
+                            รวม <strong>${esc(f.fields)}</strong> ฟิลด์ —
+                            บังคับ ${esc(f.req)} · มีเงื่อนไข ${esc(f.cond)} · อื่น ๆ ${esc(f.opt)}</td></tr>
+                        <tr><td class="l">เงื่อนไขการส่ง</td><td class="l">${
+                            MockNhso.fileCondition(f.no)
+                                ? 'ส่งเมื่อ ' + esc(MockNhso.fileCondition(f.no).label)
+                                : 'บังคับทุกครั้งที่กองทุนครอบคลุมแฟ้มนี้'}</td></tr>
+                        <tr><td class="l">กองทุนที่ใช้แฟ้มนี้</td><td class="l">${
+                            NHSO_FUND_FILES.filter(x => x.files.includes(f.no)).length} / ${NHSO_FUND_FILES.length} กองทุน</td></tr>
                         <tr><td class="l">สถานะ Mapping</td><td class="l">
                             <span class="sip-chip ${esc(t.chip)}">${esc(t.label)}</span></td></tr>
                     </tbody>
@@ -426,6 +494,132 @@ const NhsoImport = {
             footerHtml: `<button class="btn btn-outline" onclick="Drawer.close()">ปิด</button>`,
             onOpen: () => refreshIcons(),
         });
+    },
+
+    /* ══════════ แฟ้มที่ต้องส่งตามกองทุน ══════════ */
+
+    setFundFilter(k) { this.fundFilter = k; this.render(); },
+
+    tabFundFile() {
+        const funds = this.fundFilter
+            ? NHSO_FUND_FILES.filter(f => f.key === this.fundFilter)
+            : NHSO_FUND_FILES;
+        const bad = MockClaims.filesIncomplete();
+        const pending = MockNhso.pendingServiceSet();
+
+        return `
+        <div class="sip-banner sip-banner-info" style="margin-bottom:14px">
+            <i data-lucide="table-2" class="icon-sm"></i>
+            <span><strong>กองทุนค่าใช้จ่ายตามโครงสร้างชุดข้อมูลมาตรฐานการเบิกจ่ายชดเชย</strong> —
+            ประกาศ สปสช. กำหนดว่าแต่ละกองทุนต้องส่งแฟ้มใดบ้าง
+            (${NHSO_FUND_FILES.length} กองทุน × ${NHSO_FILES.length} แฟ้ม)
+            ตารางนี้คือที่มาของกฎ <a href="claim-rules.html?rule=RUL-FIL-001">RUL-FIL-001</a></span>
+        </div>
+
+        <div class="ds-kpi-grid">
+            <div class="sip-kpi"><i data-lucide="layers" class="sip-kpi-icon icon-lg"></i>
+                <div class="sip-kpi-value">${NHSO_FUND_FILES.length}</div>
+                <div class="sip-kpi-label">กองทุนย่อยในตาราง</div></div>
+            <div class="sip-kpi ${bad.length ? 'critical' : ''}">
+                <i data-lucide="file-x" class="sip-kpi-icon icon-lg"></i>
+                <div class="sip-kpi-value">${bad.length}</div>
+                <div class="sip-kpi-label">เคสที่ส่งแฟ้มไม่ครบตามกองทุน</div></div>
+            <div class="sip-kpi"><i data-lucide="database" class="sip-kpi-icon icon-lg"></i>
+                <div class="sip-kpi-value">${MockNhso.mappingPct()}%</div>
+                <div class="sip-kpi-label">ความครบของ Mapping</div></div>
+        </div>
+
+        <div class="section-card">
+            <div class="section-header">
+                <div class="section-title"><i data-lucide="filter" class="mi"></i> เลือกกองทุน</div>
+                <div class="section-actions">
+                    <span class="ds-pane-count">${funds.length} กองทุน</span></div>
+            </div>
+            <div class="ds-pilltabs">
+                <button class="ds-pilltab ${this.fundFilter ? '' : 'active'}"
+                        onclick="NhsoImport.setFundFilter('')">ทุกกองทุน
+                    <span class="tab-count">${NHSO_FUND_FILES.length}</span></button>
+                ${NHSO_FUND_FILES.map(f => `
+                    <button class="ds-pilltab ${this.fundFilter === f.key ? 'active' : ''}"
+                            onclick="NhsoImport.setFundFilter('${esc(f.key)}')">${esc(f.key)}
+                        <span class="tab-count">${f.files.length}</span></button>`).join('')}
+            </div>
+
+            <div class="table-responsive" style="margin-top:12px">
+            <table class="data-table compact">
+                <thead><tr>
+                    <th style="width:26%">กองทุน</th>
+                    ${NHSO_FILES.map(f => `<th style="width:1%;text-align:center" title="${esc(f.th)}">
+                        ${esc(f.no)}</th>`).join('')}
+                    <th style="width:1%;text-align:right">รวม</th>
+                </tr></thead>
+                <tbody>${funds.map(fund => `<tr>
+                    <td class="td-name">${esc(fund.label)}
+                        <div class="td-sub"><code>${esc(fund.key)}</code></div></td>
+                    ${NHSO_FILES.map(f => {
+                        const need = fund.files.includes(f.no);
+                        const cond = MockNhso.fileCondition(f.no);
+                        if (!need) return '<td class="td-sub" style="text-align:center">—</td>';
+                        return `<td style="text-align:center" title="${esc(f.en)}${
+                            cond ? ' — ส่งเมื่อ ' + esc(cond.label) : ' — บังคับ'}">
+                            <i data-lucide="${cond ? 'circle-dot' : 'check'}" class="icon-sm"
+                               style="color:var(--status-${cond ? 'warning' : 'success'}-strong)"></i></td>`;
+                    }).join('')}
+                    <td style="text-align:right"><strong>${fund.files.length}</strong></td>
+                </tr>`).join('')}</tbody>
+            </table></div>
+
+            <div class="ds-note" style="margin-top:10px">
+                <i data-lucide="info" class="icon-sm"></i>
+                <i data-lucide="check" class="icon-sm" style="color:var(--status-success-strong)"></i>
+                บังคับเสมอเมื่อกองทุนครอบคลุม ·
+                <i data-lucide="circle-dot" class="icon-sm" style="color:var(--status-warning-strong)"></i>
+                แฟ้มกลุ่มเฉพาะ ส่งเมื่อเคสเข้าเงื่อนไข (${
+                    Object.values(NHSO_FILE_CONDITION).map(c => esc(c.label)).join(' · ')})
+            </div>
+        </div>
+
+        ${pending ? `
+        <div class="section-card">
+            <div class="section-title" style="margin-bottom:8px">
+                <i data-lucide="alert-triangle" class="mi"></i> ${esc(pending.title)}</div>
+            <div class="ds-warn">
+                <i data-lucide="alert-triangle" class="icon-sm"></i>
+                <span><strong>${esc(pending.warn)}</strong><br>
+                ${pending.items.map(i => esc(i)).join(' · ')}</span>
+            </div>
+        </div>` : ''}
+
+        ${bad.length ? `
+        <div class="section-card">
+            <div class="section-header">
+                <div class="section-title"><i data-lucide="file-x" class="mi"></i>
+                    เคสที่ยังส่งแฟ้มไม่ครบ</div>
+                <div class="section-actions">
+                    <a class="btn btn-outline btn-sm" href="claim-worklist.html?filter=files">
+                        ดูในคิวเคลม</a></div>
+            </div>
+            <div class="table-responsive">
+            <table class="data-table compact">
+                <thead><tr>
+                    <th style="width:1%">รหัสเคส</th><th>ผู้ป่วย</th>
+                    <th style="width:1%">บริการ</th><th style="width:22%">กองทุน</th>
+                    <th>แฟ้มที่ยังขาด</th>
+                </tr></thead>
+                <tbody>${bad.slice(0, 12).map(c => {
+                    const r = MockClaims.fileCheck(c);
+                    return `<tr>
+                        <td class="td-sub"><a href="nhso-case.html?seq=${encodeURIComponent(c.nhso.seq)}">${esc(c.id)}</a></td>
+                        <td>${esc(c.patient)}</td>
+                        <td class="td-sub">${esc(c.service_type)}</td>
+                        <td class="td-sub">${esc(r.fundLabel)}</td>
+                        <td><span class="sip-chip sip-chip-danger">${esc(MockNhso.fileNames(r.missing))}</span></td>
+                    </tr>`;
+                }).join('')}</tbody>
+            </table></div>
+            ${bad.length > 12
+                ? `<div class="td-sub" style="margin-top:8px">แสดง 12 จาก ${bad.length} รายการ</div>` : ''}
+        </div>` : ''}`;
     },
 
     /* ══════════ งานก่อน UAT ══════════ */
@@ -467,7 +661,8 @@ const NhsoImport = {
                     return `<tr ${t.no === 5 ? 'style="background:var(--status-danger-soft)"' : ''}>
                         <td style="text-align:center"><strong>${esc(t.no)}</strong></td>
                         <td class="td-name">${esc(t.title)}</td>
-                        <td class="td-sub">${esc(t.desc)}</td>
+                        <td class="td-sub">${esc(t.desc)}
+                            ${t.note ? `<div class="ds-hint">${esc(t.note)}</div>` : ''}</td>
                         <td class="td-sub">${esc(t.owner)}</td>
                         <td class="td-sub" style="white-space:nowrap">${esc(MockFmt.dateTH(t.due))}</td>
                         <td><span class="status-badge ${esc(tone.badge)}">${esc(tone.label)}</span></td>
@@ -502,6 +697,30 @@ const NhsoImport = {
                         <div>${p.rights.map(x =>
                             `<span class="sip-chip sip-chip-muted">${esc(x)}</span>`).join(' ')}</div>
                     </div>`).join('')}
+            </div>
+            <div class="ds-note" style="margin-top:12px">
+                <i data-lucide="info" class="icon-sm"></i> ${esc(NHSO_GOLIVE.note)}
+            </div>
+        </div>
+
+        <div class="section-card">
+            <div class="section-title" style="margin-bottom:4px">
+                <i data-lucide="route" class="mi"></i> ${esc(NHSO_MASTERPLAN.title)}</div>
+            <div class="td-sub" style="margin-bottom:12px">${esc(NHSO_MASTERPLAN.subtitle)}
+                <br><span class="ds-hint">ที่มา: ${esc(NHSO_MASTERPLAN.source)}</span></div>
+            <div class="cards-row">
+                ${NHSO_MASTERPLAN.phases.map(p => `
+                    <div class="clinical-card">
+                        <div class="card-title">${esc(p.phase)} — ${esc(p.title)}</div>
+                        <div class="td-sub" style="margin-bottom:8px">${esc(p.when)}</div>
+                        <ul style="font-size:11.5px;line-height:1.7;color:var(--text-muted);padding-left:16px">
+                            ${p.milestones.map(m => `<li>${esc(m)}</li>`).join('')}</ul>
+                    </div>`).join('')}
+            </div>
+            <div class="ds-note" style="margin-top:12px">
+                <i data-lucide="users" class="icon-sm"></i>
+                <span><strong>เมื่อบูรณาการเต็มรูปแบบ จะครอบคลุมทุกสิทธิ</strong> —
+                ${NHSO_ALL_PAYERS.map(p => esc(p)).join(' · ')}</span>
             </div>
         </div>`;
     },

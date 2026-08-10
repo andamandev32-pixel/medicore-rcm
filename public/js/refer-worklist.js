@@ -17,6 +17,10 @@ const ReferList = {
         if (p.get('risk'))    this._pendingRisk = p.get('risk');
         if (p.get('partner')) this._pendingPartner = p.get('partner');
 
+        /* ?kpi= มาจากการ์ด KPI บน Dashboard — กรองด้วยชุด id ชุดเดียวกับที่ drawer แสดง
+           จำนวนแถวที่นี่จึงเท่ากับตัวเลขบนการ์ดเสมอ (คืน null ถ้าไม่มี ?kpi= หรือ key ไม่รู้จัก) */
+        this._kpi = MockKpi.fromUrl();
+
         this.fillFilters();
         this.renderSeg();
         this.render();
@@ -54,8 +58,10 @@ const ReferList = {
     },
 
     renderSeg() {
-        const segs = [{ key: 'all', label: 'ทั้งหมด', n: MockRefer.all().length }]
-            .concat(REFER_DIRECTION.map(d => ({ key: d.key, label: d.label, n: MockRefer.byDir(d.key).length })));
+        const scope = MockRefer.all().filter(r => MockKpi.keep(r));
+        const segs = [{ key: 'all', label: 'ทั้งหมด', n: scope.length }]
+            .concat(REFER_DIRECTION.map(d => ({ key: d.key, label: d.label,
+                n: scope.filter(r => r.direction === d.key).length })));
 
         document.getElementById('segDir').innerHTML = segs.map(s => `
             <button class="ds-seg ${s.key === this.state.dir ? 'active' : ''}"
@@ -76,6 +82,7 @@ const ReferList = {
         const expiring = new Set(MockRefer.expiringSoon(7).map(r => r.id));
 
         return MockRefer.byDir(this.state.dir === 'all' ? null : this.state.dir).filter(r => {
+            if (!MockKpi.keep(r)) return false;
             if (partner !== 'all' && r.partner_name !== partner) return false;
             if (reason  !== 'all' && r.reason !== reason) return false;
             if (fund    !== 'all' && r.fund !== fund) return false;
@@ -96,6 +103,7 @@ const ReferList = {
     /* ── แสดงผล ── */
 
     render() {
+        MockKpi.mountBanner('kpiFilterBar');
         const rows  = this.visible();
         const tbody = document.getElementById('rows');
 
@@ -329,11 +337,17 @@ const ReferList = {
 
         const rows = ids.map(i => MockRefer.byId(i)).filter(Boolean);
 
+        /* ⚠️ ต้องตรงกับ ReferNew.validate(f, true) และ ReferCase.requestApproval()
+              ไม่งั้นผู้ใช้จะส่งได้จากหน้าหนึ่งแต่ส่งไม่ได้จากอีกหน้า ทั้งที่เป็นรายการเดียวกัน
+              ไม่เช็ค reviewer ตรงนี้ เพราะการกดส่งจากหน้านี้คือการตรวจทานเอง —
+              doSubmit() จะลงชื่อผู้ตรวจทานให้ทุกรายการที่ส่ง */
         const reasonOf = r =>
               r.direction !== 'OUT'      ? 'เป็นรายการรับส่งต่อเข้า — ไม่ต้องขออนุมัติวงเงิน'
             : MockRefer.hasError(r)      ? 'มีธงความเสี่ยงระดับ ERROR ค้างอยู่'
             : r.auth_no                  ? 'มีเลขอนุมัติแล้ว'
             : r.status === 'WAIT_APPR'   ? 'อยู่ระหว่างรออนุมัติอยู่แล้ว'
+            : !MockRefer.reviewComplete(r)
+                ? `สรุปทางคลินิกยังไม่ครบ — ขาด ${MockRefer.reviewMissing(r).map(m => m.label).join(' · ')}`
             : null;
 
         const blocked = rows.filter(r => reasonOf(r));
@@ -375,26 +389,48 @@ const ReferList = {
         const rows = ids.map(i => MockRefer.byId(i)).filter(Boolean);
         if (!rows.length) return;
 
+        const me = MockSession.userId();
+
         const ok = await Drawer.confirm({
-            title: `ส่งขออนุมัติ ${rows.length} รายการ?`,
-            message: 'ระบบจะสร้างงานให้ผู้มีอำนาจอนุมัติ พร้อมนับ SLA — ผู้ขออนุมัติเองไม่ได้ (BR-05)',
+            title: `ตรวจทานและส่งขออนุมัติ ${rows.length} รายการ?`,
+            message: `คุณจะถูกบันทึกเป็นเจ้าหน้าที่ผู้ตรวจทานทุกรายการที่ส่ง `
+                   + `แล้วระบบจะสร้างงานให้ผู้มีอำนาจอนุมัติคนอื่น — ผู้ตรวจทานอนุมัติเองไม่ได้ (BR-05)`,
             lines: rows.slice(0, 6).map(r =>
                 `${r.id} · ${r.patient} → ${r.partner_name} · ${MockFmt.baht(r.cap_amount)} บาท`),
-            confirmText: 'ส่งขออนุมัติ',
+            confirmText: 'ตรวจทานแล้ว ส่งขออนุมัติ',
             danger: false,
         });
         if (!ok) return;
 
         /* ผู้อนุมัติต้องไม่ใช่ผู้ขอ — เลือกคนแรกที่มีสิทธิ์ APPROVE_RULE และไม่ใช่ผู้ใช้ปัจจุบัน */
-        const me       = MockSession.userId();
         const approver = (MockAdmin.users().find(u => u.active && u.id !== me &&
                             (u.roles || []).some(x => /APPROVER/i.test(x))) ||
                           MockAdmin.users().find(u => u.active && u.id !== me) || {}).id;
 
-        rows.forEach(r => MockRefer.requestApproval(r.id, { owner: approver }));
+        const now  = '2569-08-06T09:00';
+        const note = 'ตรวจทานคำขอเป็นชุดจากหน้าทะเบียน — สรุปทางคลินิกครบและไม่มีธง ERROR ค้าง';
+
+        rows.forEach(r => {
+            /* ลงชื่อผู้ตรวจทานก่อนเสมอ ไม่งั้นงานจะไปถึงโต๊ะอนุมัติแบบไม่มี maker */
+            MockDB.patch('referrals', r.id, {
+                reviewed_by: me, reviewer_name: MockAdmin.userName(me),
+                reviewed_at: now, review_note: r.review_note || note,
+                timeline: [...(r.timeline || []), {
+                    at: now, tone: 'success', title: 'เจ้าหน้าที่ตรวจทานคำขอ',
+                    by: MockAdmin.userName(me), note,
+                }],
+            });
+            MockRefer.requestApproval(r.id, {
+                owner: approver,
+                detail: `วงเงินที่ขอ ${MockFmt.baht(r.cap_amount)} บาท · ขอบเขต: ${MockRefer.scopeLabel(r)}\n`
+                      + `เจ้าของไข้: ${MockRefer.doctorMeta(r).attending || '—'} · `
+                      + `ผู้เขียนใบส่งต่อ: ${r.doctor || '—'}\n`
+                      + `ตรวจทานโดย: ${MockAdmin.userName(me)}`,
+            });
+        });
 
         this.state.selected.clear();
-        showToast(`ส่งขออนุมัติ ${rows.length} รายการแล้ว — ติดตามได้ที่หน้างานและการอนุมัติ`);
+        showToast(`ตรวจทานและส่งขออนุมัติ ${rows.length} รายการแล้ว — ติดตามได้ที่หน้างานและการอนุมัติ`);
         this.render();
     },
 

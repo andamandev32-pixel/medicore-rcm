@@ -34,10 +34,93 @@ const Dash = {
         this.renderResult();
         this.renderNhso();
         this.renderRules();
+        this.renderIpd();
         this.renderRefer();
         this.renderRisk();
         this.renderPhases();
         refreshIcons();
+    },
+
+    /* ══════════ งานผู้ป่วยใน (IPD) ══════════
+       ทุกตัวเลขมาจาก MockIpd — ห้ามคำนวณเองในไฟล์นี้
+       ไม่งั้น KPI หน้านี้กับตัวนับใน pill ของ ipd-worklist / ipd-audit จะขัดกัน
+       ⚠️ ส่วนต่างจากประมาณการ DRG เป็น "ข้อมูลประกอบ" เท่านั้น
+          อัตราจ่ายต่อ RW ยังเป็นค่าจำลอง ห้ามนำไปตัดสินอะไรจนกว่าจะใส่อัตราจริง */
+
+    renderIpd() {
+        const st = MockIpd.stats();
+
+        const mini = [
+            { icon: 'bed',           value: MockFmt.int(st.admitted),
+              label: 'กำลังนอน (ราย)',            href: 'ipd-worklist.html?stage=admitted' },
+            { icon: 'calendar-clock', value: MockFmt.int(st.losOver),
+              label: 'วันนอนเกินจุดตัด DRG',      href: 'ipd-worklist.html', critical: true },
+            { icon: 'folder-x',      value: MockFmt.int(st.filesShort),
+              label: 'แฟ้มไม่ครบตามกองทุน',       href: 'ipd-worklist.html?files=incomplete', critical: true },
+            { icon: 'clipboard-check', value: MockFmt.int(st.pending + st.inReview),
+              label: 'รอตรวจแฟ้ม (ราย)',          href: 'ipd-audit.html' },
+            { icon: 'undo-2',        value: MockFmt.int(st.returned),
+              label: 'ตีกลับให้แก้ (ราย)',        href: 'ipd-audit.html', critical: st.returned > 0 },
+        ];
+
+        document.getElementById('ipdMini').innerHTML = mini.map(m => `
+            <div class="sip-kpi ${m.critical ? 'critical' : ''}" style="cursor:pointer"
+                 onclick="location.href='${esc(m.href)}'">
+                <i data-lucide="${esc(m.icon)}" class="sip-kpi-icon icon-lg"></i>
+                <div class="sip-kpi-value">${esc(m.value)}</div>
+                <div class="sip-kpi-label">${esc(m.label)}</div>
+            </div>`).join('');
+
+        /* คิวตรวจแฟ้มเรียงตามลำดับที่งานเดินจริง — สีสื่อความหมายเหมือน funnel ของ สปสช. */
+        const queue = [
+            { key: 'PENDING',   color: 'var(--primary)' },
+            { key: 'IN_REVIEW', color: 'var(--primary)' },
+            { key: 'RETURNED',  color: 'var(--status-danger)' },
+            { key: 'CLEARED',   color: 'var(--status-success)' },
+        ];
+        DSChart.funnel('chartDashIpd', {
+            title: 'คิวตรวจแฟ้มผู้ป่วยใน — ตามลำดับที่งานเดิน',
+            steps: queue.map(q => {
+                const rows = MockIpd.all().filter(s => s.audit_status === q.key);
+                const cost = rows.reduce((a, s) => a + MockIpd.cost(s), 0);
+                return {
+                    label: MockIpd.auditOf(q.key).label,
+                    value: rows.length,
+                    display: `${MockFmt.int(rows.length)} ราย · ${MockFmt.baht(cost, { short: true })} บาท`,
+                    color: q.color,
+                };
+            }),
+        });
+
+        /* เคสที่ผลประเมินยังไม่ผ่าน — เรียงตามลำดับความรุนแรงก่อน แล้วค่อยคะแนนต่ำสุด
+           ลำดับความรุนแรงใช้ชุดเดียวกับ MockIpd.assess(): ระงับส่ง → ต้องแก้ไข → ต้องอนุมัติ → แจ้งเตือน
+           (เรียงด้วยคะแนนอย่างเดียวไม่ได้ — เคส "ระงับส่ง" ที่คะแนนสูงจะตกไปท้ายตาราง
+            ทั้งที่เป็นเคสเดียวที่ส่งเบิกไม่ได้เลย) */
+        const SEVERITY = { BLOCK: 0, FIX: 1, APPROVE: 2, WARN: 3, PASS: 4 };
+        const bad = MockIpd.toAudit()
+            .map(s => ({ stay: s, a: MockIpd.assess(s) }))
+            .filter(x => x.a.result !== 'PASS')
+            .sort((a, b) => (SEVERITY[a.a.result] - SEVERITY[b.a.result]) || (a.a.score - b.a.score))
+            .slice(0, 6);
+
+        document.getElementById('ipdRows').innerHTML = bad.length
+            ? bad.map(x => {
+                const f = MockIpd.fund(x.stay.fund);
+                const band = MockIpd.losBand(x.stay);
+                return `
+                <tr style="cursor:pointer" onclick="location.href='ipd-audit.html?an=${encodeURIComponent(x.stay.an)}'">
+                    <td class="td-sub" style="white-space:nowrap">${esc(x.stay.an)}</td>
+                    <td class="td-name">${esc(x.stay.patient)}
+                        <div class="td-sub">${esc(x.a.reasons.length)} ประเด็นที่ยังค้าง</div></td>
+                    <td class="td-sub">${esc(f ? f.short : x.stay.fund)}</td>
+                    <td style="text-align:right;white-space:nowrap${band === 'high'
+                        ? ';color:var(--status-danger);font-weight:800' : ''}">
+                        ${MockFmt.int(MockIpd.los(x.stay))}</td>
+                    <td style="text-align:right;font-weight:700">${esc(x.a.score)}</td>
+                    <td>${MockTone.resultBadgeHtml(x.a.result)}</td>
+                </tr>`;
+            }).join('')
+            : '<tr><td colspan="6" class="ds-empty">ไม่มีเคสที่ต้องแก้ — แฟ้มพร้อมส่งเบิกทั้งหมด</td></tr>';
     },
 
     /* ══════════ ภาระผูกพันจากการส่งต่อ ══════════ */
@@ -70,92 +153,33 @@ const Dash = {
 
     /* ══════════ KPI ══════════ */
 
-    KPI: [
-        { key: 'queue',  icon: 'inbox',          label: 'เคสรอส่งเบิก',
-          calc: r => MockFmt.int(r.filter(c => c.nhso && c.nhso.stage === 'AWAIT_SUBMIT').length),
-          how: 'นับเคสที่สถานะฝั่ง สปสช. = "รอส่งเบิก"',
-          fields: ['claims[].nhso.stage === "AWAIT_SUBMIT"'] },
-        { key: 'risk',   icon: 'alert-triangle', label: 'เคสความเสี่ยงสูง (70+)', critical: true,
-          calc: r => MockFmt.int(r.filter(c => c.risk_score >= 70 && c.result !== 'PASS').length),
-          how: 'นับเคสที่คะแนนความเสี่ยง ≥ 70 และผลตรวจไม่ใช่ "ผ่าน"',
-          fields: ['claims[].risk_score >= 70', 'claims[].result !== "PASS"'] },
-        { key: 'money',  icon: 'wallet',         label: 'มูลค่าเสี่ยงที่ตรวจพบ (บาท)',
-          calc: r => MockFmt.baht(r.reduce((a, c) => a + (c.amount_at_risk || 0), 0)),
-          how: 'ผลรวมของมูลค่าที่เสี่ยงถูกตัดจากทุกเคสที่ยังไม่ปิดประเด็น',
-          fields: ['Σ claims[].amount_at_risk'] },
-        { key: 'first',  icon: 'shield-check',   label: 'First-pass Acceptance',
-          calc: () => MockFmt.pct(MockClaims.firstPassRate(), 1),
-          how: 'เคสที่ส่งแล้วไม่เคยเข้าสถานะ "รอแก้ไข" ÷ เคสที่ส่งทั้งหมด × 100',
-          fields: ['claims[].nhso.stage !== "AWAIT_SUBMIT" (ตัวหาร)',
-                   'claims[].nhso.stage !== "AWAIT_FIX" (ตัวตั้ง)'] },
-        { key: 'sla',    icon: 'clock',          label: 'งานเกิน SLA',
-          calc: () => MockFmt.int(MockTasks.overSla().length),
-          how: 'นับ Task ที่ยังไม่ปิดและเลยกำหนดเสร็จแล้ว',
-          fields: ['tasks[].status !== "DONE"', 'tasks[].due_at < วันนี้'] },
-        { key: 'reject', icon: 'undo-2',         label: 'มูลค่าถูกตัดจ่าย (บาท)',
-          calc: r => MockFmt.baht(r.reduce((a, c) => a + (c.amount_rejected || 0), 0)),
-          how: 'ผลรวมของยอดที่ สปสช. ตัดจ่ายจริงหลังการ Audit',
-          fields: ['Σ claims[].amount_rejected'] },
+    /* นิยาม KPI ทั้ง 10 ตัวอยู่ที่ MockKpi.DEFS (js/mock/mock-kpi.js)
+       และการ์ด/drawer เรนเดอร์โดย DSKpi (js/ds/ds-kpi.js) — ที่นี่เหลือแค่ผูก 2 อย่างเข้าด้วยกัน
+       เหตุผลที่ย้ายออก: refer-dashboard.js เคยลอกโค้ดชุดนี้ไปทั้งดุ้น พอแก้ที่เดียวอีกหน้าไม่ตาม
+       และตัวเลขบนการ์ดกับจำนวนแถวในหน้าปลายทางต้องมาจากฟังก์ชันเดียวกันเสมอ (PAGE-GUIDE §7B) */
 
-        /* ── ฝั่งส่งต่อผู้ป่วย — ภาระผูกพันที่เดิมไม่เคยปรากฏบน dashboard ใด ──
-           ตัวเลขสองตัวนี้ต้องตรงกับ refer-dashboard และ refer-billing เป๊ะ */
-        { key: 'referAp', icon: 'ambulance', label: 'ยอดตามจ่ายส่งต่อค้าง (บาท)', critical: true,
-          calc: () => MockFmt.baht(MockRefer.netPosition().ap),
-          how: 'ผลรวมยอดคงค้างของใบเรียกเก็บที่ปลายทางส่งมาให้เราตามจ่าย (ยอดใบ − จ่ายแล้ว − โต้แย้ง)',
-          fields: ['Σ refer_bills[direction="OUT"].items[].amount',
-                   '− Σ refer_bills[].paid_amount', '− Σ refer_bills[].disputed_amount'],
-          scopeNote: () => MockRefer.out().length + ' รายการส่งต่อออก (ไม่ตามตัวกรองกองทุน)',
-          drill: 'refer-billing.html?dir=OUT' },
-        { key: 'referDoc', icon: 'file-warning', label: 'ใบส่งตัวที่มีปัญหา',
-          calc: () => MockFmt.int(MockRefer.openRisks().length),
-          how: 'นับรายการส่งต่อที่ยังมีธงระดับ ERROR ค้าง (หมดอายุ · เกินขอบเขต · ไม่มีเลขอนุมัติ · เกินวงเงิน · ซ้ำซ้อน)',
-          fields: ['referrals[].risk_flags[].level === "ERROR"'],
-          scopeNote: () => MockRefer.all().length + ' รายการส่งต่อ (ไม่ตามตัวกรองกองทุน)',
-          drill: 'refer-worklist.html?risk=ERROR' },
-    ],
+    kpiDefs() { return MockKpi.forPage('claim-dashboard'); },
 
-    renderKpi() {
-        const rows = this.scope();
-        document.getElementById('kpiGrid').innerHTML = this.KPI.map(k => `
-            <div class="sip-kpi ${k.critical ? 'critical' : ''}" style="cursor:pointer"
-                 onclick="Dash.explain('${k.key}')" title="กดเพื่อดูที่มาของตัวเลข">
-                <i data-lucide="${k.icon}" class="sip-kpi-icon icon-lg"></i>
-                <div class="sip-kpi-value">${esc(k.calc(rows))}</div>
-                <div class="sip-kpi-label">${esc(k.label)}</div>
-            </div>`).join('');
+    kpiCtx() {
+        return { rows: this.scope(), fund: document.getElementById('fFund').value };
     },
 
-    /** ตอบคำถาม "ตัวเลขนี้จริงไหม" ก่อนที่จะถูกถามในห้องประชุม */
-    explain(key) {
-        const k = this.KPI.find(x => x.key === key); if (!k) return;
-        const rows = this.scope();
-        Drawer.open({
-            title: 'ตัวเลขนี้มาจากไหน — ' + k.label,
-            contentHtml: `
-                <div style="font-size:34px;font-weight:800;color:var(--brand-navy);margin-bottom:4px">
-                    ${esc(k.calc(rows))}</div>
-                <div class="td-sub" style="margin-bottom:14px">${esc(k.label)}</div>
-                <table class="ds-table-grid">
-                    <tbody>
-                        <tr><td class="l" style="width:26%">วิธีคำนวณ</td><td class="l">${esc(k.how)}</td></tr>
-                        <tr><td class="l">ฟิลด์ที่ใช้</td><td class="l">${k.fields.map(f =>
-                            `<div style="font-family:var(--font-mono);font-size:11px">${esc(f)}</div>`).join('')}</td></tr>
-                        <tr><td class="l">ขอบเขตที่กรองอยู่</td><td class="l">กองทุน: ${
-                            esc(document.getElementById('fFund').value === 'all' ? 'ทุกกองทุน'
-                                : document.getElementById('fFund').value)} · ${
-                            esc(k.scopeNote ? k.scopeNote() : rows.length + ' เคส')}</td></tr>
-                        <tr><td class="l">แหล่งข้อมูล</td><td class="l">ชุดข้อมูลจำลองในต้นแบบ —
-                            เมื่อผูกระบบจริงจะมาจาก HIS และผลตอบกลับของ สปสช.</td></tr>
-                    </tbody>
-                </table>
-                <div class="ds-note"><i data-lucide="shield" class="icon-sm"></i>
-                    ทุกตัวเลขบน Dashboard เจาะลงไปถึงรายเคส กฎ ผู้แก้ไข และเวลาได้ (BR-03)</div>`,
-            footerHtml: `<button class="btn btn-outline" onclick="Drawer.close()">ปิด</button>
-                         <button class="btn btn-save"
-                             onclick="Drawer.close();location.href='${esc(k.drill || 'claim-worklist.html')}'">
-                             ดูรายเคส</button>`,
-            onOpen: () => refreshIcons(),
+    renderKpi() {
+        DSKpi.configure({
+            defs:    this.kpiDefs(),
+            ctx:     () => this.kpiCtx(),
+            resolve: (def, ctx) => MockKpi.rows(def, ctx),
+            value:   (def, ctx) => MockKpi.value(def, ctx),
+            cap:     MockKpi.CAP,
+            fmt:     v => MockFmt.baht(v),
+            scopeLine: (k, ctx) => `กองทุน: ${ctx.fund === 'all' ? 'ทุกกองทุน' : ctx.fund} · `
+                + (k.scopeNote ? k.scopeNote() : ctx.rows.length + ' เคส'),
+            sourceNote: 'ชุดข้อมูลจำลองในต้นแบบ — เมื่อผูกระบบจริงจะมาจาก HIS และผลตอบกลับของ สปสช.',
+            note: 'ทุกตัวเลขบน Dashboard เจาะลงไปถึงรายเคส กฎ ผู้แก้ไข และเวลาได้ (BR-03)',
+            drillText: 'ดูรายการทั้งหมด',
         });
+        document.getElementById('kpiGrid').innerHTML = DSKpi.cards();
+        document.getElementById('kpiFootnote').innerHTML = DSKpi.footnote();
     },
 
     /* ══════════ กราฟ ══════════ */
@@ -216,16 +240,40 @@ const Dash = {
 
     renderNhso() {
         const stats = MockNhso.stageStats();
-        document.getElementById('nhsoStepper').innerHTML = stats.map(s => `
-            <span class="ds-step ${s.key === 'AWAIT_FIX' && s.count ? 'active' : s.count ? 'completed' : ''}"
-                  style="cursor:pointer" onclick="location.href='nhso-submit.html?stage=${esc(s.key)}'">
-                ${esc(s.label)} <strong>(${s.count})</strong></span>`).join('');
+
+        /* หน้าแรกของ สปสช. แบ่งด้วยคำถามเดียว: ตอนนี้งานอยู่ที่ใคร
+           ถังของหน่วยบริการคือเวลาที่โรงพยาบาลคุมได้เอง — ที่ที่ระบบเราสร้างมูลค่า */
+        const buckets = MockNhso.bucketStats();
+        const total   = buckets.reduce((a, b) => a + b.count, 0) || 1;
+
+        document.getElementById('nhsoStepper').innerHTML =
+            buckets.map(b => `
+                <div style="flex:1 1 240px;min-width:220px;padding:10px 12px;border-radius:10px;
+                     border:1px solid ${b.key === 'PROVIDER' ? 'var(--primary)' : 'var(--brand-border)'};
+                     background:${b.key === 'PROVIDER' ? 'var(--primary-bg)' : 'var(--surface)'}">
+                    <div style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700">
+                        <i data-lucide="${b.icon}" class="icon-sm"></i> ${esc(b.short)}
+                        <span class="sip-chip sip-chip-muted" style="margin-left:auto">
+                            ${Math.round(b.count / total * 100)}%</span>
+                    </div>
+                    <div style="font-size:22px;font-weight:800;color:var(--brand-navy);margin:2px 0">
+                        ${MockFmt.int(b.count)} <span style="font-size:12px;font-weight:600">รายการ</span></div>
+                    <div style="font-size:11.5px;margin-bottom:6px">
+                        <span class="ds-amt ds-amt-billed">${esc(MockFmt.baht(b.billed))}</span> /
+                        <span class="ds-amt ds-amt-comp">${esc(MockFmt.baht(b.compensated))}</span> บาท</div>
+                    <div style="display:flex;flex-wrap:wrap;gap:4px">
+                        ${b.stages.map(s => `<span class="sip-chip sip-chip-muted" style="cursor:pointer"
+                            onclick="location.href='nhso-submit.html?stage=${esc(s.key)}'">
+                            ${esc(s.label)} <strong>${s.count}</strong></span>`).join('')}
+                    </div>
+                </div>`).join('');
 
         DSChart.funnel('chartFunnel', {
             title: 'ปริมาณเคสตามขั้นตอนของ สปสช.',
             steps: stats.map(s => ({
                 label: s.label, value: s.count,
-                display: `${s.count} เคส · ${MockFmt.baht(s.amount, { short: true })} บาท`,
+                display: `${s.count} เคส · ${MockFmt.baht(s.billed, { short: true })} / `
+                       + `${MockFmt.baht(s.compensated, { short: true })} บาท`,
                 color: s.key === 'AWAIT_FIX' ? 'var(--status-danger)'
                      : s.key === 'PAID' ? 'var(--status-success)' : 'var(--primary)',
             })),
@@ -306,7 +354,33 @@ const Dash = {
             </table></div>
             <div class="ds-note"><i data-lucide="info" class="icon-sm"></i>
                 ระยะเวลาจริงกำหนดหลังทราบจำนวน Interface ปริมาณข้อมูล กองทุนนำร่อง คุณภาพเอกสาร
-                และทรัพยากรของโรงพยาบาล — เสนอใช้ Agile Iteration 2–3 สัปดาห์ พร้อมสาธิตและรับรองผลเป็นช่วง</div>`;
+                และทรัพยากรของโรงพยาบาล — เสนอใช้ Agile Iteration 2–3 สัปดาห์ พร้อมสาธิตและรับรองผลเป็นช่วง</div>
+
+            <div class="ds-section-label" style="margin-top:16px">
+                ${esc(NHSO_MASTERPLAN.title)}</div>
+            <div class="td-sub" style="margin-bottom:10px">
+                16 ก.ย. 2569 ไม่ใช่ปลายทาง — แผนของ สปสช. เดินต่อถึงบูรณาการเต็มรูปแบบ
+                ที่มา: ${esc(NHSO_MASTERPLAN.source)}
+            </div>
+            <div class="table-responsive">
+            <table class="data-table compact">
+                <thead><tr><th style="width:1%">ระยะ</th><th style="width:22%">ช่วงเวลา</th>
+                    <th>หมุดสำคัญ</th></tr></thead>
+                <tbody>${NHSO_MASTERPLAN.phases.map(p => `<tr>
+                    <td style="white-space:nowrap"><strong>${esc(p.phase)}</strong>
+                        <div class="td-sub">${esc(p.title)}</div></td>
+                    <td class="td-sub">${esc(p.when)}</td>
+                    <td class="td-sub">${p.milestones.map(m => `<div>· ${esc(m)}</div>`).join('')}</td>
+                </tr>`).join('')}</tbody>
+            </table></div>
+            <div class="ds-warn" style="margin-top:10px">
+                <i data-lucide="alert-triangle" class="icon-sm"></i>
+                <span><strong>เอกสาร 2 ฉบับให้วันไม่ตรงกัน</strong> —
+                Overview (23 มิ.ย. 2569) ระบุนำร่องโรงพยาบาล 1 ก.ค. 2569 (1,700 แห่ง)
+                ส่วน Communication V4 (3 ส.ค. 2569 · ใหม่กว่า) ระบุ Go-Live 16 ก.ย. 2569 (308 หน่วย)
+                — แผนนี้ยึดฉบับใหม่กว่าเป็นหมุดหลัก และเก็บแผน 4 ปีไว้เป็นบริบทระยะยาว
+                ต้องยืนยันกับ สปสช. ก่อนตรึงแผนโครงการจริง</span>
+            </div>`;
     },
 
     /* ══════════ ใบพิมพ์ ══════════ */
@@ -316,10 +390,12 @@ const Dash = {
         const warnings = [];
         const rows = this.scope();
 
-        const kpiRows = this.KPI.map((k, i) => `<tr>
+        /* ค่าบนกระดาษต้องมาจาก MockKpi ตัวเดียวกับที่การ์ดบนจอใช้ (PAGE-GUIDE §5B) */
+        const kpiCtx = this.kpiCtx();
+        const kpiRows = this.kpiDefs().map((k, i) => `<tr>
             <td style="${C}text-align:center;">${i + 1}</td>
             <td style="${C}">${DocParts.esc(k.label)}</td>
-            <td style="${C}text-align:right;font-weight:700;">${DocParts.esc(k.calc(rows))}</td>
+            <td style="${C}text-align:right;font-weight:700;">${DocParts.esc(MockKpi.value(k, kpiCtx))}</td>
             <td style="${C}">${DocParts.esc(k.how)}</td>
         </tr>`).join('');
 

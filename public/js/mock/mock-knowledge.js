@@ -88,7 +88,120 @@ const MOCK_DOCS = [
                + 'ประเภทผู้ป่วยใน (IPD) ในระยะ MVP2 Drop 2 · จำนวนวันนอนที่ส่งเบิกต้องสอดคล้องกับ '
                + 'วันที่จำหน่ายและจำนวนวันลากลับบ้าน',
         pages: 'หน้า 63 · ข้อ 7.1',
+        supersedes: 'DOC-NHSO-2566-001',
     },
+
+    /* ── เอกสารต้นทางจริงที่ระบบทั้งหมดอ้างอิง ─────────────
+       สามฉบับนี้คือแหล่งความจริงของหน้า NHSO ทั้งหมด · Citation ต้องชี้มาที่นี่ */
+    {
+        id: 'DOC-NHSO-2566-001', type: 'ANNOUNCE',
+        title: 'ประกาศ สปสช. เรื่อง โครงสร้างชุดข้อมูลมาตรฐานสำหรับการจัดทำระบบข้อมูล'
+             + 'การให้บริการสาธารณสุข เพื่อขอรับค่าใช้จ่ายเพื่อบริการสาธารณสุข '
+             + 'กรณีการจ่ายตามรายการบริการ พ.ศ. 2566',
+        no: 'ประกาศ Standard data set (Fee Schedule) พ.ศ. 2566',
+        issuer: 'เลขาธิการสำนักงานหลักประกันสุขภาพแห่งชาติ',
+        published: '2566-01-01', effective_from: '2566-01-01', effective_to: null,
+        funds: ['UC', 'OFC', 'SSS', 'LGO', 'EMS'], status: 'ACTIVE', version: 1, certified_by: 'U-002',
+        excerpt: 'อาศัยอำนาจตามมาตรา ๓๖ (๒) แห่งพระราชบัญญัติหลักประกันสุขภาพแห่งชาติ พ.ศ. ๒๕๔๕ '
+               + 'ประกอบประกาศคณะกรรมการหลักประกันสุขภาพแห่งชาติฯ พ.ศ. ๒๕๖๕ — '
+               + 'กำหนดโครงสร้างชุดข้อมูลมาตรฐาน 15 แฟ้ม 160 Data Points '
+               + '(บังคับ 72 · มีเงื่อนไข 16 · อื่น ๆ 72) และกำหนดแฟ้มที่ต้องส่งของแต่ละกองทุน 12 กองทุน',
+        pages: 'ข้อ ๑ · ตารางแฟ้มข้อมูลและตารางกองทุน',
+        link: 'nhso.go.th → หน่วยบริการ → NHSO Digital Platform → ดาวน์โหลด',
+    },
+    {
+        id: 'DOC-MAN-2569-030', type: 'MANUAL',
+        title: 'NHSO Digital Platform Overview (แพลตฟอร์มการบริหารจัดการธุรกรรมการเบิกจ่ายชดเชย)',
+        no: 'NHSO.Digital.Platform.Overview.23.06.2569',
+        issuer: 'สำนักงานหลักประกันสุขภาพแห่งชาติ',
+        published: '2569-06-23', effective_from: '2569-06-23', effective_to: null,
+        funds: ['UC', 'OFC', 'SSS', 'LGO', 'EMS'], status: 'ACTIVE', version: 1, certified_by: 'U-002',
+        excerpt: 'น.7 เส้นทางการทำงาน 7 ขั้น (ปิดสิทธิและปิด Visit — Complete/Waiting/Incomplete) · '
+               + 'น.12 ตารางจำนวนฟิลด์รายแฟ้ม 160 Data Points · '
+               + 'น.13 ที่มาโครงสร้าง (แฟ้ม 1–9 อ้างอิง 16 แฟ้ม · 10–13 อ้างอิง DMIS · 14–15 ผู้ป่วยใน) '
+               + 'และกลุ่มบริการชุดที่ 2 ที่ยังไม่รองรับ (CKD · HIV/เอดส์ · TB) · '
+               + 'น.14–16 ตารางกองทุน × แฟ้ม · น.17–20 แผนปฏิบัติการ 4 ปี 2567–2570 · '
+               + 'น.23–27 หน้าจอจริง สถานะและรายงาน',
+        pages: '29 หน้า · ดูเลขหน้าในข้อความอ้างอิง',
+    },
+    {
+        id: 'DOC-MAN-2569-031', type: 'MANUAL',
+        title: 'โครงการ NHSO Digital Platform — Communication (V4)',
+        no: 'NHSO Digital Platform Communication · 3 ส.ค. 2569',
+        issuer: 'สำนักงานหลักประกันสุขภาพแห่งชาติ',
+        published: '2569-08-03', effective_from: '2569-08-03', effective_to: null,
+        funds: ['UC', 'OFC', 'SSS', 'LGO', 'EMS'], status: 'ACTIVE', version: 4, certified_by: 'U-002',
+        excerpt: 'สไลด์ 4 Standard Dataset 15 แฟ้ม 5 กลุ่มข้อมูลหลัก · '
+               + 'สไลด์ 6 Roadmap MVP1 / Drop1 / Drop2 — Go-Live 16 ก.ย. 2569 สำหรับโรงพยาบาลที่พร้อม · '
+               + 'สไลด์ 7 งานที่ต้องเตรียมก่อน UAT 5 ข้อ (Source ID · Client ID/Token · User Role · '
+               + 'พัฒนาระบบ · Mapping Drug & Service Catalogue) · '
+               + 'สไลด์ 9 เข้าระบบด้วย ThaiD + SMS OTP 6 หลัก · สไลด์ 40–45 รายงาน 4 ประเภท',
+        pages: '46 สไลด์ · เนื้อหาส่วนใหญ่อยู่ในภาพหน้าจอ',
+        warn: 'รหัสสถานะและรหัสข้อผิดพลาดที่ถอดจากภาพสไลด์ยังยืนยันกับเนื้อความไม่ได้ — '
+            + 'รอแคตตาล็อก "Error ที่พบบ่อย" ที่ สปสช. แจ้งว่าจะเผยแพร่',
+    },
+    {
+        id: 'DOC-NHSO-PENDING-ERR', type: 'ANNOUNCE',
+        title: 'แคตตาล็อก "Error ที่พบบ่อย" พร้อมแนวทางแก้ไข (รอ สปสช. เผยแพร่)',
+        no: '—', issuer: 'สำนักงานหลักประกันสุขภาพแห่งชาติ',
+        published: null, effective_from: null, effective_to: null,
+        funds: ['UC', 'OFC', 'SSS', 'LGO', 'EMS'], status: 'DRAFT', version: 0, certified_by: null,
+        excerpt: 'เอกสาร Overview 23 มิ.ย. 2569 น.8 ระบุว่า สปสช. จะรวบรวมข้อผิดพลาดที่พบบ่อย '
+               + 'พร้อมแนวทางแก้ไขเผยแพร่ผ่าน nhso.go.th → หน่วยบริการ → NHSO Digital Platform · '
+               + 'เมื่อได้เอกสารฉบับจริง ให้แทนที่รหัสข้อผิดพลาดทั้งชุดที่ยังติดป้าย "รอยืนยัน"',
+        pages: 'อ้างอิงจาก Overview น.8',
+    },
+
+    /* ══════════════════════════════════════════════════════
+       เอกสารที่งานผู้ป่วยในต้องใช้แต่ยังไม่มีตัวเอกสาร
+       ผูกกับ IPD_SOURCES ใน mock-ipd.js ด้วยรหัส [D4]–[D8]
+       และเป็นปลายทางของ doc_id ในกฎ RUL-IPD-023…029 ที่ยังเป็นร่าง
+       ⚠️ status:'DRAFT' + version:0 = ยังอ้างอิงไม่ได้ ห้ามนำไปใช้ตัดสินเคส
+       ══════════════════════════════════════════════════════ */
+    {
+        id: 'DOC-DRG-MANUAL', type: 'MANUAL', src_id: 'D4',
+        title: 'คู่มือการจัดกลุ่มวินิจฉัยโรคร่วม (Thai DRG) — รอเอกสารฉบับที่โรงพยาบาลใช้',
+        no: '—', issuer: 'สำนักงานกลางสารสนเทศบริการสุขภาพ (สกส.)',
+        published: null, effective_from: null, effective_to: null,
+        funds: ['UC', 'OFC', 'SSS', 'LGO', 'EMS'], status: 'DRAFT', version: 0, certified_by: null,
+        excerpt: 'ค้ำค่า RW · ALOS · จุดตัดวันนอน · สูตรปรับ AdjRW กรณี outlier และตารางจับคู่ '
+               + 'Dx/Proc กับกลุ่ม DRG · ตอนนี้ระบบใช้ค่าจำลองทั้งชุดและติดป้าย "รอยืนยัน" ทุกจุด '
+               + 'เมื่อได้ฉบับจริงให้นำเข้าผ่านหน้าตารางอ้างอิง (ipd-reference.html) '
+               + 'แล้วเปิดใช้กฎ RUL-IPD-023 ถึง RUL-IPD-026 ที่เขียนรอไว้แล้ว',
+        pages: 'รอเอกสาร — ต้องเป็นเวอร์ชันเดียวกับ Grouper ที่ใช้จริง',
+    },
+    {
+        id: 'DOC-FUND-OFC', type: 'ANNOUNCE', src_id: 'D6',
+        title: 'หลักเกณฑ์และอัตราค่ารักษาพยาบาลผู้ป่วยใน สิทธิเบิกจ่ายตรง — รอเอกสาร',
+        no: '—', issuer: 'กรมบัญชีกลาง กระทรวงการคลัง',
+        published: null, effective_from: null, effective_to: null,
+        funds: ['OFC', 'LGO'], status: 'DRAFT', version: 0, certified_by: null,
+        excerpt: 'ค้ำอัตราจ่ายต่อ RW และเพดานค่าห้อง/ค่าอาหารของสิทธิเบิกจ่ายตรง '
+               + 'เมื่อได้เอกสารให้ตั้ง IPD_FUND_RULES.OFC.roomCap แล้วเปิดใช้กฎ RUL-IPD-027',
+        pages: 'รอเอกสาร',
+    },
+    {
+        id: 'DOC-FUND-DUE', type: 'ANNOUNCE', src_id: 'D5',
+        title: 'กำหนดเวลายื่นเรียกเก็บผู้ป่วยในรายกองทุน — รอเอกสาร',
+        no: '—', issuer: 'สปสช. / กรมบัญชีกลาง / สปส. / บริษัทประกัน',
+        published: null, effective_from: null, effective_to: null,
+        funds: ['UC', 'OFC', 'SSS', 'LGO', 'EMS', 'PVT'], status: 'DRAFT', version: 0, certified_by: null,
+        excerpt: 'ตอนนี้ระบบใช้ 30 วันนับจากวันจำหน่ายเท่ากันทุกกองทุนเพราะยังไม่มีประกาศฉบับจริง '
+               + 'ซึ่งไม่ตรงความจริง — แต่ละกองทุนกำหนดคนละกรอบเวลาและนับตั้งต้นคนละจุด '
+               + 'เลยกำหนดแล้วเรียกเก็บไม่ได้เลย ไม่ใช่แค่ช้า',
+        pages: 'รอเอกสาร',
+    },
+    {
+        id: 'DOC-FUND-UCEP', type: 'ANNOUNCE', src_id: 'D8',
+        title: 'หลักเกณฑ์การกำหนดค่าใช้จ่ายกรณีฉุกเฉินวิกฤต (UCEP) — รอเอกสาร',
+        no: '—', issuer: 'สถาบันการแพทย์ฉุกเฉินแห่งชาติ / สปสช.',
+        published: null, effective_from: null, effective_to: null,
+        funds: ['EMS'], status: 'DRAFT', version: 0, certified_by: null,
+        excerpt: 'ค้ำเงื่อนไข 72 ชั่วโมงแรก เกณฑ์คัดแยกฉุกเฉินวิกฤต และอัตราค่าใช้จ่ายที่เรียกเก็บได้ '
+               + 'เมื่อได้เอกสารให้เปิดใช้กฎ RUL-IPD-029',
+        pages: 'รอเอกสาร',
+    },
+
     {
         id: 'DOC-NHSO-2568-044', type: 'ANNOUNCE',
         title: 'ประกาศหลักเกณฑ์การเบิกจ่ายค่ายา (ฉบับก่อน — ยกเลิกแล้ว)',
@@ -274,6 +387,19 @@ const MockKnowledge = {
 
     /** กฎที่อ้างอิงเอกสารฉบับนี้ */
     rulesFor(docId) { return MockRules.all().filter(r => r.doc_id === docId); },
+
+    /**
+     * แยกกฎที่อ้างเอกสารนี้ออกเป็น "บังคับใช้แล้ว" กับ "ยังไม่บังคับใช้"
+     * ⚠️ ต้องแยก — rulesFor() ไม่กรองสถานะ ถ้าเอาไปแสดงรวมกันใต้หัวข้อ
+     *    "กฎที่อ้างอิงเอกสารนี้" ผู้อ่านจะเข้าใจว่ากฎร่างบังคับใช้แล้วทั้งที่ยังไม่ยิงกับเคสใด
+     */
+    rulesForSplit(docId) {
+        const rows = this.rulesFor(docId);
+        return {
+            active:  rows.filter(r => r.status === 'ACTIVE'),
+            pending: rows.filter(r => r.status !== 'ACTIVE'),
+        };
+    },
 
     /** ค้นคำตอบแบบง่าย — จับคำสำคัญร่วม */
     search(q) {

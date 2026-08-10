@@ -1,8 +1,10 @@
 /* ────────────────────────────────────────────────────────
    ส่งเบิก NHSO — รายงาน / Statement
 
-   สี่ประเภทรายงานตรงตามหน้าจอจริงของ NHSO Digital Platform
+   ห้าประเภทรายงานตรงตามเมนู Reports ของ NHSO Digital Platform
+   (รวมจาก Overview 23 มิ.ย. 2569 น.27 และ Communication V4 สไลด์ 40–45)
    กติการหัสผ่านไฟล์ยกมาตามเอกสารทุกตัวอักษร — เจ้าหน้าที่ถามเรื่องนี้บ่อยที่สุด
+   คอลัมน์ จ่ายเพิ่ม / เรียกคืน มาจากตาราง Statement ตัวจริง [Overview น.27]
    ──────────────────────────────────────────────────────── */
 
 const Reports = {
@@ -59,13 +61,23 @@ const Reports = {
             const st = NHSO_REPORT_STATUS[r.status] || { badge: 'pending', label: r.status };
             return `<tr>
                 <td class="td-sub" style="white-space:nowrap">${esc(r.id)}</td>
-                <td class="td-name">${esc(r.name)}
-                    <div class="td-sub">${esc(t.desc || '')}</div></td>
+                <td class="td-name" style="white-space:nowrap">${esc(r.name)}
+                    <div class="td-sub">${esc(r.file || t.desc || '')}</div></td>
                 <td class="td-sub" style="white-space:nowrap">${esc(r.period)}</td>
                 <td><span class="sip-chip sip-chip-muted">${esc(r.fund)}</span></td>
                 <td class="td-sub" style="white-space:nowrap">${esc(MockFmt.dateTH(r.created))}</td>
                 <td style="text-align:right">${MockFmt.int(r.rows)}</td>
-                <td style="text-align:right;white-space:nowrap"><strong>${esc(MockFmt.baht(r.amount))}</strong></td>
+                <td style="text-align:right;white-space:nowrap">
+                    <span class="ds-amt ds-amt-billed">${esc(MockFmt.baht(r.amount))}</span></td>
+                <td style="text-align:right;white-space:nowrap">
+                    <span class="ds-amt ds-amt-comp">${esc(MockFmt.baht(r.comp || 0))}</span></td>
+                <td style="text-align:right;white-space:nowrap" class="td-sub">${
+                    r.extra ? esc(MockFmt.baht(r.extra)) : '—'}</td>
+                <td style="text-align:right;white-space:nowrap">${r.clawback
+                    ? `<strong style="color:var(--status-danger)">${esc(MockFmt.baht(r.clawback))}</strong>`
+                    : '<span class="td-sub">—</span>'}</td>
+                <td style="text-align:right;white-space:nowrap"><strong>${
+                    esc(MockFmt.baht(r.transferred != null ? r.transferred : r.amount))}</strong></td>
                 <td><span class="status-badge ${esc(st.badge)}">${esc(st.label)}</span></td>
                 <td style="white-space:nowrap">
                     <button class="ds-icon-btn edit" title="ดาวน์โหลด Excel"
@@ -73,10 +85,43 @@ const Reports = {
                         <i data-lucide="download" class="icon-sm"></i></button>
                 </td>
             </tr>`;
-        }).join('') : '<tr><td colspan="9" class="ds-empty">ไม่พบรายงานตามเงื่อนไข</td></tr>';
+        }).join('') : '<tr><td colspan="13" class="ds-empty">ไม่พบรายงานตามเงื่อนไข</td></tr>';
 
         this.renderRecon();
+        this.renderArLines();
         refreshIcons();
+    },
+
+    /**
+     * ตัดบัญชีลูกหนี้รายบุคคล — วัตถุประสงค์ข้อ 6 ของ สปสช.
+     * 1 เคสอาจได้รับชำระหลายงวด หลายกองทุนย่อย และมียอดเรียกคืนได้
+     */
+    renderArLines() {
+        const el = document.getElementById('arLines'); if (!el) return;
+        el.innerHTML = MockNhso.arLines().map(a => {
+            const paid = a.lines.reduce((s, l) => s + l.paid, 0);
+            const net  = paid - (a.clawback || 0);
+            const open = a.billed - net;
+            return `<tr>
+                <td class="td-sub" style="white-space:nowrap">
+                    <a href="nhso-case.html?seq=${encodeURIComponent(a.seq)}">${esc(a.case_id)}</a></td>
+                <td class="td-name">${esc(a.patient)}
+                    ${a.note ? `<div class="ds-hint">${esc(a.note)}</div>` : ''}</td>
+                <td style="text-align:right;white-space:nowrap">
+                    <span class="ds-amt ds-amt-billed">${esc(MockFmt.baht(a.billed))}</span></td>
+                <td>${a.lines.map(l => `<div class="td-sub" style="white-space:nowrap">
+                        ${esc(l.period)} · ${esc(l.subfund)} —
+                        <strong>${esc(MockFmt.baht(l.paid))}</strong></div>`).join('')}</td>
+                <td style="text-align:right;white-space:nowrap">${a.clawback
+                    ? `<strong style="color:var(--status-danger)">${esc(MockFmt.baht(a.clawback))}</strong>`
+                    : '<span class="td-sub">—</span>'}</td>
+                <td style="text-align:right;white-space:nowrap">
+                    <span class="ds-amt ds-amt-comp">${esc(MockFmt.baht(net))}</span></td>
+                <td style="text-align:right;white-space:nowrap">${open > 0
+                    ? `<strong style="color:var(--status-warning-strong)">${esc(MockFmt.baht(open))}</strong>`
+                    : '<span class="sip-chip sip-chip-success">ปิดบัญชีแล้ว</span>'}</td>
+            </tr>`;
+        }).join('');
     },
 
     renderRecon() {
@@ -130,9 +175,32 @@ const Reports = {
                         <tr><td class="l">งวด</td><td class="l">${esc(r.period)}</td></tr>
                         <tr><td class="l">กองทุน</td><td class="l">${esc(r.fund)}</td></tr>
                         <tr><td class="l">จำนวนรายการ</td><td class="l">${MockFmt.int(r.rows)} รายการ</td></tr>
-                        <tr><td class="l">ยอดรวม</td><td class="l"><strong>${esc(MockFmt.baht(r.amount))}</strong> บาท</td></tr>
+                        <tr><td class="l">ยอดเรียกเก็บ</td><td class="l">
+                            <strong>${esc(MockFmt.baht(r.amount))}</strong> บาท</td></tr>
+                        <tr><td class="l">จ่ายชดเชย</td><td class="l">${esc(MockFmt.baht(r.comp || 0))} บาท</td></tr>
+                        <tr><td class="l">จ่ายเพิ่ม</td><td class="l">${esc(MockFmt.baht(r.extra || 0))} บาท</td></tr>
+                        <tr><td class="l">เรียกคืน</td><td class="l" style="color:var(--status-danger)">
+                            ${esc(MockFmt.baht(r.clawback || 0))} บาท</td></tr>
+                        <tr><td class="l">เงินโอนเข้าบัญชี</td><td class="l">
+                            <strong>${esc(MockFmt.baht(r.transferred != null ? r.transferred : r.amount))}</strong> บาท</td></tr>
+                        <tr><td class="l">ชื่อไฟล์</td><td class="l"><code>${esc(r.file || '—')}</code></td></tr>
                         <tr><td class="l">รูปแบบไฟล์</td><td class="l">Excel (.xlsx) บีบอัดและตั้งรหัสผ่าน</td></tr>
                     </tbody>
+                </table>
+
+                <div class="ds-note" style="margin-bottom:12px">
+                    <i data-lucide="percent" class="icon-sm"></i> ${esc(NHSO_STATEMENT_TAX_NOTE)}
+                </div>
+
+                <div class="ds-section-label">กติกาการตั้งชื่อของ สปสช.</div>
+                <table class="ds-table-grid">
+                    <thead><tr><th style="width:26%">ประเภท</th><th>รูปแบบ</th><th style="width:32%">ตัวอย่าง</th></tr></thead>
+                    <tbody>${NHSO_REPORT_NAMING.map(x => `<tr>
+                        <td class="l">${esc(x.label)}</td>
+                        <td class="l" style="font-size:11px"><code>${esc(x.pattern)}</code>
+                            ${x.note ? `<div class="ds-hint">${esc(x.note)}</div>` : ''}</td>
+                        <td class="l" style="font-size:11px"><code>${esc(x.sample)}</code></td>
+                    </tr>`).join('')}</tbody>
                 </table>
 
                 <div class="sip-banner sip-banner-warning" style="margin-bottom:12px">

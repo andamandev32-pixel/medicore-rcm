@@ -61,9 +61,11 @@ const MOCK_USERS = [
 /* ══════════════════════════════════════════════════════════
    Mapping — ผูกกับงานก่อน UAT ข้อ 5 (Drug & Service Catalogue)
    ══════════════════════════════════════════════════════════ */
+/* ชื่อเมนูฝั่ง สปสช. คือ "ค้นหารหัสเบิก → Service Catalog / Drug Catalog"
+   ใช้คำเดียวกันเพื่อให้เจ้าหน้าที่โยงกับหน้าจอที่เขาใช้จริงได้ */
 const MOCK_MAPPING_KINDS = [
-    { key: 'DRUG',    label: 'Drug Catalogue' },
-    { key: 'SERVICE', label: 'Service – Procedure' },
+    { key: 'DRUG',    label: 'Drug Catalog' },
+    { key: 'SERVICE', label: 'Service Catalog (Service – Procedure)' },
     { key: 'RIGHT',   label: 'รหัสสิทธิ – กองทุน' },
 ];
 
@@ -99,12 +101,28 @@ const MOCK_MAPPING_TONE = {
 const MOCK_INTEGRATIONS = [
     { name: 'HIS — ระบบสารสนเทศโรงพยาบาล', kind: 'Database View', endpoint: 'vw_claim_export (read-only)',
       status: 'active',   last: '2569-08-06T08:30', note: 'อ่านอย่างเดียว — ไม่แก้ข้อมูลต้นทาง (BR-08)' },
-    { name: 'NHSO Digital Platform',      kind: 'REST API',      endpoint: 'https://api.nhso.go.th/dp/v2',
-      status: 'active',   last: '2569-08-06T08:31', note: 'Test Environment · Client ID nhso-cli-11812-8f2a' },
+    { name: 'ช่องทางส่งข้อมูล HIS / HIS-FDH', kind: 'Channel',    endpoint: 'HIS → NHSO Digital Platform',
+      status: 'active',   last: '2569-08-06T08:31',
+      note: 'ช่องทางที่เอกสาร สปสช. ระบุ · การแก้ไขต้องทำที่ HIS แล้วส่งใหม่ '
+          + '(หน้าจอ สปสช. แก้ข้อมูลไม่ได้)' },
+    { name: 'NHSO Digital Platform (API)', kind: 'REST API',      endpoint: 'https://api.nhso.go.th/dp/v2',
+      status: 'active',   last: '2569-08-06T08:31',
+      note: 'Test Environment · Source ID SRC-11812-0042 · Client ID nhso-cli-11812-8f2a '
+          + '· credential ของ Production ต้องขอแยก' },
+    { name: 'NHSO Portal (หน้าเว็บ)',      kind: 'ThaiD + SMS OTP', endpoint: 'เข้าระบบด้วย ThaiD + OTP 6 หลัก',
+      status: 'active',   last: '2569-08-06T07:55',
+      note: 'ใช้ตรวจผลและดาวน์โหลดรายงาน · สคริปต์ล็อกอินอัตโนมัติทำไม่ได้ '
+          + 'ต้องไปทาง API เท่านั้น · ผู้ใช้ทุกคนต้องมี ThaiD และตั้งค่า Role ให้ครบก่อน UAT' },
     { name: 'e-Claim (ระบบเดิม)',          kind: 'File / SFTP',   endpoint: 'sftp://eclaim/outbox',
-      status: 'inactive', last: '2569-07-31T23:50', note: 'ใช้คู่ขนานระหว่าง Parallel Run' },
+      status: 'inactive', last: '2569-07-31T23:50',
+      note: 'ใช้คู่ขนานระหว่าง Parallel Run · เอกสาร สปสช. ไม่ได้ระบุวันปิดระบบ '
+          + 'จึงต้องคงไว้จนกว่าจะมีประกาศ' },
+    { name: 'ช่องทางเดิมของกลุ่มบริการชุดที่ 2', kind: 'ระบบเดิม', endpoint: 'CKD · HIV/เอดส์ · TB',
+      status: 'active',   last: '2569-08-05T20:00',
+      note: 'ยังไม่ประกาศชุดข้อมูลมาตรฐาน — ห้ามย้ายมาส่งผ่าน NHSO Digital Platform (RUL-SET-001)' },
     { name: 'ระบบบัญชีลูกหนี้',            kind: 'File Export',   endpoint: '/exports/ar/*.csv',
-      status: 'active',   last: '2569-08-05T22:10', note: 'ส่งออกยอดพึงรับรายงวด' },
+      status: 'active',   last: '2569-08-05T22:10',
+      note: 'ส่งออกยอดพึงรับรายงวด · รองรับตัดบัญชีรายบุคคลและยอดเรียกคืน' },
 ];
 
 const MOCK_INTEGRATION_LOG = [

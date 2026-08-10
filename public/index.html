@@ -7,7 +7,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MediCore RCM — หน้าแรก</title>
+    <title>MediClearing — หน้าแรก</title>
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
 
     <!-- ลำดับ CSS มาตรฐาน (ds-tokens ต้องมาก่อนเสมอ) -->
@@ -24,56 +24,128 @@
 </head>
 <body data-page="index">
 
-    <!-- ══════════ หน้าล็อกอิน ══════════ -->
+    <!-- ══════════ หน้าล็อกอิน — สองฝั่ง: แบรนด์ซ้าย / ฟอร์มขวา ══════════
+         ไอคอนในโซนนี้เขียนเป็น inline SVG ไม่ใช่ data-lucide เพราะ overlay
+         ต้องแสดงผลได้ตั้งแต่ก่อน ds-icons.js ทำงาน -->
     <div class="login-overlay" id="loginOverlay">
-        <div class="login-card">
-            <div class="login-logo-wrap">
-                <div class="login-logo-mark">
-                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2"/>
-                        <rect x="8" y="2" width="8" height="4" rx="1"/>
-                        <path d="M12 11v4"/><path d="M10 13h4"/>
-                    </svg>
-                </div>
-                <div class="login-logo-text">
-                    <h1>MediCore</h1>
-                    <p>RCM</p>
-                </div>
-            </div>
-            <div class="login-divider"></div>
-            <div class="login-error" id="loginError" style="display:none"></div>
-            <form onsubmit="Landing.login(event)">
-                <label class="login-label">ชื่อผู้ใช้</label>
-                <input class="login-input" id="loginUser" value="admin" autocomplete="username">
-                <label class="login-label">รหัสผ่าน</label>
-                <input class="login-input" id="loginPass" type="password" value="10210" autocomplete="current-password">
-                <button class="login-btn" type="submit" id="loginBtn">เข้าสู่ระบบ</button>
-            </form>
-            <div class="login-footer">v1.0 · admin / doctor01 / nurse01 / pharmacist01</div>
 
-            <!-- ══ ทางเข้าโหมดนำเสนอ — ข้ามการล็อกอินได้ ══
-                 ต้นแบบและสไลด์ใช้ข้อมูลจำลองล้วน ไม่ยิง /api จึงไม่ต้องล็อกอิน
-                 จงใจวางไว้บนหน้านี้ เพราะการนำเสนอผู้บริหารต้องเปิดได้แม้ DB/เน็ตไม่พร้อม -->
-            <div class="login-divider"></div>
-            <div style="text-align:center">
-                <div style="font-size:11px;color:rgba(255,255,255,.55);margin-bottom:10px;letter-spacing:.04em">
-                    โหมดนำเสนอ — ไม่ต้องล็อกอิน
+        <!-- ── ฝั่งซ้าย: แบรนด์ ── -->
+        <div class="login-brand">
+            <div class="login-brand-mark">
+                <svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2"/>
+                    <rect x="8" y="2" width="8" height="4" rx="1"/>
+                    <path d="M12 11v4"/><path d="M10 13h4"/>
+                </svg>
+            </div>
+            <div class="login-brand-name">MediClearing</div>
+            <div class="login-brand-sub">
+                <span class="login-brand-abbr">RCM</span>
+                <span class="login-brand-full">Revenue Cycle Management · การบริหารวงจรรายได้</span>
+            </div>
+            <div class="login-brand-line"></div>
+            <div class="login-brand-org">ระบบบริหารวงจรรายได้<br>โรงพยาบาล</div>
+            <div class="login-brand-desc">
+                ผู้ป่วยใน · ส่งต่อ · ตรวจความพร้อมก่อนส่งเคลม · ส่งเบิก NHSO · กระทบยอด
+            </div>
+            <div class="login-brand-foot">© 2569 MediClearing RCM · v1.0</div>
+        </div>
+
+        <!-- ── ฝั่งขวา: ฟอร์ม ── -->
+        <div class="login-panel">
+            <div class="login-card">
+                <div class="login-head">
+                    <h2>เข้าสู่ระบบ</h2>
+                    <p>สำหรับเจ้าหน้าที่และผู้ดูแลระบบ</p>
                 </div>
-                <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
-                    <a href="present.html"
-                       style="flex:1;min-width:130px;display:inline-flex;align-items:center;justify-content:center;gap:6px;
-                              padding:9px 14px;border-radius:9px;text-decoration:none;font-size:12.5px;font-weight:700;
-                              background:var(--brand-amber);color:var(--brand-navy)">
+
+                <div class="login-error" id="loginError" style="display:none"></div>
+
+                <form onsubmit="Landing.login(event)">
+                    <div class="login-field">
+                        <label class="login-label" for="loginUser">ชื่อผู้ใช้</label>
+                        <div class="login-input-wrap">
+                            <span class="login-input-ico">
+                                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>
+                                </svg>
+                            </span>
+                            <input class="login-input" id="loginUser" value="admin"
+                                   placeholder="ชื่อผู้ใช้" autocomplete="username">
+                        </div>
+                    </div>
+
+                    <div class="login-field">
+                        <label class="login-label" for="loginPass">รหัสผ่าน</label>
+                        <div class="login-input-wrap">
+                            <span class="login-input-ico">
+                                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
+                                </svg>
+                            </span>
+                            <input class="login-input" id="loginPass" type="password" value="10210"
+                                   placeholder="รหัสผ่าน" autocomplete="current-password">
+                            <button class="login-eye" type="button" id="loginEye"
+                                    aria-label="แสดงรหัสผ่าน" onclick="Landing.togglePass(this)">
+                                <svg class="ico-on" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/>
+                                </svg>
+                                <svg class="ico-off" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M17.94 17.94A10.07 10.07 0 0112 20c-6.5 0-10-8-10-8a18.5 18.5 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c6.5 0 10 8 10 8a18.5 18.5 0 01-2.16 3.19"/>
+                                    <path d="M9.88 9.88a3 3 0 104.24 4.24"/><path d="M2 2l20 20"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="login-forgot">
+                        <a href="#" onclick="Landing.forgot(event)">ลืมรหัสผ่าน?</a>
+                    </div>
+
+                    <button class="login-btn" type="submit" id="loginBtn">เข้าสู่ระบบ</button>
+                </form>
+
+                <!-- ══ บัญชีทดสอบ — คลิกแล้วกรอกให้อัตโนมัติ (ตรงกับ seed-users.js) ══ -->
+                <details class="login-demo">
+                    <summary>
+                        บัญชีทดสอบ (DEMO) — คลิกเพื่อกรอกอัตโนมัติ
+                        <svg class="login-demo-caret" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M6 9l6 6 6-6"/>
+                        </svg>
+                    </summary>
+                    <div class="login-demo-body">
+                        <button type="button" class="login-demo-item" onclick="Landing.useDemo('admin','10210')">
+                            <b>admin</b> <span>ผู้ดูแลระบบ</span>
+                        </button>
+                        <button type="button" class="login-demo-item" onclick="Landing.useDemo('doctor01','doctor1234')">
+                            <b>doctor01</b> <span>แพทย์</span>
+                        </button>
+                        <button type="button" class="login-demo-item" onclick="Landing.useDemo('nurse01','nurse1234')">
+                            <b>nurse01</b> <span>พยาบาล</span>
+                        </button>
+                        <button type="button" class="login-demo-item" onclick="Landing.useDemo('pharmacist01','pharma1234')">
+                            <b>pharmacist01</b> <span>เภสัชกร</span>
+                        </button>
+                        <button type="button" class="login-demo-item" onclick="Landing.useDemo('superuser','super1234')">
+                            <b>superuser</b> <span>หลายบทบาท</span>
+                        </button>
+                    </div>
+                </details>
+
+                <!-- ══ ทางเข้าโหมดนำเสนอ — ข้ามการล็อกอินได้ ══
+                     ต้นแบบและสไลด์ใช้ข้อมูลจำลองล้วน ไม่ยิง /api จึงไม่ต้องล็อกอิน
+                     จงใจวางไว้บนหน้านี้ เพราะการนำเสนอผู้บริหารต้องเปิดได้แม้ DB/เน็ตไม่พร้อม -->
+                <div class="login-divider"></div>
+                <div class="login-present-label">โหมดนำเสนอ — ไม่ต้องล็อกอิน</div>
+                <div class="login-present-row">
+                    <a class="login-present-btn is-primary" href="present-hub.html">
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                              stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M2 3h20"/><path d="M21 3v11a2 2 0 01-2 2H5a2 2 0 01-2-2V3"/><path d="M7 21l5-5 5 5"/>
                         </svg>
                         สไลด์นำเสนอ
                     </a>
-                    <a href="claim-dashboard.html"
-                       style="flex:1;min-width:130px;display:inline-flex;align-items:center;justify-content:center;gap:6px;
-                              padding:9px 14px;border-radius:9px;text-decoration:none;font-size:12.5px;font-weight:700;
-                              background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.28)">
+                    <a class="login-present-btn is-ghost" href="claim-dashboard.html">
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                              stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M12 14l4-4"/><path d="M3.34 19a10 10 0 1117.32 0"/>
@@ -81,6 +153,8 @@
                         เข้าชมต้นแบบ
                     </a>
                 </div>
+
+                <div class="login-footer">v1.0 · MediClearing RCM</div>
             </div>
         </div>
     </div>
@@ -95,8 +169,8 @@
                 <div class="hero-top">
                     <div>
                         <div class="hero-greeting" id="heroGreeting">สวัสดี — ยินดีต้อนรับ</div>
-                        <h1 class="hero-title">MediCore · <span>RCM</span></h1>
-                        <p class="hero-subtitle">โครงมาตรฐานสำหรับสร้างโมดูลใหม่ให้หน้าตาเหมือนกันทั้งระบบ</p>
+                        <h1 class="hero-title">MediClearing · <span>RCM</span></h1>
+                        <p class="hero-subtitle">ระบบบริหารวงจรรายได้โรงพยาบาล — ผู้ป่วยใน · ส่งต่อ · ตรวจความพร้อม · ส่งเบิก · กระทบยอด</p>
                     </div>
                     <div class="hero-date-card">
                         <div class="hero-clock" id="heroClock">--:--</div>
@@ -160,9 +234,32 @@
                     </div>
                     <div class="mod-sublinks">
                         <a class="sub-link" href="claim-dashboard.html">ภาพรวมผู้บริหาร</a>
+                        <a class="sub-link" href="exec-finance.html">สรุปยอดเงินโอน</a>
                         <a class="sub-link" href="claim-worklist.html">คิวเคลม</a>
                         <a class="sub-link" href="claim-rules.html">คลังกฎ</a>
                         <a class="sub-link" href="claim-reject.html">วิเคราะห์การตีกลับ</a>
+                    </div>
+                </div>
+
+                <div class="mod-card mod-c1">
+                    <div class="mod-color-bar"></div>
+                    <div class="mod-top">
+                        <div class="mod-icon-wrap">
+                            <i data-lucide="bed"></i>
+                            <div class="live-dot green"></div>
+                        </div>
+                        <div class="mod-name">ผู้ป่วยใน (IPD)</div>
+                        <div class="mod-desc">ติดตามระหว่างนอน · กลุ่ม DRG · ตรวจแฟ้มผู้ป่วยในตามเงื่อนไขของแต่ละกองทุน</div>
+                        <div class="mod-stat-row">
+                            <span class="mod-stat-num">6</span>
+                            <span class="mod-stat-label">กองทุนที่รองรับ</span>
+                        </div>
+                    </div>
+                    <div class="mod-sublinks">
+                        <a class="sub-link" href="ipd-worklist.html">ทะเบียนผู้ป่วยใน</a>
+                        <a class="sub-link" href="ipd-admit.html">ติดตามระหว่างนอน</a>
+                        <a class="sub-link" href="ipd-audit.html">ตรวจแฟ้มผู้ป่วยใน</a>
+                        <a class="sub-link" href="ipd-reference.html">ตารางอ้างอิง / DRG</a>
                     </div>
                 </div>
 
@@ -174,15 +271,16 @@
                             <div class="live-dot red"></div>
                         </div>
                         <div class="mod-name">ส่งเบิก NHSO</div>
-                        <div class="mod-desc">NHSO Digital Platform · Standard Dataset 15 แฟ้ม · Go-Live 16 ก.ย. 2569</div>
+                        <div class="mod-desc">NHSO Digital Platform · Standard Dataset 15 แฟ้ม 160 Data Points · Go-Live 16 ก.ย. 2569</div>
                         <div class="mod-stat-row">
-                            <span class="mod-stat-num">6</span>
-                            <span class="mod-stat-label">ขั้นตอนของ สปสช.</span>
+                            <span class="mod-stat-num">12</span>
+                            <span class="mod-stat-label">กองทุน × 15 แฟ้ม</span>
                         </div>
                     </div>
                     <div class="mod-sublinks">
                         <a class="sub-link" href="nhso-submit.html">รายการส่งเบิก</a>
                         <a class="sub-link" href="nhso-import.html">นำเข้าข้อมูล / 15 แฟ้ม</a>
+                        <a class="sub-link" href="nhso-import.html?tab=fundfile">แฟ้มที่ต้องส่งตามกองทุน</a>
                         <a class="sub-link" href="nhso-reports.html">รายงาน / Statement</a>
                     </div>
                 </div>
@@ -191,17 +289,20 @@
                     <div class="mod-color-bar"></div>
                     <div class="mod-top">
                         <div class="mod-icon-wrap"><i data-lucide="presentation"></i></div>
-                        <div class="mod-name">สไลด์นำเสนอผู้บริหาร</div>
-                        <div class="mod-desc">ปัญหา · บริบท สปสช. · สองวงจร · สถาปัตยกรรม · แผน 4 ระยะ · ตัวชี้วัด</div>
+                        <div class="mod-name">สไลด์นำเสนอ</div>
+                        <div class="mod-desc">ฉบับย่อผู้บริหาร · สรุปงานรายส่วน · ฉบับเต็ม — เลือกชุดที่ตรงกับผู้ฟังและเวลาที่มี</div>
                         <div class="mod-stat-row">
-                            <span class="mod-stat-num">20</span>
-                            <span class="mod-stat-label">สไลด์</span>
+                            <span class="mod-stat-num">3</span>
+                            <span class="mod-stat-label">ชุดสไลด์</span>
                         </div>
                     </div>
+                    <!-- ⚠️ อย่าใส่ลิงก์ #page-N ที่นี่ — เคยมี "สไลด์สองวงจร #page-8" กับ
+                         "แผนส่งมอบ #page-17" แล้วเพี้ยนทันทีที่แทรกสไลด์เพิ่ม
+                         ให้ลิงก์ระดับ "ชุดสไลด์" เท่านั้น · ทะเบียนชุดอยู่ที่ DS_DECKS ใน ds-navbar.js -->
                     <div class="mod-sublinks">
-                        <a class="sub-link" href="present.html">เปิดสไลด์</a>
-                        <a class="sub-link" href="present.html#page-8">สไลด์สองวงจร</a>
-                        <a class="sub-link" href="present.html#page-17">แผนส่งมอบ</a>
+                        <a class="sub-link" href="present-hub.html">สไลด์ทั้งหมด</a>
+                        <a class="sub-link" href="present-exec.html">ฉบับย่อผู้บริหาร</a>
+                        <a class="sub-link" href="present-modules.html">สรุปงานรายส่วน</a>
                     </div>
                 </div>
 

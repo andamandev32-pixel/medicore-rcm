@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<!-- =========================================================================
+  ทะเบียนผู้ป่วยใน (IPD Worklist)
+  คิวรวมของ AN ทุกราย — กำลังนอน · รอตรวจแฟ้ม · ตีกลับ · ผ่านแล้ว
+  คลิกแถว → ยังนอนอยู่ไป ipd-admit.html · จำหน่ายแล้วไป ipd-audit.html
+
+  ⚠️ หน้าต้นแบบ: ข้อมูลจำลองล้วน ไม่เรียก /api จึงไม่ gate ด้วย Auth.requireLogin()
+     เมื่อผูก backend จริง ให้เพิ่มบรรทัด Auth.requireLogin(); กลับเข้าไปในส่วนหัวของหน้า
+     และเปลี่ยน MockDB.* เป็น fetch('/api/...') ตาม doc/PAGE-GUIDE.md §4
+  ========================================================================= -->
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>MediClearing — ทะเบียนผู้ป่วยใน</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+
+    <link rel="stylesheet" href="css/ds-tokens.css">
+    <link rel="stylesheet" href="css/ds-base.css">
+    <link rel="stylesheet" href="css/ds-navbar.css">
+    <link rel="stylesheet" href="css/ds-layout.css">
+    <link rel="stylesheet" href="css/ds-components.css">
+    <link rel="stylesheet" href="css/ds-overlays.css">
+    <link rel="stylesheet" href="css/ds-print.css">
+    <link rel="stylesheet" href="css/ds-portal.css">
+    <link rel="stylesheet" href="css/ds-chart.css">
+
+    <script src="js/ds/ds-auth.js"></script>
+</head>
+<body data-page="ipd-worklist">
+
+    <nav id="appNavbar"></nav>
+
+    <div class="page-container">
+
+        <div id="demoBanner"></div>
+
+        <div class="page-header">
+            <div>
+                <div class="page-title">
+                    <i data-lucide="bed" class="mi"></i>
+                    <span>ทะเบียนผู้ป่วยใน</span>
+                </div>
+                <div class="page-subtitle">
+                    ทุก AN ในที่เดียว — วันนอน กลุ่ม DRG ค่าใช้จ่ายจริงเทียบประมาณการรับ
+                    และความครบของแฟ้มตามเงื่อนไขกองทุน
+                </div>
+            </div>
+            <div class="section-actions">
+                <button class="btn btn-outline" onclick="IpdWorklist.reload()">
+                    <i data-lucide="refresh-cw" class="icon-sm"></i> รีเฟรช
+                </button>
+                <button class="btn btn-outline" onclick="IpdWorklist.openPrint()">
+                    <i data-lucide="printer" class="icon-sm"></i> พิมพ์ทะเบียน
+                </button>
+                <button class="btn btn-primary" onclick="IpdWorklist.gotoAudit()">
+                    <i data-lucide="clipboard-check" class="icon-sm"></i> ไปคิวตรวจแฟ้ม
+                </button>
+            </div>
+        </div>
+
+        <!-- แถบกรองตามช่วงของเส้นงาน -->
+        <div class="ds-segbar" id="segStage"></div>
+
+        <div class="ds-kpi-grid">
+            <div class="sip-kpi" onclick="IpdWorklist.setStage('admitted')" style="cursor:pointer">
+                <i data-lucide="bed" class="sip-kpi-icon icon-lg"></i>
+                <div class="sip-kpi-value" id="kpiAdmitted">0</div>
+                <div class="sip-kpi-label">กำลังนอน</div>
+            </div>
+            <div class="sip-kpi critical">
+                <i data-lucide="timer-off" class="sip-kpi-icon icon-lg"></i>
+                <div class="sip-kpi-value" id="kpiLosOver">0</div>
+                <div class="sip-kpi-label">วันนอนเกินจุดตัด DRG</div>
+            </div>
+            <div class="sip-kpi critical">
+                <i data-lucide="file-warning" class="sip-kpi-icon icon-lg"></i>
+                <div class="sip-kpi-value" id="kpiFiles">0</div>
+                <div class="sip-kpi-label">แฟ้มไม่ครบตามกองทุน</div>
+            </div>
+            <div class="sip-kpi" onclick="IpdWorklist.setStage('audit')" style="cursor:pointer">
+                <i data-lucide="clipboard-check" class="sip-kpi-icon icon-lg"></i>
+                <div class="sip-kpi-value" id="kpiPending">0</div>
+                <div class="sip-kpi-label">รอตรวจแฟ้ม</div>
+            </div>
+            <div class="sip-kpi">
+                <i data-lucide="wallet" class="sip-kpi-icon icon-lg"></i>
+                <div class="sip-kpi-value" id="kpiCost">0</div>
+                <div class="sip-kpi-label">ค่าใช้จ่ายรวม (บาท)</div>
+            </div>
+            <div class="sip-kpi">
+                <i data-lucide="trending-down" class="sip-kpi-icon icon-lg"></i>
+                <div class="sip-kpi-value" id="kpiVariance">0</div>
+                <div class="sip-kpi-label">ส่วนต่างจากประมาณการรับ (บาท)</div>
+            </div>
+        </div>
+
+        <!-- แถบบอกว่ารายการกำลังถูกกรองด้วย ?kpi= ที่ Dashboard ส่งมา
+             ถ้าไม่บอก ผู้ใช้จะนึกว่าข้อมูลหายไปเอง (MockKpi.mountBanner) -->
+        <div id="kpiFilterBar"></div>
+        <div class="section-card">
+            <div class="section-header">
+                <div class="section-title">
+                    <i data-lucide="list" class="mi"></i> รายการ AN
+                    <span class="ds-pane-count" id="rowCount">0 รายการ</span>
+                </div>
+                <div class="section-actions">
+                    <select class="sip-select" id="fFund" style="width:170px" onchange="IpdWorklist.render()">
+                        <option value="all">ทุกกองทุน</option>
+                    </select>
+                    <select class="sip-select" id="fWard" style="width:170px" onchange="IpdWorklist.render()">
+                        <option value="all">ทุกหอผู้ป่วย</option>
+                    </select>
+                    <select class="sip-select" id="fStatus" style="width:140px" onchange="IpdWorklist.render()">
+                        <option value="all">ทุกสถานะการนอน</option>
+                    </select>
+                    <select class="sip-select" id="fAudit" style="width:150px" onchange="IpdWorklist.render()">
+                        <option value="all">ทุกสถานะตรวจแฟ้ม</option>
+                    </select>
+                    <select class="sip-select" id="fLos" style="width:150px" onchange="IpdWorklist.render()"
+                            title="เทียบวันนอนกับจุดตัดของกลุ่ม DRG">
+                        <option value="all">ทุกช่วงวันนอน</option>
+                        <option value="high">เกินจุดตัดบน</option>
+                        <option value="low">ต่ำกว่าจุดตัดล่าง</option>
+                        <option value="normal">อยู่ในช่วงปกติ</option>
+                    </select>
+                    <select class="sip-select" id="fFiles" style="width:180px" onchange="IpdWorklist.render()"
+                            title="แฟ้มที่ต้องส่งของแต่ละกองทุนตามประกาศ สปสช.">
+                        <option value="all">ความครบของแฟ้ม</option>
+                        <option value="incomplete">แฟ้มไม่ครบตามกองทุน</option>
+                        <option value="complete">แฟ้มครบตามกองทุน</option>
+                    </select>
+                    <input type="text" id="searchBox" class="sip-input" style="width:220px"
+                           placeholder="ค้นหา AN / HN / ชื่อ..." oninput="IpdWorklist.render()">
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="data-table compact">
+                    <thead>
+                        <tr>
+                            <th style="width:1%">AN</th>
+                            <th style="width:1%">HN</th>
+                            <th>ชื่อ-สกุล</th>
+                            <th style="width:1%">กองทุน</th>
+                            <th style="width:1%">หอผู้ป่วย</th>
+                            <th style="width:1%">วันรับไว้</th>
+                            <th style="width:1%">วันนอน</th>
+                            <th style="width:1%">DRG / AdjRW</th>
+                            <th style="width:1%;text-align:right">ค่าใช้จ่ายจริง</th>
+                            <th style="width:1%;text-align:right">ประมาณการรับ</th>
+                            <th style="width:1%;text-align:right">ส่วนต่าง</th>
+                            <th style="width:1%">แฟ้ม</th>
+                            <th style="width:1%">สถานะ</th>
+                            <th style="width:1%">ผลตรวจ</th>
+                            <th style="width:1%"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="rows">
+                        <tr><td colspan="15" class="ds-empty">กำลังโหลด...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="ds-warn" style="margin-top:14px">
+            <i data-lucide="alert-triangle" class="icon-sm"></i>
+            <strong>ค่า DRG / RW / AdjRW / ประมาณการรับ / ส่วนต่าง ในหน้านี้เป็นค่าจำลอง</strong> —
+            ยังไม่ได้ถอดจากคู่มือ Thai DRG และประกาศอัตราจ่ายต่อ RW ฉบับจริง
+            <strong>ตัวเลขส่วนต่างจึงยังไม่ใช่ข้อค้นพบ</strong> ใช้ดูได้แค่รูปแบบการทำงานและวิธีวัด
+            เมื่อใส่อัตราจริงของแต่ละกองทุนแล้วตัวเลขชุดนี้จึงจะอ่านเป็นผลลัพธ์ได้
+        </div>
+
+        <div class="ds-note" style="margin-top:10px">
+            <i data-lucide="lightbulb" class="icon-sm"></i>
+            คอลัมน์ <strong>"ส่วนต่าง"</strong> คือค่าใช้จ่ายจริงลบประมาณการรับตาม DRG —
+            ค่าบวกแปลว่าโรงพยาบาลรับภาระส่วนเกิน เห็นตั้งแต่ผู้ป่วยยังนอนอยู่ ไม่ต้องรอปิดงวด
+            · ส่วนต่างเป็นข้อมูลประกอบ ไม่ถูกนำไปตัดสินผลตรวจ
+        </div>
+
+    </div>
+
+    <div id="toastContainer" class="toast-container"></div>
+
+    <script src="js/ds/ds-icons.js"></script>
+    <script src="js/ds/ds-navbar.js"></script>
+    <script src="js/ds/ds-drawer.js"></script>
+    <script src="js/ds/ds-toast.js"></script>
+    <script src="js/ds/ds-doc-parts.js"></script>
+    <script src="js/ds/ds-doc-print.js"></script>
+    <script src="js/ds/ds-chart.js"></script>
+
+    <script src="js/mock/mock-core.js"></script>
+    <script src="js/mock/mock-session.js"></script>
+    <script src="js/mock/mock-admin.js"></script>
+    <script src="js/mock/mock-nhso.js"></script>
+    <script src="js/mock/mock-claims.js"></script>
+    <script src="js/mock/mock-ipd.js"></script>
+    <script src="js/mock/mock-rules.js"></script>
+    <script src="js/mock/mock-tasks.js"></script>
+    <!-- mock-kpi.js — ใช้ตีความ ?kpi= ที่ Dashboard ส่งมา ต้องอยู่หลัง mock ที่มันอ้าง -->
+    <script src="js/mock/mock-kpi.js"></script>
+
+    <script src="js/ipd-worklist.js"></script>
+</body>
+</html>

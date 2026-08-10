@@ -1,0 +1,69 @@
+﻿<!DOCTYPE html>
+<!-- =========================================================================
+  สไลด์สรุปงานรายส่วน
+
+  ต่างจากอีกสอง deck:
+    present.html         เล่า "ปัญหา → ข้อเสนอ → สถาปัตยกรรม → สองโมดูลใหม่ → แผน" (ฉบับเต็ม)
+    present-exec.html    เล่า "ของเดิม / ของใหม่ / ที่ปรับปรุงขึ้น" (ฉบับย่อ)
+    present-modules.html เล่า "แต่ละส่วนงานทำอะไรได้บ้าง" ทีละโมดูล  ← ไฟล์นี้
+
+  โครงเดียวกันทั้ง 5 ส่วนงาน: ฟีเจอร์ + เมนู → ผังขั้นตอน → สิ่งที่ได้ + pain point ที่ปิด
+
+  ใช้ present.js (กลไกเลื่อนหน้า) และ ds-present.css ตัวเดียวกับอีกสอง deck
+  ต่างกันแค่ไฟล์สไลด์ + ไฟล์ผังเพิ่มอีกหนึ่งไฟล์
+
+  ปุ่มลูกศร / PageUp-PageDown (presenter clicker) / Home-End เลื่อนสไลด์
+  Ctrl+P ได้ PDF A4 แนวนอน หน้าละสไลด์
+  ========================================================================= -->
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>MediClearing — สรุปงานรายส่วน</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+
+    <link rel="stylesheet" href="css/ds-tokens.css">
+    <link rel="stylesheet" href="css/ds-present.css">
+</head>
+<body>
+
+<div class="pr-app">
+
+    <header class="pr-topbar">
+        <div class="pr-brand">
+            <span class="pr-brand-mark">+</span>
+            <span>MediClearing</span>
+            <span class="pr-brand-sub">สรุปงานรายส่วน · 5 ส่วนงาน · 21 หน้าจอ</span>
+        </div>
+        <div class="pr-top-actions">
+            <button class="pr-btn" type="button" onclick="Deck.toggleFullscreen()">เต็มจอ</button>
+            <button class="pr-btn" type="button" onclick="window.print()">พิมพ์ / PDF</button>
+            <a class="pr-btn" href="present-hub.html">สไลด์ทั้งหมด</a>
+            <a class="pr-btn accent" href="claim-dashboard.html" target="_blank" rel="noopener">เปิดระบบต้นแบบ</a>
+        </div>
+    </header>
+
+    <div class="pr-viewport">
+        <div class="pr-deck" id="deck"><!-- สไลด์ render ด้วย present.js --></div>
+    </div>
+
+    <div class="pr-controls">
+        <button class="pr-nav-btn" id="prev" type="button" aria-label="สไลด์ก่อนหน้า">&#8249;</button>
+        <div class="pr-dots" id="dots"></div>
+        <span class="pr-counter" id="counter">1 / 1</span>
+        <button class="pr-nav-btn" id="next" type="button" aria-label="สไลด์ถัดไป">&#8250;</button>
+        <span class="pr-hint">ใช้ปุ่ม ← → หรือ presenter clicker</span>
+    </div>
+
+</div>
+
+<!-- ⚠️ ลำดับสำคัญ: present-modules-slides.js เรียกฟังก์ชันวาดผังตอนสร้างอาร์เรย์ทันที
+     present-flows.js ต้องมาก่อน (ให้ PRF และ prfBox/prfArrow/prfMarkers/prfText/prfSvg)
+     แล้วตามด้วย present-flows-modules.js ที่ใช้ตัวช่วยชุดนั้น -->
+<script src="js/present-flows.js"></script>
+<script src="js/present-flows-modules.js"></script>
+<script src="js/present-modules-slides.js"></script>
+<script src="js/present.js"></script>
+</body>
+</html>

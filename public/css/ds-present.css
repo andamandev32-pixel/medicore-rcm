@@ -131,6 +131,52 @@ html, body {
 .pr-ul li { margin-bottom: .18em; }
 .pr-ul b { color: var(--brand-navy); }
 
+/* ── รายการแบบ "หมวด + ตัวอย่างสั้นกำกับ" ──────────────────────
+   ใช้แทนการเขียนเป็นย่อหน้าในการ์ดสรุป — ย่อหน้ายาวบนสไลด์ไม่มีใครอ่าน
+   และปล่อยที่ว่างก้อนใหญ่ท้ายการ์ดเสมอ
+   .pr-pts กินความสูงที่เหลือแล้วเกลี่ยรายการให้ห่างเท่ากันจนเต็มการ์ด
+   ⚠️ การ์ดที่ใช้ต้องเป็น .pr-card.stack ไม่งั้น flex:1 ไม่มีที่ยึด แล้วจะไม่ยืด
+   โครงหนึ่งรายการ: <div class="pr-pt"><b>หัวข้อหมวด</b><span class="pr-eg ex">ตัวอย่าง</span></div>
+   .ex เติมคำว่า "เช่น" ให้เอง — ถ้าเป็นบรรทัดขยายความเฉย ๆ ให้ใช้ .pr-eg เปล่า */
+.pr-card.stack { display: flex; flex-direction: column; }
+.pr-pts {
+    flex: 1; min-height: 0; display: flex; flex-direction: column;
+    justify-content: space-between; gap: calc(.42 * var(--u));
+}
+.pr-pt {
+    border-left: calc(.2 * var(--u)) solid var(--brand-border-strong);
+    padding-left: calc(.52 * var(--u));
+}
+.pr-pt > b {
+    display: block; font-size: calc(1.17 * var(--u)); line-height: 1.44;
+    font-weight: 700; color: var(--brand-navy);
+}
+.pr-eg {
+    display: block; margin-top: .12em;
+    font-size: calc(1.02 * var(--u)); line-height: 1.42; color: var(--text-muted);
+}
+.pr-eg.ex::before { content: 'เช่น '; font-weight: 800; opacity: .8; }
+.pr-eg b { color: var(--text-secondary); }
+
+/* ตราเลขข้อ — ผูกหมวดกลับไปที่ "6 เรื่องที่โรงพยาบาลบอกมา" ให้เห็นว่าไม่ได้คิดเอง */
+.pr-pt-n {
+    display: inline-block; margin-right: .42em; padding: 0 calc(.36 * var(--u));
+    border-radius: 999px; font-size: calc(.92 * var(--u)); font-weight: 800;
+    background: var(--surface-2); color: var(--text-secondary); vertical-align: .1em;
+}
+.pr-card.danger .pr-pt { border-color: var(--status-danger); }
+.pr-card.danger .pr-pt-n { background: var(--status-danger); color: #fff; }
+.pr-card.good   .pr-pt { border-color: var(--status-success); }
+.pr-card.good   .pr-pt-n { background: var(--status-success-strong); color: #fff; }
+.pr-card.amber  .pr-pt { border-color: var(--brand-amber); }
+.pr-card.amber  .pr-pt-n { background: var(--brand-amber-600); color: #fff; }
+
+/* คำกำกับใต้หัวการ์ด — บอกที่มาของรายการข้างล่าง */
+.pr-cap {
+    font-size: calc(1.0 * var(--u)); line-height: 1.4; color: var(--text-muted);
+    margin: -.2em 0 .55em;
+}
+
 .pr-stat { font-size: calc(3.35 * var(--u)); font-weight: 800; color: var(--brand-navy); line-height: 1.05; }
 .pr-stat.down { color: var(--status-success-strong); }
 .pr-stat.up   { color: var(--status-success-strong); }
@@ -158,6 +204,76 @@ html, body {
 .pr-table td.r { text-align: right; }
 .pr-table tr.bad td  { background: var(--status-danger-soft); }
 .pr-table tr.good td { background: var(--status-success-soft); }
+
+/* ── ตารางแบบเรียบ (.pr-table.clean) ────────────────────────────
+   ใช้กับตารางเนื้อหายาวที่อ่านทีละแถว เช่น "เสียงหน้างาน → หัวข้องาน → หน้าจอ"
+   เส้นตั้งเต็มตารางทำให้ลายตาเวลาขึ้นโปรเจกเตอร์ จึงเหลือแค่เส้นคั่นแนวนอน
+   ครอบด้วย .pr-tbl-wrap เสมอ — border-collapse ตัดมุมมนเองไม่ได้
+   หัวตารางเป็น sticky ไว้เผื่อวันหลังตารางยาวเกินสไลด์แล้วต้องเลื่อน
+
+   ⚠️ ขนาดตัวอักษรชุดนี้ตั้งไว้สำหรับ "3 แถวต่อสไลด์" — ความสูงของตาราง
+      โตเร็วกว่าขนาดฟอนต์ (ฟอนต์ใหญ่ขึ้น = ตัดบรรทัดถี่ขึ้นด้วย)
+      ถ้าจะยัด 6 แถวในหน้าเดียวต้องลดกลับมาราว .95u–1.05u ถึงจะไม่ล้น */
+.pr-tbl-wrap {
+    height: 100%; overflow: auto;
+    border: 1px solid var(--brand-border); border-radius: calc(.75 * var(--u));
+    background: #fff;
+}
+.pr-table.clean { border-collapse: separate; border-spacing: 0; table-layout: fixed; }
+.pr-table.clean th, .pr-table.clean td {
+    border: 0; border-bottom: 1px solid var(--brand-border);
+    padding: calc(.42 * var(--u)) calc(.62 * var(--u));
+    vertical-align: top; text-align: left;
+}
+.pr-table.clean tbody tr:last-child td { border-bottom: 0; }
+.pr-table.clean th {
+    position: sticky; top: 0; z-index: 1;
+    background: var(--brand-bg); border-bottom: 1px solid var(--brand-border-strong);
+    font-size: calc(1.25 * var(--u)); font-weight: 800; letter-spacing: .01em;
+    padding-top: calc(.5 * var(--u)); padding-bottom: calc(.5 * var(--u));
+}
+/* หัวคอลัมน์ใช้สีเดียวกับผัง prfPainScope() — แดง=เสียงหน้างาน น้ำเงิน=งาน เขียว=หน้าจอ */
+.pr-table.clean th.pain { color: var(--status-danger-strong); }
+.pr-table.clean th.work { color: var(--primary-dark); }
+.pr-table.clean th.scope { color: var(--status-success-strong); }
+.pr-table.clean tbody tr:hover td { background: var(--brand-bg); }
+
+/* เลขข้อ — ตราเดียวกับ prfPainScope() เพื่ออ่านคู่กับผังหน้าถัดไปได้ */
+.pr-table.clean td.n { text-align: center; padding-right: 0; }
+.pr-tbl-n {
+    display: inline-block; min-width: calc(2.1 * var(--u)); line-height: calc(2.1 * var(--u));
+    border-radius: 999px; background: var(--brand-navy); color: #fff;
+    font-size: calc(1.24 * var(--u)); font-weight: 800;
+}
+/* คำพูดของโรงพยาบาล — คั่นซ้ายบาง ๆ ให้เห็นว่าเป็นคำอ้างอิง ไม่ใช่ข้อความเรียบเรียงเอง */
+.pr-quote {
+    display: block; border-left: calc(.2 * var(--u)) solid var(--status-danger);
+    padding-left: calc(.6 * var(--u));
+    font-size: calc(1.45 * var(--u)); line-height: 1.46; color: var(--status-danger-strong);
+}
+.pr-tbl-t {
+    display: block; font-size: calc(1.5 * var(--u)); line-height: 1.4;
+    font-weight: 700; color: var(--brand-navy);
+}
+.pr-tbl-s {
+    display: block; margin-top: .2em;
+    font-size: calc(1.28 * var(--u)); line-height: 1.44; color: var(--text-secondary);
+}
+/* ชื่อไฟล์หน้าจอต้นแบบ — chip แบบ mono เพื่อให้ก๊อปไปเปิดได้ตรงตัว
+   เล็กกว่าตัวอื่นในแถวโดยตั้งใจ: เป็นข้อมูลอ้างอิง ไม่ใช่ตัวที่ผู้ฟังต้องอ่าน */
+.pr-file {
+    display: inline-block; margin: 0 calc(.26 * var(--u)) calc(.26 * var(--u)) 0;
+    padding: 0 calc(.4 * var(--u));
+    border: 1px solid var(--brand-border-strong); border-radius: calc(.4 * var(--u));
+    background: var(--brand-bg); color: var(--text-secondary);
+    font-family: var(--font-mono); font-size: calc(1.0 * var(--u)); line-height: 1.8;
+    white-space: nowrap;
+}
+/* ★ = เส้นงานที่เพิ่มใหม่ในรอบนี้ (IPD · ส่งต่อผู้ป่วย) — สัญลักษณ์เดียวกับทั้ง deck */
+.pr-file.new {
+    border-color: var(--brand-amber); background: var(--brand-amber-50); color: var(--brand-amber-600);
+    font-weight: 600;
+}
 
 .pr-code {
     font-family: var(--font-mono); font-size: calc(1.02 * var(--u)); line-height: 1.5;
@@ -246,12 +362,21 @@ html, body {
     .pr-slide h1 { font-size: 32pt; } .pr-slide h2 { font-size: 26.5pt; }
     .pr-slide h3 { font-size: 15pt; } .pr-lead { font-size: 13.5pt; }
     .pr-kv, .pr-ul { font-size: 11.5pt; }
+    .pr-pt > b { font-size: 11pt; } .pr-eg { font-size: 9.6pt; }
+    .pr-pt-n, .pr-cap { font-size: 9pt; }
+    .pr-pt, .pr-pt-n { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     .pr-table { font-size: 11pt; }
+    /* ตารางเรียบ: ตอนพิมพ์ต้องไม่มี sticky header (จะทับแถวแรก) และไม่มี scrollbar */
+    .pr-tbl-wrap { overflow: visible; }
+    .pr-table.clean th { position: static; font-size: 11.5pt; }
+    .pr-quote { font-size: 13pt; } .pr-tbl-t { font-size: 13.5pt; }
+    .pr-tbl-s { font-size: 11.6pt; } .pr-tbl-n { font-size: 11pt; }
+    .pr-file { font-size: 9pt; }
     .pr-note { font-size: 10.8pt; }
     .pr-chip, .pr-stat-label { font-size: 10pt; }
     .pr-code { font-size: 9.5pt; }
     .pr-card, .pr-chip, .pr-note, .pr-code, .pr-table th, .pr-table tr.bad td, .pr-table tr.good td,
-    .pr-shot-bar, .pr-slide::before {
+    .pr-tbl-n, .pr-file, .pr-shot-bar, .pr-slide::before {
         -webkit-print-color-adjust: exact; print-color-adjust: exact;
     }
 }

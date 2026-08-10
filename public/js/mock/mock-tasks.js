@@ -16,6 +16,8 @@ const TASK_KINDS = [
     { key: 'DOC',          label: 'ขอเอกสารเพิ่มเติม', icon: 'paperclip' },
     /* งานฝั่งส่งต่อผู้ป่วย — ใช้กล่องงานและกลไก Maker–Checker เดิมทั้งหมด */
     { key: 'APPROVE_REFER', label: 'อนุมัติส่งต่อ/วงเงิน',  icon: 'ambulance' },
+    /* ชั้นที่ 2 ของการอนุมัติวงเงิน — เกิดเฉพาะเมื่อวงเงินเกิน REFER_APPROVAL.EXEC_THRESHOLD */
+    { key: 'APPROVE_REFER_EXEC', label: 'อนุมัติวงเงิน (ผู้บริหาร)', icon: 'shield-check' },
     { key: 'VERIFY_BILL',   label: 'ตรวจใบเรียกเก็บส่งต่อ', icon: 'receipt' },
 ];
 
@@ -271,6 +273,106 @@ const MOCK_TASKS = [
         ],
         overrides: [],
     },
+
+    /* ══════════════════════════════════════════════════════════════════════
+       ⭐ การอนุมัติวงเงิน 2 ชั้น — คู่กับ REF-OUT-2569-0071 / 0072
+       ชั้นที่ 1 (APPROVE_REFER) ปิดไปแล้ว → ชั้นที่ 2 (APPROVE_REFER_EXEC)
+       ยังเปิดอยู่ที่โต๊ะผู้บริหาร U-001 ทำให้กล่อง "รอฉันอนุมัติ" ของ persona
+       ผู้บริหารมีของ และหน้า exec-approve.html ไม่ว่างตั้งแต่เปิดครั้งแรก
+       ══════════════════════════════════════════════════════════════════════ */
+    {
+        id: 'TSK-000161', kind: 'APPROVE_REFER',
+        title: 'อนุมัติส่งต่อ นางสาวปิยะดา วัฒนกุล → รพ.จุฬาลงกรณ์',
+        claim_id: null, rule_id: null, refer_id: 'REF-OUT-2569-0071',
+        assigner: 'U-004', owner: 'U-008', dept: 'ศูนย์จัดเก็บรายได้',
+        created: '2569-08-05T16:00', due_at: '2569-08-07T16:00',
+        status: 'DONE', priority: 'HIGH', escalated: false,
+        detail: 'AML กลุ่มเสี่ยงสูง ขอปลูกถ่ายไขกระดูก · วงเงินที่ขอ 1,250,000 บาท',
+        checklist: [
+            { text: 'ตรวจศักยภาพและความพร้อมของปลายทาง', done: true },
+            { text: 'ตรวจวงเงินและอัตราตามจ่าย',          done: true },
+            { text: 'ตรวจสิทธิและเลขอนุมัติ',             done: true },
+            { text: 'อนุมัติและออกใบส่งตัว',              done: false },
+        ],
+        timeline: [
+            { at: '2569-08-05T16:00', tone: 'accent',  title: 'ส่งขออนุมัติ', by: 'U-004',
+              note: 'Maker–Checker: ผู้ขอส่งต่ออนุมัติเองไม่ได้ (BR-05)' },
+            { at: '2569-08-06T08:20', tone: 'success', title: 'อนุมัติชั้นเจ้าหน้าที่', by: 'U-008',
+              note: 'วงเงินเกินเกณฑ์ 250,000 บาท — ส่งต่อผู้บริหารตัดสิน' },
+        ],
+        overrides: [
+            { at: '2569-08-06T08:20', by: 'U-008', role: 'Rule Approver',
+              reason: 'ความจำเป็นทางคลินิกชัดเจน ปลายทางมีศักยภาพ — เกินอำนาจอนุมัติของเจ้าหน้าที่',
+              evidence: 'ผล HLA 10/10 · คิวปลูกถ่าย ก.ย. 2569', approver: 'U-008' },
+        ],
+    },
+    {
+        id: 'TSK-000162', kind: 'APPROVE_REFER_EXEC',
+        title: 'อนุมัติวงเงินระดับผู้บริหาร นางสาวปิยะดา วัฒนกุล → รพ.จุฬาลงกรณ์',
+        claim_id: null, rule_id: null, refer_id: 'REF-OUT-2569-0071',
+        assigner: 'U-008', owner: 'U-001', dept: 'ฝ่ายบริหาร',
+        created: '2569-08-06T08:20', due_at: '2569-08-09T16:00',
+        status: 'OPEN', priority: 'HIGH', escalated: true,
+        detail: 'วงเงิน 1,250,000 บาท — เกินเกณฑ์ 250,000 บาท อยู่ 1,000,000 บาท · '
+              + 'ผ่านการอนุมัติชั้นเจ้าหน้าที่แล้วโดย คุณสุรชัย มั่นคงดี',
+        checklist: [
+            { text: 'ตรวจความจำเป็นทางคลินิกและทางเลือกที่ถูกกว่า', done: false },
+            { text: 'ตรวจผลกระทบต่องบตามจ่ายของงวด',              done: false },
+            { text: 'ตรวจว่าปลายทางเป็นคู่สัญญาและอัตราสมเหตุผล',   done: false },
+            { text: 'อนุมัติวงเงินและออกใบส่งตัว',                 done: false },
+        ],
+        timeline: [
+            { at: '2569-08-06T08:20', tone: 'warning', title: 'ยกระดับถึงผู้บริหาร', by: 'U-008',
+              note: 'วงเงินเกินเกณฑ์อนุมัติของเจ้าหน้าที่' },
+        ],
+        overrides: [],
+    },
+    {
+        id: 'TSK-000163', kind: 'APPROVE_REFER',
+        title: 'อนุมัติส่งต่อ นายมานพ เรืองศรี → รพ.เอกชนคู่สัญญา บางกะปิ',
+        claim_id: null, rule_id: null, refer_id: 'REF-OUT-2569-0072',
+        assigner: 'U-004', owner: 'U-008', dept: 'ศูนย์จัดเก็บรายได้',
+        created: '2569-08-05T11:40', due_at: '2569-08-07T16:00',
+        status: 'DONE', priority: 'HIGH', escalated: false,
+        detail: 'โพรงกระดูกสันหลังตีบรุนแรง ขอผ่าตัดเชื่อมข้อกระดูก · วงเงินที่ขอ 385,000 บาท',
+        checklist: [
+            { text: 'ตรวจศักยภาพและความพร้อมของปลายทาง', done: true },
+            { text: 'ตรวจวงเงินและอัตราตามจ่าย',          done: true },
+            { text: 'ตรวจสิทธิและเลขอนุมัติ',             done: true },
+            { text: 'อนุมัติและออกใบส่งตัว',              done: false },
+        ],
+        timeline: [
+            { at: '2569-08-05T11:40', tone: 'accent',  title: 'ส่งขออนุมัติ', by: 'U-004', note: '' },
+            { at: '2569-08-06T08:35', tone: 'success', title: 'อนุมัติชั้นเจ้าหน้าที่', by: 'U-008',
+              note: 'ปลายทางเป็นเอกชน อัตราสูงกว่ารัฐ — ขอความเห็นผู้บริหาร' },
+        ],
+        overrides: [
+            { at: '2569-08-06T08:35', by: 'U-008', role: 'Rule Approver',
+              reason: 'ข้อบ่งชี้ครบ แต่ปลายทางเป็นเอกชนและอัตราสูงกว่าโรงพยาบาลรัฐ',
+              evidence: 'MRI L3-L5 · รักษาแบบไม่ผ่าตัดครบ 6 เดือน', approver: 'U-008' },
+        ],
+    },
+    {
+        id: 'TSK-000164', kind: 'APPROVE_REFER_EXEC',
+        title: 'อนุมัติวงเงินระดับผู้บริหาร นายมานพ เรืองศรี → รพ.เอกชนคู่สัญญา บางกะปิ',
+        claim_id: null, rule_id: null, refer_id: 'REF-OUT-2569-0072',
+        assigner: 'U-008', owner: 'U-001', dept: 'ฝ่ายบริหาร',
+        created: '2569-08-06T08:35', due_at: '2569-08-08T16:00',
+        status: 'OPEN', priority: 'HIGH', escalated: false,
+        detail: 'วงเงิน 385,000 บาท — เกินเกณฑ์ 250,000 บาท อยู่ 135,000 บาท · '
+              + 'ปลายทางเป็นเอกชนคู่สัญญาที่ยังไม่มี MOU อัตรา ตามจ่ายเฉลี่ย 71 วัน',
+        checklist: [
+            { text: 'ตรวจความจำเป็นทางคลินิกและทางเลือกที่ถูกกว่า', done: false },
+            { text: 'ตรวจผลกระทบต่องบตามจ่ายของงวด',              done: false },
+            { text: 'ตรวจว่าปลายทางเป็นคู่สัญญาและอัตราสมเหตุผล',   done: false },
+            { text: 'อนุมัติวงเงินและออกใบส่งตัว',                 done: false },
+        ],
+        timeline: [
+            { at: '2569-08-06T08:35', tone: 'warning', title: 'ยกระดับถึงผู้บริหาร', by: 'U-008',
+              note: 'วงเงินเกินเกณฑ์ + ปลายทางเอกชนยังไม่มี MOU อัตรา' },
+        ],
+        overrides: [],
+    },
 ];
 
 
@@ -284,7 +386,7 @@ const MockTasks = {
     forRefer(rid) { return this.all().filter(t => t.refer_id === rid); },
 
     /** งานที่ต้องผ่านการตัดสิน — เพิ่มชนิดใหม่ที่นี่ที่เดียว กล่อง "รอฉันอนุมัติ" ตามเอง */
-    APPROVAL_KINDS: ['APPROVE_RULE', 'OVERRIDE', 'APPROVE_REFER'],
+    APPROVAL_KINDS: ['APPROVE_RULE', 'OVERRIDE', 'APPROVE_REFER', 'APPROVE_REFER_EXEC'],
 
     mine()          { const u = MockSession.userId(); return this.all().filter(t => t.owner === u && t.status !== 'DONE'); },
     toApprove()     { const u = MockSession.userId();

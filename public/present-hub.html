@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<!-- =========================================================================
+  ศูนย์รวมสไลด์นำเสนอ — เลือกชุดสไลด์ที่จะใช้
+
+  หน้านี้ไม่มีเนื้อหาของตัวเอง: การ์ดทุกใบ generate จาก DS_DECKS ใน ds-navbar.js
+  ซึ่งเป็นตัวเดียวกับที่เมนู "นำเสนอ" บน navbar อ่าน — เพิ่มสไลด์ชุดใหม่ที่นั่นที่เดียว
+  แล้วขึ้นครบทั้งเมนูและหน้านี้
+
+  โหมดต้นแบบ (PAGE-GUIDE §7B): ไม่เรียก Auth.requireLogin() เพราะไม่ยิง /api เลย
+  ========================================================================= -->
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>MediClearing — ศูนย์รวมสไลด์นำเสนอ</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+
+    <link rel="stylesheet" href="css/ds-tokens.css">
+    <link rel="stylesheet" href="css/ds-base.css">
+    <link rel="stylesheet" href="css/ds-navbar.css">
+    <link rel="stylesheet" href="css/ds-layout.css">
+    <link rel="stylesheet" href="css/ds-components.css">
+    <link rel="stylesheet" href="css/ds-overlays.css">
+    <link rel="stylesheet" href="css/ds-print.css">
+
+    <!-- ds-auth ต้องเป็น script แรก — มันห่อ window.fetch (ไม่เรียก requireLogin ตาม §7B) -->
+    <script src="js/ds/ds-auth.js"></script>
+</head>
+<body data-page="present-hub">
+    <nav id="appNavbar"></nav>
+
+    <div class="page-container">
+
+        <div id="demoBanner"></div>
+
+        <div class="page-header">
+            <div>
+                <div class="page-title">
+                    <i data-lucide="presentation" class="mi"></i>
+                    <span>ศูนย์รวมสไลด์นำเสนอ</span>
+                </div>
+                <div class="page-subtitle" id="hubSubtitle">—</div>
+            </div>
+            <div class="section-actions">
+                <button class="btn btn-outline" onclick="location.href='index.html'">
+                    <i data-lucide="home" class="icon-sm"></i> หน้าแรก
+                </button>
+                <button class="btn btn-primary" onclick="location.href='claim-dashboard.html'">
+                    <i data-lucide="gauge" class="icon-sm"></i> เปิดระบบต้นแบบ
+                </button>
+            </div>
+        </div>
+
+        <div class="ds-note">
+            <i data-lucide="info" class="icon-sm"></i>
+            ทุกชุดเปิดได้ทันทีโดยไม่ต้องล็อกอิน · เลื่อนสไลด์ด้วยปุ่มลูกศรหรือ presenter clicker ·
+            กด <b>Ctrl&nbsp;+&nbsp;P</b> ในหน้าสไลด์เพื่อได้ PDF A4 แนวนอน หน้าละสไลด์
+        </div>
+
+        <div class="section-card">
+            <div class="section-header">
+                <div class="section-title">
+                    <i data-lucide="layers" class="mi"></i> ชุดสไลด์ที่มี
+                </div>
+                <div class="section-actions" id="hubCount"></div>
+            </div>
+            <div id="deckCards"></div>
+        </div>
+
+        <div class="section-card">
+            <div class="section-header">
+                <div class="section-title">
+                    <i data-lucide="plus-circle" class="mi"></i> เพิ่มชุดสไลด์ใหม่
+                </div>
+            </div>
+            <div class="ds-note" style="margin-bottom:12px">
+                <i data-lucide="lightbulb" class="icon-sm"></i>
+                เวลามีเรื่องเฉพาะที่ต้องทำสไลด์แยก (เจาะโมดูลเดียว · วาระประชุมหนึ่ง ๆ ·
+                สรุปให้ผู้ฟังกลุ่มใดกลุ่มหนึ่ง) ให้ทำ 3 อย่างนี้ แล้วสไลด์จะขึ้นทั้งที่เมนู
+                <b>“นำเสนอ”</b> และการ์ดด้านบนเอง
+            </div>
+            <div class="ds-stepper">
+                <div class="ds-step completed">
+                    <div><b>1 · คัดลอก shell</b><br>
+                        <span class="td-sub">คัดลอก <code>present-modules.html</code>
+                        เป็นชื่อใหม่ แล้วสลับชื่อไฟล์สไลด์ที่แท็ก &lt;script&gt;</span></div>
+                </div>
+                <div class="ds-step completed">
+                    <div><b>2 · เขียนไฟล์สไลด์</b><br>
+                        <span class="td-sub">ประกาศ <code>const PRESENT_SLIDES = [...]</code>
+                        แล้วปิดท้ายด้วย <code>window.PRESENT_SLIDES = PRESENT_SLIDES</code></span></div>
+                </div>
+                <div class="ds-step completed">
+                    <div><b>3 · ลงทะเบียน</b><br>
+                        <span class="td-sub">เพิ่ม 1 รายการใน <code>DS_DECKS</code>
+                        ที่ <code>public/js/ds/ds-navbar.js</code> — ที่เดียวจบ</span></div>
+                </div>
+            </div>
+            <div class="ds-warn" style="margin-top:12px">
+                <i data-lucide="alert-triangle" class="icon-sm"></i>
+                <b>ห้ามโหลดไฟล์สไลด์สองไฟล์ในหน้าเดียว</b> — ทุกไฟล์ประกาศตัวแปรชื่อ
+                <code>PRESENT_SLIDES</code> เหมือนกัน โหลดซ้อนกันเมื่อไรหน้าจะขาวทั้งหน้า ·
+                ถ้าสไลด์มีผัง SVG ต้องโหลด <code>present-flows.js</code> ก่อนไฟล์สไลด์เสมอ
+            </div>
+        </div>
+
+    </div>
+
+    <div id="toastContainer" class="toast-container"></div>
+
+    <script src="js/ds/ds-icons.js"></script>
+    <script src="js/ds/ds-navbar.js"></script>
+    <script src="js/ds/ds-drawer.js"></script>
+    <script src="js/ds/ds-toast.js"></script>
+
+    <script src="js/mock/mock-core.js"></script>
+    <script src="js/mock/mock-session.js"></script>
+
+    <script src="js/present-hub.js"></script>
+</body>
+</html>

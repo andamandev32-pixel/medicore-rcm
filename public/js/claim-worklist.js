@@ -15,6 +15,13 @@ const Worklist = {
         const p = new URLSearchParams(location.search);
         if (p.get('result')) this.state.result = p.get('result');
         if (p.get('stage'))  this._pendingStage = p.get('stage');
+        if (p.get('filter') === 'files') this._pendingFiles = 'incomplete';
+
+        /* ?kpi= มาจากการ์ด KPI บน claim-dashboard — กรองด้วยชุด id ชุดเดียวกับที่ drawer แสดง
+           จำนวนแถวที่นี่จึงเท่ากับตัวเลขบนการ์ดเสมอ ไม่ต้องหวังพึ่งว่าตัวกรองของหน้านี้
+           จะบังเอิญให้ผลเท่ากัน (คืน null ถ้าไม่มี ?kpi= หรือ key ไม่รู้จัก) */
+        this._kpi = MockKpi.fromUrl();
+        if (this._kpi && p.get('fund')) this._pendingFund = p.get('fund');
 
         this.fillFilters();
         this.renderSeg();
@@ -40,11 +47,20 @@ const Worklist = {
         stageSel.insertAdjacentHTML('beforeend', NHSO_STATUS_PIPELINE.map(s =>
             `<option value="${esc(s.key)}">${esc(s.label)}</option>`).join(''));
         if (this._pendingStage) stageSel.value = this._pendingStage;
+
+        const fileSel = document.getElementById('fFiles');
+        if (fileSel && this._pendingFiles) fileSel.value = this._pendingFiles;
+
+        if (this._pendingFund) document.getElementById('fFund').value = this._pendingFund;
     },
 
     renderSeg() {
-        const counts = MockClaims.countByResult();
-        const total  = MockClaims.all().length;
+        /* นับในขอบเขต ?kpi= เดียวกับตาราง — ถ้าปล่อยให้ seg โชว์ยอดเต็มขณะตารางโชว์ 13
+           หน้าจะดูเหมือนกรองพัง (ตัวนับ seg ไม่ใช่ "มีทั้งหมดเท่าไร" แต่คือ "เลือกได้เท่าไร") */
+        const scope  = MockClaims.all().filter(c => MockKpi.keep(c));
+        const counts = {};
+        scope.forEach(c => { counts[c.result] = (counts[c.result] || 0) + 1; });
+        const total  = scope.length;
         const segs = [{ key: 'all', label: 'ทั้งหมด', n: total }]
             .concat(MockTone.RESULTS.map(r => ({ key: r, label: MockTone.resultLabel[r], n: counts[r] || 0 })));
 
@@ -66,13 +82,21 @@ const Worklist = {
         const prov  = document.getElementById('fProvider').value;
         const risk  = document.getElementById('fRisk').value;
         const stage = document.getElementById('fStage').value;
+        const filesEl = document.getElementById('fFiles');
+        const files = filesEl ? filesEl.value : 'all';
 
         return MockClaims.all().filter(c => {
+            if (!MockKpi.keep(c)) return false;
             if (this.state.result !== 'all' && c.result !== this.state.result) return false;
             if (fund  !== 'all' && c.fund !== fund) return false;
             if (svc   !== 'all' && c.service_type !== svc) return false;
             if (prov  !== 'all' && c.provider !== prov) return false;
             if (stage !== 'all' && (!c.nhso || c.nhso.stage !== stage)) return false;
+            if (files !== 'all') {
+                const ok = MockClaims.fileCheck(c).ok;
+                if (files === 'incomplete' && ok) return false;
+                if (files === 'complete'  && !ok) return false;
+            }
             if (risk === 'high' && c.risk_score < 70) return false;
             if (risk === 'mid'  && (c.risk_score < 40 || c.risk_score > 69)) return false;
             if (risk === 'low'  && c.risk_score > 39) return false;
@@ -84,6 +108,7 @@ const Worklist = {
     /* ── แสดงผล ── */
 
     render() {
+        MockKpi.mountBanner('kpiFilterBar');
         const rows  = this.visible();
         const tbody = document.getElementById('rows');
 
@@ -92,8 +117,16 @@ const Worklist = {
         } else {
             tbody.innerHTML = rows.map(c => {
                 const codes = MockClaims.predictedCodes(c);
-                const nhsoCell = codes.length
-                    ? codes.map(k => `<span class="sip-chip sip-chip-danger" title="${esc(NHSO_ERR_TEXT[k] || '')}">${esc(k)}</span>`).join(' ')
+                const fc    = MockClaims.fileCheck(c);
+                const mark  = k => MockClaims.codeVerified(k) ? ''
+                    : `<sup title="${esc(NHSO_UNVERIFIED_NOTE)}">*</sup>`;
+
+                const parts = codes.map(k =>
+                    `<span class="sip-chip sip-chip-danger" title="${esc(NHSO_ERR_TEXT[k] || '')}">${esc(k)}${mark(k)}</span>`);
+                if (!fc.ok) parts.push(
+                    `<span class="sip-chip sip-chip-danger" title="ขาดแฟ้ม ${esc(MockNhso.fileNames(fc.missing))} — RUL-FIL-001">แฟ้มไม่ครบ</span>`);
+
+                const nhsoCell = parts.length ? parts.join(' ')
                     : '<span class="sip-chip sip-chip-success">พร้อมส่ง</span>';
 
                 return `

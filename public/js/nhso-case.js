@@ -166,13 +166,58 @@ const NhsoCase = {
 
     renderRefStrip(c) {
         const n = c.nhso;
+        const fc = MockClaims.fileCheck(c);
+        const vc = MockNhso.visitClose(c.visit_close) || {};
+
         document.getElementById('refStrip').innerHTML = `
-            <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px">
+            <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px">
                 <span class="sip-chip sip-chip-muted">หมายเลขอ้างอิง ${esc(n.ref_no || '—')}</span>
+                ${n.prev_ref ? `<span class="sip-chip sip-chip-amber"
+                    title="รายการนี้เคยส่งแล้วถูกตีกลับ — เลขอ้างอิงเดิม">
+                    รายการก่อนหน้า ${esc(n.prev_ref)}</span>` : ''}
                 <span class="sip-chip sip-chip-muted">UID: ${esc(n.uid || '—')}</span>
+                <span class="sip-chip sip-chip-muted">Invoice No.: ${esc(n.invoice_no || '—')}</span>
                 <span class="sip-chip sip-chip-muted">UploadID: ${esc(n.upload_id || '—')}</span>
                 <span class="sip-chip sip-chip-muted">รหัสโครงการพิเศษ: ${esc(n.special_project || '—')}</span>
-            </div>`;
+                <span class="sip-chip ${vc.submittable ? 'sip-chip-success' : 'sip-chip-danger'}"
+                      title="เส้นทาง 7 ขั้น ขั้นที่ 4 — ต้องเป็น Complete จึงส่งเบิกได้">
+                    ปิด Visit: ${esc(vc.label || '—')}</span>
+            </div>
+            ${this.fileStripHtml(fc)}`;
+    },
+
+    /**
+     * แถบ "แฟ้มที่ต้องส่งสำหรับกองทุนนี้"
+     * เมทริกซ์กองทุน × แฟ้ม ของประกาศ สปสช. — ตรวจครบ/ขาดได้ทันทีตั้งแต่ก่อนส่ง
+     */
+    fileStripHtml(fc) {
+        if (!fc || !fc.inScope.length) return '';
+        const chip = no => {
+            const f = MockNhso.file(no);
+            const cond = MockNhso.fileCondition(no);
+            const name = `${no} ${f ? f.en.replace(/^NHSO /, '') : ''}`;
+            if (fc.missing.includes(no))
+                return `<span class="sip-chip sip-chip-danger" title="${esc(f ? f.th : '')} — ยังไม่ได้ส่ง">
+                    ✕ ${esc(name)}</span>`;
+            if (fc.notApplicable.includes(no))
+                return `<span class="sip-chip sip-chip-muted" style="opacity:.55"
+                    title="ไม่เข้าเงื่อนไข ${esc(cond ? cond.label : '')}">– ${esc(name)}</span>`;
+            return `<span class="sip-chip sip-chip-success" title="${esc(f ? f.th : '')}">✓ ${esc(name)}</span>`;
+        };
+
+        return `
+        <div class="${fc.ok ? 'ds-note' : 'ds-warn'}" style="margin-bottom:14px">
+            <i data-lucide="${fc.ok ? 'files' : 'file-x'}" class="icon-sm"></i>
+            <span>
+                <strong>แฟ้มที่ต้องส่งสำหรับ ${esc(fc.fundLabel)}</strong>
+                — ครบ ${fc.required.length - fc.missing.length}/${fc.required.length} แฟ้ม
+                ${fc.ok ? '' : ` · <strong>ขาด ${esc(MockNhso.fileNames(fc.missing))}</strong>
+                    (กฎ <a href="claim-rules.html?rule=RUL-FIL-001">RUL-FIL-001</a>)`}
+                <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:6px">
+                    ${fc.inScope.map(chip).join('')}
+                </div>
+            </span>
+        </div>`;
     },
 
     renderTabBar() {
@@ -222,18 +267,28 @@ const NhsoCase = {
 
         let body = '';
         if (this.state.sub === 'claimcase') {
+            const n = c.nhso;
+            const vc = MockNhso.visitClose(c.visit_close) || {};
+            const fc = MockClaims.fileCheck(c);
             body = this._grid([
                 ['ชื่อ-สกุล', c.patient],
                 ['HN', c.hn], ['AN', c.an || '—'],
                 ['อายุ / เพศ', `${c.age} ปี · ${c.gender === 'F' ? 'หญิง' : 'ชาย'}`],
+                ['SEQ (Visit)', n.seq],
+                ['Invoice No.', n.invoice_no || '—'],
+                ['UID', n.uid || '—'],
                 ['วันที่รับบริการ', MockFmt.dateTH(c.service_date)],
                 ['ประเภทบริการ', c.service_type === 'IPD' ? 'ผู้ป่วยใน (IP)' : c.service_type === 'PP' ? 'ส่งเสริมสุขภาพ (PP)' : 'ผู้ป่วยนอก (OP)'],
-                ['สิทธิ / กองทุน', c.fund],
-                ['กรณีที่ขอเบิก', c.service_type === 'IPD' ? 'ค่าบริการสาธารณสุขกรณีผู้ป่วยใน'
-                                : c.fund === 'EMS' ? 'ค่าบริการสาธารณสุขกรณีอุบัติเหตุหรือเจ็บป่วยฉุกเฉิน'
-                                : c.service_type === 'PP' ? 'บริการสร้างเสริมสุขภาพและป้องกันโรค'
-                                : 'บริการผู้ป่วยนอกทั่วไป'],
-                ['ยอดขอเบิก', MockFmt.baht(c.amount_claimed) + ' บาท'],
+                ['สิทธิหลัก / สิทธิย่อย', `${n.main_right} / ${n.sub_right}`],
+                ['กองทุนภายในของเรา', c.fund],
+                ['หน่วยบริการประจำ', n.home_provider + ' (' + n.home_provider_code + ')'],
+                ['Model', n.model],
+                ['กรณีที่ขอเบิก', fc.fundLabel],
+                ['สถานะการปิด Visit', `${vc.label} — ${vc.th}`
+                    + (vc.submittable ? '' : ' (ยังส่งเบิกไม่ได้)')],
+                ['ยอดเรียกเก็บ', MockFmt.baht(c.amount_claimed) + ' บาท'],
+                ['ยอดชดเชย', MockFmt.baht(n.compensated || 0) + ' บาท'
+                    + (n.compensated ? '' : ' (ยังไม่ทราบผลจนกว่า สปสช. จะประมวลผล)')],
             ]);
         } else if (this.state.sub === 'files') {
             const docs = c.documents || [];
@@ -383,7 +438,9 @@ const NhsoCase = {
                     <tbody>${rows.map(e => {
                         const rr = (c.rule_results || []).find(r => r.maps_to_nhso === e.code);
                         return `<tr>
-                            <td><span class="sip-chip ${e.level === 'ERROR' ? 'sip-chip-danger' : 'sip-chip-amber'}">${esc(e.code)}</span></td>
+                            <td><span class="sip-chip ${e.level === 'ERROR' ? 'sip-chip-danger' : 'sip-chip-amber'}">${esc(e.code)}${
+                                MockClaims.codeVerified(e.code) ? ''
+                                : `<sup title="${esc(NHSO_UNVERIFIED_NOTE)}">*</sup>`}</span></td>
                             <td style="font-size:11px;line-height:1.6">${esc(e.text)}</td>
                             <td class="td-sub">${esc(e.file)}</td>
                             <td class="td-sub">${esc(e.seq)}</td>
@@ -422,7 +479,9 @@ const NhsoCase = {
                 <thead><tr><th style="width:1%">รหัสที่คาดว่าจะติด</th><th>ประเด็นที่กฎเราตรวจพบ</th>
                     <th style="width:1%">กฎ</th><th style="width:1%">เอกสารอ้างอิง</th></tr></thead>
                 <tbody>${(c.rule_results || []).filter(r => r.maps_to_nhso).map(r => `<tr>
-                    <td><span class="sip-chip sip-chip-danger">${esc(r.maps_to_nhso)}</span></td>
+                    <td><span class="sip-chip sip-chip-danger">${esc(r.maps_to_nhso)}${
+                        MockClaims.codeVerified(r.maps_to_nhso) ? ''
+                        : `<sup title="${esc(NHSO_UNVERIFIED_NOTE)}">*</sup>`}</span></td>
                     <td>${esc(r.message)}</td>
                     <td class="td-sub">${esc(r.rule_id)} v${esc(r.version)}</td>
                     <td class="td-sub">${esc(r.doc_ref || '—')}</td>
@@ -432,16 +491,56 @@ const NhsoCase = {
                    <i data-lucide="check-circle-2" class="icon-sm"></i>
                    ไม่พบข้อผิดพลาดจากการตรวจสอบ</div>`) : '';
 
-        return empty
-            + block('ERROR — ปัญหาที่พบจากการตรวจสอบขั้นต้น', 'danger', 'x-circle',
+        /* กฎที่มาจากประกาศโดยตรง ตรวจได้ตั้งแต่ก่อนส่ง ไม่ต้องรอ สปสช. ตอบ */
+        const fc = MockClaims.fileCheck(c);
+        const vc = MockNhso.visitClose(c.visit_close) || {};
+        const preFlight = (!fc.ok || !vc.submittable) ? `
+            <div class="section-card">
+                <div class="sip-banner sip-banner-danger" style="margin-bottom:12px">
+                    <i data-lucide="shield-alert" class="icon-sm"></i>
+                    <strong>ประเด็นที่ขัดกับประกาศ สปสช. โดยตรง — ตรวจได้ก่อนส่ง</strong>
+                </div>
+                <div class="table-responsive"><table class="data-table compact">
+                    <thead><tr><th style="width:1%">กฎ</th><th>ประเด็น</th>
+                        <th style="width:1%">ที่มา</th></tr></thead>
+                    <tbody>
+                    ${!fc.ok ? `<tr>
+                        <td><a href="claim-rules.html?rule=RUL-FIL-001"
+                               class="sip-chip sip-chip-danger">RUL-FIL-001</a></td>
+                        <td>กองทุน “${esc(fc.fundLabel)}” ต้องส่ง ${fc.required.length} แฟ้ม
+                            แต่ยังขาด <strong>${esc(MockNhso.fileNames(fc.missing))}</strong></td>
+                        <td class="td-sub">Overview 23 มิ.ย. 2569 น.14–16</td></tr>` : ''}
+                    ${!vc.submittable ? `<tr>
+                        <td><a href="claim-rules.html?rule=RUL-VIS-001"
+                               class="sip-chip sip-chip-danger">RUL-VIS-001</a></td>
+                        <td>สถานะการปิด Visit เป็น <strong>${esc(vc.label)}</strong>
+                            (${esc(vc.th)}) — ต้องเป็น Complete จึงส่งเบิกได้</td>
+                        <td class="td-sub">Overview 23 มิ.ย. 2569 น.7</td></tr>` : ''}
+                    </tbody>
+                </table></div>
+            </div>` : '';
+
+        const legend = `
+            <div class="ds-note">
+                <i data-lucide="info" class="icon-sm"></i>
+                <span><strong>*</strong> ${esc(NHSO_UNVERIFIED_NOTE)} —
+                สปสช. แจ้งว่าจะเผยแพร่แคตตาล็อก “Error ที่พบบ่อย” พร้อมแนวทางแก้ไข
+                (Overview 23 มิ.ย. 2569 น.8) เมื่อได้มาจะแทนที่รหัสทั้งชุด</span>
+            </div>`;
+
+        return preFlight
+            + empty
+            + block('ERROR — ปัญหาที่พบจากการตรวจสอบเบื้องต้น', 'danger', 'x-circle',
                     pre.filter(e => e.level === 'ERROR'),
-                    'รายการนี้จะถูกส่งกลับให้หน่วยบริการแก้ไขที่ HIS แล้วส่งเข้ามาใหม่')
+                    'รายการนี้จะถูกส่งกลับให้หน่วยบริการแก้ไขที่ HIS แล้วส่งเข้ามาใหม่ '
+                  + '(หน้าจอ สปสช. แก้ไขข้อมูลไม่ได้)')
             + block('WARNING — สามารถยืนยันส่งเบิกได้', 'warning', 'alert-triangle',
                     pre.filter(e => e.level === 'WARNING'),
                     'ไม่ปิดกั้นการส่งเบิก แต่ควรตรวจสอบความถูกต้องก่อน')
             + block('ปัญหาที่พบจากการประมวลผลไฟล์', 'danger', 'x-circle', proc,
-                    'พบหลังผ่านการตรวจสอบขั้นต้นแล้ว — ต้องแก้ไขและส่งใหม่')
-            + clarify;
+                    'พบหลังผ่านการตรวจสอบเบื้องต้นแล้ว — ต้องแก้ไขและส่งใหม่')
+            + clarify
+            + ((errs.length || predicted.length) ? legend : '');
     },
 
     tabHistory(c) {

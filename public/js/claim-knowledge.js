@@ -51,7 +51,9 @@ const Knowledge = {
 
     renderPills() {
         const all = MockKnowledge.docs().length;
-        const st = ['ACTIVE', 'FUTURE', 'EXPIRED'];
+        /* ต้องมี DRAFT ด้วย ไม่งั้นยอดใน pill รวมกันไม่เท่า "ทั้งหมด"
+           และเอกสารที่ยังรอฉบับจริงจะหาไม่เจอถ้าผู้ใช้กรองอยู่ */
+        const st = ['ACTIVE', 'FUTURE', 'EXPIRED', 'DRAFT'];
         document.getElementById('pillTabs').innerHTML =
             `<button class="ds-pilltab ${this.state.filter === 'all' ? 'active' : ''}"
                 onclick="Knowledge.setFilter('all')">ทั้งหมด <span class="tab-count">${all}</span></button>` +
@@ -304,6 +306,13 @@ const Knowledge = {
             <i data-lucide="clock" class="icon-sm"></i>
             <span><strong>เอกสารนี้ยังไม่มีผล</strong> — จะเริ่มมีผล ${esc(MockFmt.dateTH(d.effective_from))}
             รายละเอียดอาจเปลี่ยนก่อนวันบังคับใช้จริง</span>
+        </div>` : d.status === 'DRAFT' ? `
+        <div class="sip-banner sip-banner-danger" style="margin-bottom:12px">
+            <i data-lucide="file-question" class="icon-sm"></i>
+            <span><strong>ยังไม่มีตัวเอกสารฉบับจริง</strong> —
+            รายการนี้เป็นที่จองไว้เพื่อบอกว่าระบบต้องใช้เอกสารฉบับใด <strong>ห้ามใช้อ้างอิงตัดสินเคส</strong>
+            ${d.src_id ? ` · รหัสอ้างอิงภายใน [${esc(d.src_id)}]` : ''}
+            ${d.src_id ? ' · <a href="ipd-reference.html">ดูทะเบียนเอกสารอ้างอิงงานผู้ป่วยใน</a>' : ''}</span>
         </div>` : ''}
 
         <div class="section-card">
@@ -348,29 +357,47 @@ const Knowledge = {
     tabRules() {
         const d = this.current();
         if (!d) return '<div class="ds-empty">เลือกเอกสารจากด้านซ้ายก่อน</div>';
-        const rules = MockKnowledge.rulesFor(d.id);
-        return rules.length ? `
-        <div class="ds-note" style="margin-bottom:12px">
-            <i data-lucide="link" class="icon-sm"></i>
-            กฎเหล่านี้อ้างอิงเอกสารฉบับนี้ — ถ้าเอกสารถูกยกเลิกหรือมีฉบับใหม่
-            ระบบจะแจ้งให้ทบทวนกฎที่ผูกอยู่ทั้งหมด
-        </div>
+        const split = MockKnowledge.rulesForSplit(d.id);
+        if (!split.active.length && !split.pending.length) {
+            return '<div class="ds-empty">ยังไม่มีกฎที่อ้างอิงเอกสารฉบับนี้<div class="td-sub" style="margin-top:6px">ถ้าเอกสารมีเกณฑ์ที่ตรวจอัตโนมัติได้ ควรสร้างกฎเพื่อดักตั้งแต่ก่อนส่ง</div></div>';
+        }
+
+        /* ⚠️ ต้องแยกสองตาราง — กฎร่างยังไม่ยิงกับเคสใด
+           ถ้าเอามารวมใต้หัวข้อเดียวกัน ผู้อ่านจะเข้าใจว่าบังคับใช้แล้วทั้งหมด */
+        const table = rows => `
         <div class="table-responsive">
         <table class="data-table compact">
             <thead><tr><th style="width:1%">รหัสกฎ</th><th>ชื่อกฎ</th>
                 <th style="width:1%">Ver</th><th style="width:1%">สถานะ</th>
                 <th style="width:1%">รหัส NHSO</th><th style="width:1%">ข้ออ้างอิง</th></tr></thead>
-            <tbody>${rules.map(r => `<tr style="cursor:pointer"
+            <tbody>${rows.map(r => `<tr style="cursor:pointer"
                 onclick="location.href='claim-rules.html?rule=${encodeURIComponent(r.id)}'">
                 <td class="td-sub">${esc(r.id)}</td>
                 <td class="td-name">${esc(r.name)}</td>
                 <td class="td-sub">v${esc(r.version)}</td>
                 <td>${MockTone.lifecycleHtml(r.status)}</td>
                 <td>${r.maps_to_nhso ? `<span class="sip-chip sip-chip-danger">${esc(r.maps_to_nhso)}</span>` : '—'}</td>
-                <td class="td-sub">${esc(r.doc_ref)}</td>
+                <td class="td-sub">${esc(r.doc_ref || r.doc_id)}</td>
             </tr>`).join('')}</tbody>
-        </table></div>`
-        : '<div class="ds-empty">ยังไม่มีกฎที่อ้างอิงเอกสารฉบับนี้<div class="td-sub" style="margin-top:6px">ถ้าเอกสารมีเกณฑ์ที่ตรวจอัตโนมัติได้ ควรสร้างกฎเพื่อดักตั้งแต่ก่อนส่ง</div></div>';
+        </table></div>`;
+
+        return `
+        ${split.active.length ? `
+        <div class="ds-note" style="margin-bottom:12px">
+            <i data-lucide="link" class="icon-sm"></i>
+            กฎเหล่านี้บังคับใช้อยู่และอ้างอิงเอกสารฉบับนี้ — ถ้าเอกสารถูกยกเลิกหรือมีฉบับใหม่
+            ระบบจะแจ้งให้ทบทวนกฎที่ผูกอยู่ทั้งหมด
+        </div>
+        ${table(split.active)}` : ''}
+
+        ${split.pending.length ? `
+        <div class="ds-warn" style="margin:${split.active.length ? '18px' : '0'} 0 12px">
+            <i data-lucide="alert-triangle" class="icon-sm"></i>
+            <strong>ยังไม่บังคับใช้ ${split.pending.length} ข้อ</strong> —
+            เขียนตรรกะไว้แล้วแต่ยังไม่เปิดใช้ จึงยังไม่ตรวจจับเคสใด
+            ${d.status === 'DRAFT' ? 'เปิดใช้ได้เมื่อได้เอกสารฉบับจริงมาแล้ว' : 'รอผ่านการทบทวนและอนุมัติ'}
+        </div>
+        ${table(split.pending)}` : ''}`;
     },
 
     /* ══════════ แผงขวา ══════════ */

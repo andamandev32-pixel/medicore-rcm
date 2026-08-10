@@ -207,14 +207,29 @@ const Rules = {
                             <span class="sip-chip ${esc(MockTone.severityChip[r.severity])}">${
                                 esc(MockTone.severityLabel[r.severity])}</span></td></tr>
                         <tr><td class="l">รหัสที่ดักไว้ (NHSO)</td><td class="l">${r.maps_to_nhso
-                            ? `<span class="sip-chip sip-chip-danger">${esc(r.maps_to_nhso)}</span>` : '—'}</td></tr>
+                            ? `<span class="sip-chip sip-chip-danger">${esc(r.maps_to_nhso)}${
+                                MockClaims.codeVerified(r.maps_to_nhso) ? ''
+                                : `<sup title="${esc(NHSO_UNVERIFIED_NOTE)}">*</sup>`}</span>` : '—'}</td></tr>
                         <tr><td class="l">เอกสารอ้างอิง</td><td class="l">
                             <a href="claim-knowledge.html?doc=${encodeURIComponent(r.doc_id)}">${esc(r.doc_ref)}</a></td></tr>
+                        ${(() => {
+                            const o = MockRules.origin(r);
+                            return o ? `<tr><td class="l">ที่มาของกฎ</td><td class="l">
+                                ${esc(o.text)}
+                                ${o.verified
+                                    ? '<span class="sip-chip sip-chip-success">อ้างหน้าเอกสารได้</span>'
+                                    : `<span class="sip-chip sip-chip-amber" title="${esc(NHSO_UNVERIFIED_NOTE)}">รอยืนยัน</span>`}
+                            </td></tr>` : '';
+                        })()}
                     </tbody>
                 </table>
                 <div class="ds-note"><i data-lucide="calendar-check" class="icon-sm"></i>
                     กฎถูกเลือกใช้ตาม <strong>วันที่รับบริการ</strong> ไม่ใช่วันที่ตรวจ
                     เคสเดือนพฤษภาคมจึงยังถูกตัดสินด้วยกฎรุ่นที่มีผลตอนนั้น</div>
+                ${r.origin_doc ? `<div class="ds-note">
+                    <i data-lucide="scale" class="icon-sm"></i>
+                    กฎนี้ถอดจากประกาศ/เอกสาร สปสช. โดยตรง — ไม่ได้อนุมานเอง จึงอ้างอิงได้ตอนโต้แย้งผลตรวจ
+                    (SRS BR-03)</div>` : ''}
             </div>
             <div class="clinical-card">
                 <div class="card-title"><i data-lucide="bar-chart-3" class="mi"></i> ตัวชี้วัดคุณภาพกฎ</div>

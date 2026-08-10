@@ -31,6 +31,29 @@ const Landing = {
         el.style.display = msg ? '' : 'none';
     },
 
+    /* ปุ่มตาในช่องรหัสผ่าน — คลาส .is-on สลับไอคอนเปิด/ปิดที่ฝัง SVG ไว้ทั้งคู่ */
+    togglePass(btn) {
+        const inp  = document.getElementById('loginPass');
+        const show = inp.type === 'password';
+        inp.type = show ? 'text' : 'password';
+        btn.classList.toggle('is-on', show);
+        btn.setAttribute('aria-label', show ? 'ซ่อนรหัสผ่าน' : 'แสดงรหัสผ่าน');
+    },
+
+    /* บัญชีทดสอบ — กรอกให้ แต่ไม่ submit เอง ผู้นำเสนอจะได้เห็นค่าก่อนกดเข้า */
+    useDemo(user, pass) {
+        document.getElementById('loginUser').value = user;
+        document.getElementById('loginPass').value = pass;
+        this.error('');
+        document.getElementById('loginBtn').focus();
+    },
+
+    /* ยังไม่มีขั้นตอนรีเซ็ตรหัสผ่านในระบบ — บอกทางไปที่ผู้ดูแลระบบแทน */
+    forgot(ev) {
+        ev.preventDefault();
+        this.error('รีเซ็ตรหัสผ่านได้ที่ผู้ดูแลระบบ (เมนู ตั้งค่าระบบ › ผู้ใช้และสิทธิ์)');
+    },
+
     async login(ev) {
         ev.preventDefault();
         const btn  = document.getElementById('loginBtn');

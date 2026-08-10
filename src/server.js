@@ -51,7 +51,7 @@ app.use('/api/registry', registryRoutes);
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-    console.log(`🏥 MediCore Starter running on port ${PORT}`);
+    console.log(`🏥 MediClearing running on port ${PORT}`);
     console.log(`   http://localhost:${PORT}`);
     testConnection();
 });

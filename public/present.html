@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!-- =========================================================================
-  สไลด์นำเสนอผู้บริหาร — Claim Intelligence & Readiness Platform
+  สไลด์นำเสนอผู้บริหาร — MediClearing (ระบบบริหารวงจรรายได้โรงพยาบาล)
 
   หน้านี้ตั้งใจให้ "เปิดได้เสมอ": โหลดแค่ ds-tokens.css + ds-present.css + present.js
   ไม่มี navbar ไม่มี ds-auth ไม่มีไอคอนจาก CDN — เปิดบนโปรเจกเตอร์ได้โดยไม่มีเน็ตและไม่มี DB
@@ -12,7 +12,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Claim Intelligence & Readiness Platform — นำเสนอผู้บริหาร</title>
+    <title>MediClearing — นำเสนอผู้บริหาร</title>
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
 
     <link rel="stylesheet" href="css/ds-tokens.css">
@@ -25,12 +25,13 @@
     <header class="pr-topbar">
         <div class="pr-brand">
             <span class="pr-brand-mark">+</span>
-            <span>Claim Intelligence &amp; Readiness Platform</span>
-            <span class="pr-brand-sub">ระบบตรวจสอบความพร้อมก่อนส่งเคลม · 6 ส.ค. 2569</span>
+            <span>MediClearing</span>
+            <span class="pr-brand-sub">ระบบบริหารวงจรรายได้โรงพยาบาล</span>
         </div>
         <div class="pr-top-actions">
             <button class="pr-btn" type="button" onclick="Deck.toggleFullscreen()">เต็มจอ</button>
             <button class="pr-btn" type="button" onclick="window.print()">พิมพ์ / PDF</button>
+            <a class="pr-btn" href="present-hub.html">สไลด์ทั้งหมด</a>
             <a class="pr-btn accent" href="claim-dashboard.html" target="_blank" rel="noopener">เปิดระบบต้นแบบ</a>
         </div>
     </header>
@@ -51,7 +52,10 @@
 
 <!-- ⚠️ ลำดับสำคัญ: present-slides.js เรียกฟังก์ชันวาดผังตอนสร้างอาร์เรย์ทันที
      present-flows.js จึงต้องโหลดก่อนเสมอ -->
+<!-- present-flows-modules.js ต้องตามหลัง present-flows.js เสมอ (ใช้ PRF/prfBox ของไฟล์แรก) —
+     deck นี้เรียก pmIpdFlow() / pmReferMenuFlow() สำหรับผังสองโมดูลใหม่ -->
 <script src="js/present-flows.js"></script>
+<script src="js/present-flows-modules.js"></script>
 <script src="js/present-slides.js"></script>
 <script src="js/present.js"></script>
 </body>

@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<!-- =========================================================================
+  สรุปยอดเงินโอน สิทธิประกันสังคม และสิทธิหลักประกันสุขภาพแห่งชาติ
+
+  ผังตารางลอกจากแบบฟอร์มกระดาษที่ รพ. ใช้จริง — หัวตาราง 2 ชั้น
+  (ตั้งเบิก / ประมวลผลจ่าย / ยอดเงินโอน–รายรับ / คงค้าง) แต่ละกลุ่มแยก ราย + จำนวนเงิน
+
+  ⚠️ บนกระดาษสองบล็อกวางซ้าย-ขวา แต่บนจอวาง "ซ้อนกัน"
+     เพราะบล็อกละ 9 คอลัมน์ วางคู่กันได้ 18 คอลัมน์ → อ่านไม่ออกและหน้าเลื่อนแนวนอนที่ 1024px
+     (ผิด PAGE-GUIDE §8) · ใบพิมพ์ก็เรียงซ้อนเช่นกัน เพราะ A4 แนวตั้งรับ 9 คอลัมน์พอดี
+
+  ⚠️ หน้าต้นแบบ: ข้อมูลจำลองล้วน ไม่เรียก /api จึงไม่ gate ด้วย Auth.requireLogin()
+     เมื่อผูก backend จริง ให้เพิ่ม Auth.requireLogin(); กลับเข้าไปในส่วนหัวของหน้า
+  ========================================================================= -->
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>MediClearing — สรุปยอดเงินโอน สปสช./ประกันสังคม</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+
+    <link rel="stylesheet" href="css/ds-tokens.css">
+    <link rel="stylesheet" href="css/ds-base.css">
+    <link rel="stylesheet" href="css/ds-navbar.css">
+    <link rel="stylesheet" href="css/ds-layout.css">
+    <link rel="stylesheet" href="css/ds-components.css">
+    <link rel="stylesheet" href="css/ds-overlays.css">
+    <link rel="stylesheet" href="css/ds-print.css">
+    <link rel="stylesheet" href="css/ds-chart.css">
+
+    <script src="js/ds/ds-auth.js"></script>
+</head>
+<body data-page="exec-finance">
+
+    <nav id="appNavbar"></nav>
+
+    <div class="page-container">
+
+        <div id="demoBanner"></div>
+
+        <div class="page-header">
+            <div>
+                <div class="page-title">
+                    <i data-lucide="banknote" class="mi"></i>
+                    <span>สรุปรายงานยอดเงินโอนสิทธิประกันสังคม และสิทธิหลักประกันสุขภาพแห่งชาติ</span>
+                </div>
+                <div class="page-subtitle" id="asOf">—</div>
+            </div>
+            <div class="section-actions">
+                <select class="sip-select" id="fPeriod" style="width:230px" onchange="Fin.render()"></select>
+                <button class="btn btn-outline" onclick="Fin.openPrint()">
+                    <i data-lucide="printer" class="icon-sm"></i> พิมพ์รายงาน
+                </button>
+                <button class="btn btn-primary" onclick="location.href='nhso-reports.html'">
+                    <i data-lucide="file-text" class="icon-sm"></i> ไปที่รายงาน สปสช.
+                </button>
+            </div>
+        </div>
+
+        <!-- ⚠️ ตัวเลขทุกช่องในหน้านี้เป็นข้อมูลสมมติ — ป้ายนี้ต้องอยู่เหนือตารางเสมอ -->
+        <div class="sip-mock-note">
+            <span class="sip-mock-tag">MOCKUP</span>
+            <span id="mockNote">ตัวเลขทั้งหน้าเป็นข้อมูลสมมติเพื่อสาธิตรูปแบบรายงาน
+                ไม่ใช่ยอดจริงของโรงพยาบาล และห้ามนำไปใช้อ้างอิงหรือตัดสินใจ</span>
+        </div>
+
+        <!-- ตัวกรองสิทธิตัวเดียวของทั้งหน้า — คุมทั้งการ์ดตัวเลข ตาราง กราฟ และใบพิมพ์
+             จงใจไม่แยกตัวกรองของกราฟออกมาต่างหาก เพราะถ้าสองตัวตั้งค่าขัดกันเมื่อไร
+             ผู้อ่านจะไม่รู้ว่าตัวเลขบนหน้าเดียวกันกำลังพูดถึงสิทธิอะไร -->
+        <div class="ds-segbar" id="segScheme" style="margin-bottom:16px"></div>
+
+        <div id="kpiWrap"></div>
+
+        <div class="section-card" id="cardSso">
+            <div class="section-header">
+                <div class="section-title"><i data-lucide="shield" class="mi"></i>
+                    สิทธิประกันสังคม</div>
+                <div class="ds-hint" id="ssoNote">—</div>
+            </div>
+            <div class="table-responsive">
+                <table class="ds-table-grid" id="ssoTable"></table>
+            </div>
+        </div>
+
+        <div class="section-card" id="cardUc">
+            <div class="section-header">
+                <div class="section-title"><i data-lucide="heart" class="mi"></i>
+                    สิทธิหลักประกันสุขภาพแห่งชาติ</div>
+                <div class="ds-hint" id="ucNote">—</div>
+            </div>
+            <div class="table-responsive">
+                <table class="ds-table-grid" id="ucTable"></table>
+            </div>
+        </div>
+
+        <!-- ══════════════════════════════════════════════════════════
+             ส่วนเติมท้าย — ดูเงินเข้าเรียงเดือน ไม่ผูกกับงวดที่เลือกด้านบน
+             ══════════════════════════════════════════════════════════ -->
+        <div class="ds-zone-head is-new">
+            <span class="ds-zone-num"><i data-lucide="bar-chart-3" class="icon-sm"></i></span>
+            <span class="ds-zone-title">สัดส่วนเงินเข้าตามกองทุน · ที่ส่งเบิก · ประมาณการพึงรับ</span>
+            <span class="ds-zone-sub">เรียงเดือน 12 งวดล่าสุด — ไม่ขึ้นกับงวดที่เลือกด้านบน</span>
+        </div>
+
+        <div class="cards-row">
+            <div class="section-card">
+                <div class="section-header">
+                    <div class="section-title"><i data-lucide="layers" class="mi"></i>
+                        สัดส่วนเงินเข้าจำแนกตามกองทุน</div>
+                </div>
+                <div class="card-body">
+                    <div class="ds-chart-caption">
+                        ความสูงของแท่ง = เงินที่โอนเข้าจริงทั้งเดือน · ชั้นสี = ส่วนแบ่งของแต่ละกองทุน
+                    </div>
+                    <div id="chartFundStack"></div>
+                </div>
+            </div>
+
+            <div class="section-card">
+                <div class="section-header">
+                    <div class="section-title"><i data-lucide="trending-up" class="mi"></i>
+                        ที่ส่งเบิก เทียบ รับจริง และประมาณการพึงรับ</div>
+                    <div class="ds-hint" id="chartScopeNote">—</div>
+                </div>
+                <div class="card-body">
+                    <div class="ds-chart-caption" id="expectCaption">—</div>
+                    <div id="chartBilledVsRecv"></div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div id="toastContainer" class="toast-container"></div>
+
+    <script src="js/ds/ds-icons.js"></script>
+    <script src="js/ds/ds-navbar.js"></script>
+    <script src="js/ds/ds-drawer.js"></script>
+    <script src="js/ds/ds-toast.js"></script>
+    <script src="js/ds/ds-doc-parts.js"></script>
+    <script src="js/ds/ds-doc-print.js"></script>
+    <script src="js/ds/ds-chart.js"></script>
+
+    <script src="js/mock/mock-core.js"></script>
+    <script src="js/mock/mock-session.js"></script>
+    <!-- mock-finance.js ต้องอยู่หลัง mock-nhso.js — มันอ่าน MOCK_NHSO_RECON เป็นหมุดยึด
+         ยอดฝั่งบัตรทองของงวด มี.ค.–ก.ค. 69 จึงตรงกับหน้า nhso-reports.html เป๊ะ -->
+    <script src="js/mock/mock-nhso.js"></script>
+    <script src="js/mock/mock-finance.js"></script>
+
+    <script src="js/exec-finance.js"></script>
+</body>
+</html>

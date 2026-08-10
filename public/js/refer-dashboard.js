@@ -1,8 +1,9 @@
 /* ────────────────────────────────────────────────────────
    ภาพรวมการส่งต่อผู้ป่วย (Referral Dashboard)
 
-   ทุก KPI มี drawer "ตัวเลขนี้มาจากไหน" แบบเดียวกับ claim-dashboard.js
+   ทุก KPI มี drawer ที่โชว์ "รายการจริงที่ประกอบเป็นตัวเลข" แล้วตามด้วยที่มาของตัวเลข
    — นี่คืออาวุธกันคำถาม "ตัวเลขจริงไหม" กลางห้องประชุม ห้ามตัดทิ้ง
+   นิยามอยู่ที่ MockKpi.DEFS · เรนเดอร์โดย DSKpi — ทั้งสอง dashboard ใช้ชุดเดียวกัน
 
    เลือกชนิดกราฟตามที่ ds-chart.js รองรับจริงเท่านั้น (line/bars/donut/funnel/spark/hbar)
      • ส่งไปที่ไหน → funnel เพราะเป็นตัวเดียวที่มี label ข้อความด้านซ้าย
@@ -50,104 +51,35 @@ const ReferDash = {
 
     /* ══════════ KPI ══════════ */
 
-    KPI: [
-        { key: 'total', icon: 'inbox', label: 'รายการส่งต่อในงวด',
-          calc: r => MockFmt.int(r.length),
-          how: 'นับรายการส่งต่อทั้งหมดในขอบเขตที่กรองอยู่',
-          fields: ['referrals[] ตามทิศทางและกองทุนที่เลือก'],
-          drill: () => 'refer-worklist.html' },
+    /* นิยาม KPI ทั้ง 8 ตัวย้ายไปอยู่ที่ MockKpi.DEFS (js/mock/mock-kpi.js) ร่วมกับของ
+       claim-dashboard — เดิมสองหน้าลอกโค้ดกันทั้งดุ้น พอแก้ที่เดียวอีกหน้าไม่ตาม
+       ยอด AP/AR/ใบส่งตัวที่มีปัญหา จึงกระทบยอดกับ claim-dashboard ได้โดยอัตโนมัติ */
 
-        { key: 'out', icon: 'log-out', label: 'ส่งต่อออก (เราตามจ่าย)',
-          calc: r => MockFmt.int(r.filter(x => x.direction === 'OUT').length),
-          how: 'นับรายการที่เราเป็นต้นสังกัดและส่งผู้ป่วยออกไปรักษาที่อื่น',
-          fields: ['referrals[].direction === "OUT"'],
-          drill: () => 'refer-worklist.html?dir=OUT' },
+    kpiDefs() { return MockKpi.forPage('refer-dashboard'); },
 
-        { key: 'in', icon: 'log-in', label: 'รับส่งต่อเข้า (เราเรียกเก็บ)',
-          calc: r => MockFmt.int(r.filter(x => x.direction === 'IN').length),
-          how: 'นับรายการที่หน่วยบริการอื่นส่งผู้ป่วยมารักษาที่เรา',
-          fields: ['referrals[].direction === "IN"'],
-          drill: () => 'refer-worklist.html?dir=IN' },
-
-        { key: 'ap', icon: 'arrow-up-from-line', label: 'ยอดตามจ่ายค้าง (บาท)', critical: true,
-          calc: () => MockFmt.baht(MockRefer.netPosition().ap),
-          how: 'ผลรวมยอดคงค้างของใบเรียกเก็บที่ปลายทางส่งมา (ยอดใบ − จ่ายแล้ว − โต้แย้ง)',
-          fields: ['Σ refer_bills[direction="OUT"].items[].amount',
-                   '− Σ refer_bills[].paid_amount', '− Σ refer_bills[].disputed_amount'],
-          scopeNote: () => MockRefer.billsByDir('OUT').length + ' ใบเรียกเก็บ (ทั้งระบบ ไม่ตามตัวกรอง)',
-          drill: () => 'refer-billing.html?dir=OUT' },
-
-        { key: 'ar', icon: 'arrow-down-to-line', label: 'ยอดเรียกเก็บค้าง (บาท)',
-          calc: () => MockFmt.baht(MockRefer.netPosition().ar),
-          how: 'ผลรวมยอดคงค้างของใบที่เราออกไปเรียกเก็บต้นทาง/สปสช.',
-          fields: ['Σ refer_bills[direction="IN"].items[].amount', '− paid − disputed'],
-          scopeNote: () => MockRefer.billsByDir('IN').length + ' ใบเรียกเก็บ (ทั้งระบบ ไม่ตามตัวกรอง)',
-          drill: () => 'refer-billing.html?dir=IN' },
-
-        { key: 'net', icon: 'scale', label: 'สถานะสุทธิ AR − AP (บาท)',
-          calc: () => MockFmt.baht(MockRefer.netPosition().net),
-          how: 'ยอดที่เราพึงรับ ลบ ยอดที่เราพึงจ่าย — ติดลบแปลว่าเราเป็นลูกหนี้สุทธิ',
-          fields: ['netPosition().ar − netPosition().ap'],
-          scopeNote: () => 'ทั้งระบบ ไม่ตามตัวกรอง',
-          drill: () => 'refer-billing.html' },
-
-        { key: 'flag', icon: 'file-warning', label: 'ใบส่งตัวที่มีปัญหา', critical: true,
-          calc: () => MockFmt.int(MockRefer.openRisks().length),
-          how: 'นับรายการที่ยังมีธงระดับ ERROR ค้าง (หมดอายุ · เกินขอบเขต · ไม่มีเลขอนุมัติ · เกินวงเงิน · ซ้ำซ้อน)',
-          fields: ['referrals[].risk_flags[].level === "ERROR"'],
-          scopeNote: () => 'ทั้งระบบ ไม่ตามตัวกรอง',
-          drill: () => 'refer-worklist.html?risk=ERROR' },
-
-        { key: 'rate', icon: 'shield-check', label: 'อัตราใบส่งตัวสมบูรณ์',
-          calc: () => MockFmt.pct(MockRefer.docCompletionRate(), 1),
-          how: '(รายการทั้งหมด − รายการที่มีธง ERROR) ÷ รายการทั้งหมด × 100',
-          fields: ['referrals[].length (ตัวหาร)', 'openRisks().length (ตัวลบ)'],
-          scopeNote: () => 'ทั้งระบบ ไม่ตามตัวกรอง',
-          drill: () => 'refer-worklist.html?risk=CLEAN' },
-    ],
+    kpiCtx() { return { rows: this.scope(), fund: this.fund(), dir: this.dir() || 'all' }; },
 
     renderKpi() {
-        const rows = this.scope();
-        document.getElementById('kpiGrid').innerHTML = this.KPI.map(k => `
-            <div class="sip-kpi ${k.critical ? 'critical' : ''}" style="cursor:pointer"
-                 onclick="ReferDash.explain('${k.key}')" title="กดเพื่อดูที่มาของตัวเลข">
-                <i data-lucide="${k.icon}" class="sip-kpi-icon icon-lg"></i>
-                <div class="sip-kpi-value">${esc(k.calc(rows))}</div>
-                <div class="sip-kpi-label">${esc(k.label)}</div>
-            </div>`).join('');
-    },
-
-    explain(key) {
-        const k = this.KPI.find(x => x.key === key); if (!k) return;
-        const rows = this.scope();
-        const dirLabel = this.dir() ? MockRefer.dirMeta(this.dir()).label : 'ทั้งสองทิศทาง';
-
-        Drawer.open({
-            title: 'ตัวเลขนี้มาจากไหน — ' + k.label,
-            contentHtml: `
-                <div style="font-size:34px;font-weight:800;color:var(--brand-navy);margin-bottom:4px">
-                    ${esc(k.calc(rows))}</div>
-                <div class="td-sub" style="margin-bottom:14px">${esc(k.label)}</div>
-                <table class="ds-table-grid">
-                    <tbody>
-                        <tr><td class="l" style="width:26%">วิธีคำนวณ</td><td class="l">${esc(k.how)}</td></tr>
-                        <tr><td class="l">ฟิลด์ที่ใช้</td><td class="l">${k.fields.map(f =>
-                            `<div style="font-family:var(--font-mono);font-size:11px">${esc(f)}</div>`).join('')}</td></tr>
-                        <tr><td class="l">ขอบเขตที่กรองอยู่</td><td class="l">${esc(dirLabel)} ·
-                            กองทุน ${esc(this.fund() === 'all' ? 'ทุกกองทุน' : this.fund())} ·
-                            ${esc(k.scopeNote ? k.scopeNote() : rows.length + ' รายการ')}</td></tr>
-                        <tr><td class="l">แหล่งข้อมูล</td><td class="l">ชุดข้อมูลจำลองในต้นแบบ —
-                            เมื่อผูกระบบจริงจะมาจาก HIS ใบส่งตัว และใบเรียกเก็บของคู่สัญญา</td></tr>
-                    </tbody>
-                </table>
-                <div class="ds-note"><i data-lucide="shield" class="icon-sm"></i>
-                    ทุกตัวเลขเจาะลงไปถึงรายการส่งต่อ ใบเรียกเก็บ ผู้อนุมัติ และเวลาได้ (BR-03)</div>`,
-            footerHtml: `<button class="btn btn-outline" onclick="Drawer.close()">ปิด</button>
-                         <button class="btn btn-save"
-                             onclick="Drawer.close();location.href='${esc(k.drill ? k.drill() : 'refer-worklist.html')}'">
-                             ดูรายการ</button>`,
-            onOpen: () => refreshIcons(),
+        DSKpi.configure({
+            defs:    this.kpiDefs(),
+            ctx:     () => this.kpiCtx(),
+            resolve: (def, ctx) => MockKpi.rows(def, ctx),
+            value:   (def, ctx) => MockKpi.value(def, ctx),
+            cap:     MockKpi.CAP,
+            fmt:     v => MockFmt.baht(v),
+            scopeLine: (k, ctx) => {
+                const dirLabel = this.dir() ? MockRefer.dirMeta(this.dir()).label : 'ทั้งสองทิศทาง';
+                return `${dirLabel} · กองทุน ${ctx.fund === 'all' ? 'ทุกกองทุน' : ctx.fund} · `
+                     + (k.scopeNote ? k.scopeNote() : ctx.rows.length + ' รายการ');
+            },
+            sourceNote: 'ชุดข้อมูลจำลองในต้นแบบ — เมื่อผูกระบบจริงจะมาจาก HIS ใบส่งตัว '
+                      + 'และใบเรียกเก็บของคู่สัญญา',
+            note: 'ทุกตัวเลขเจาะลงไปถึงรายการส่งต่อ ใบเรียกเก็บ ผู้อนุมัติ และเวลาได้ (BR-03)',
+            drillText: 'ดูรายการทั้งหมด',
         });
+        document.getElementById('kpiGrid').innerHTML = DSKpi.cards();
+        const foot = document.getElementById('kpiFootnote');
+        if (foot) foot.innerHTML = DSKpi.footnote();
     },
 
     /* ══════════ ส่งไปที่ไหน ══════════ */

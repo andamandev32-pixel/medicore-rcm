@@ -10,7 +10,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MediCore RCM — ภาพรวมผู้บริหาร</title>
+    <title>MediClearing — ภาพรวมผู้บริหาร</title>
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
 
     <link rel="stylesheet" href="css/ds-tokens.css">
@@ -58,8 +58,24 @@
             </div>
         </div>
 
-        <!-- KPI 6 ช่อง — กดเพื่อดูสูตรและที่มาของตัวเลข -->
+        <!-- KPI 10 ช่อง — กดเพื่อดูรายการจริงที่ประกอบเป็นตัวเลข แล้วเจาะต่อไปหน้าปลายทางได้
+             6 ช่องแรกเป็นเคลม OPD · 2 ช่องถัดมาเป็นผู้ป่วยใน · 2 ช่องท้ายเป็นการส่งต่อ
+             เนื้อหาทั้งแถบมาจาก MockKpi.forPage('claim-dashboard') เรนเดอร์โดย DSKpi -->
         <div class="ds-kpi-grid" id="kpiGrid"></div>
+        <!-- หมายเหตุของค่าที่ติด * — เดิมมีแต่ tooltip ซึ่งไม่มีใครเอาเมาส์ไปชี้ตอนนำเสนอ -->
+        <div id="kpiFootnote"></div>
+
+        <!-- ══════════════════════════════════════════════════════════
+             หน้านี้จัดเป็น 4 โซนตามเส้นงานจริง เรียงตามลำดับที่งานไหล
+             เคลม OPD → ผู้ป่วยใน → ส่งต่อ → สปสช.
+             เดิมเป็นการ์ดเรียงต่อกันโดยไม่แบ่งโซน และ "ไม่มีผู้ป่วยในเลย"
+             ══════════════════════════════════════════════════════════ -->
+
+        <div class="ds-zone-head">
+            <span class="ds-zone-num">1</span>
+            <span class="ds-zone-title">เส้นงานเคลมผู้ป่วยนอก (OPD)</span>
+            <span class="ds-zone-sub">ตรวจด้วยกฎก่อนกดส่ง — คุณภาพของสิ่งที่กำลังจะส่งออกไป</span>
+        </div>
 
         <div class="cards-row">
             <div class="section-card">
@@ -93,28 +109,14 @@
             </div>
         </div>
 
-        <div class="cards-row">
-            <div class="section-card">
-                <div class="section-header">
-                    <div class="section-title"><i data-lucide="pie-chart" class="mi"></i>
-                        ผลการตรวจด้วยกฎ — 5 ระดับตาม SRS</div>
-                </div>
-                <div id="chartResult"></div>
-                <div class="table-responsive" style="margin-top:12px">
-                    <table class="data-table compact" id="resultTable"></table>
-                </div>
+        <div class="section-card">
+            <div class="section-header">
+                <div class="section-title"><i data-lucide="pie-chart" class="mi"></i>
+                    ผลการตรวจด้วยกฎ — 5 ระดับตาม SRS</div>
             </div>
-            <div class="section-card">
-                <div class="section-header">
-                    <div class="section-title"><i data-lucide="hospital" class="mi"></i>
-                        สถานะฝั่ง สปสช. (NHSO Digital Platform)</div>
-                    <div class="section-actions">
-                        <button class="btn btn-ghost btn-sm" onclick="location.href='nhso-submit.html'">
-                            <i data-lucide="external-link" class="icon-sm"></i> เปิดหน้าส่งเบิก</button>
-                    </div>
-                </div>
-                <div class="ds-stepper" id="nhsoStepper" style="margin-bottom:14px"></div>
-                <div id="chartFunnel"></div>
+            <div id="chartResult"></div>
+            <div class="table-responsive" style="margin-top:12px">
+                <table class="data-table compact" id="resultTable"></table>
             </div>
         </div>
 
@@ -142,25 +144,6 @@
             </div>
         </div>
 
-        <!-- ══ ภาระผูกพันจากการส่งต่อ — เดิมไม่เคยปรากฏบน dashboard ใดของโรงพยาบาล ══ -->
-        <div class="section-card">
-            <div class="section-header">
-                <div class="section-title"><i data-lucide="ambulance" class="mi"></i>
-                    ภาระผูกพันจากการส่งต่อผู้ป่วย (AP / AR)</div>
-                <div class="section-actions">
-                    <button class="btn btn-ghost btn-sm" onclick="location.href='refer-dashboard.html'">
-                        <i data-lucide="external-link" class="icon-sm"></i> ภาพรวมการส่งต่อ</button>
-                </div>
-            </div>
-            <div class="ds-kpi-grid" id="referMini"></div>
-            <div id="chartDashRefer" style="margin-top:12px"></div>
-            <div class="ds-note" style="margin-top:10px">
-                <i data-lucide="info" class="icon-sm"></i>
-                ยอดตามจ่ายคือหนี้ที่เกิดขึ้นแล้วจากการส่งผู้ป่วยออกไปรักษาข้างนอก —
-                ถ้าไม่มีที่บันทึกตั้งแต่ขั้นขออนุมัติ จะรู้ยอดอีกทีตอนใบเรียกเก็บมาถึง ซึ่งโต้แย้งได้ยากแล้ว
-            </div>
-        </div>
-
         <div class="section-card">
             <div class="section-header">
                 <div class="section-title"><i data-lucide="alert-triangle" class="mi"></i>
@@ -183,6 +166,111 @@
             </div>
         </div>
 
+        <!-- ══════════════════════════════════════════════════════════
+             โซน 2 — งานผู้ป่วยใน
+             เดิมทั้งหน้านี้เป็น OPD ล้วน · ผู้ป่วยในไม่ปรากฏแม้แต่ช่องเดียว
+             ทั้งที่เป็นก้อนเงินที่ใหญ่กว่าต่อราย และเป็นที่ที่แฟ้มไม่ครบบ่อยที่สุด
+             ══════════════════════════════════════════════════════════ -->
+        <div class="ds-zone-head is-new">
+            <span class="ds-zone-num">2</span>
+            <span class="ds-zone-title">เส้นงานผู้ป่วยใน (IPD)</span>
+            <span class="ds-zone-sub">เพิ่มใหม่ — ความพร้อมของแฟ้มก่อนส่งเบิก และวันนอนเทียบจุดตัด DRG</span>
+        </div>
+
+        <div class="section-card">
+            <div class="section-header">
+                <div class="section-title"><i data-lucide="bed-double" class="mi"></i>
+                    งานผู้ป่วยใน — คิวตรวจแฟ้มและความพร้อมส่งเบิก</div>
+                <div class="section-actions">
+                    <button class="btn btn-ghost btn-sm" onclick="location.href='ipd-worklist.html'">
+                        <i data-lucide="external-link" class="icon-sm"></i> ทะเบียนผู้ป่วยใน</button>
+                    <button class="btn btn-ghost btn-sm" onclick="location.href='ipd-audit.html'">
+                        <i data-lucide="external-link" class="icon-sm"></i> คิวตรวจแฟ้ม</button>
+                </div>
+            </div>
+            <div class="ds-kpi-grid" id="ipdMini"></div>
+            <div class="cards-row" style="margin-top:12px">
+                <div>
+                    <div id="chartDashIpd"></div>
+                </div>
+                <div>
+                    <div class="ds-section-label">
+                        <i data-lucide="list-checks" class="icon-sm"></i> เคสผู้ป่วยในที่ต้องแก้ก่อนส่งเบิก
+                    </div>
+                    <div class="table-responsive">
+                        <table class="data-table compact">
+                            <thead><tr>
+                                <th style="width:1%">AN</th><th>ผู้ป่วย</th>
+                                <th style="width:1%">กองทุน</th>
+                                <th style="width:1%;text-align:right">วันนอน</th>
+                                <th style="width:1%">คะแนน</th><th style="width:1%">ผลตรวจ</th>
+                            </tr></thead>
+                            <tbody id="ipdRows"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="ds-note" style="margin-top:10px">
+                <i data-lucide="info" class="icon-sm"></i>
+                แฟ้มที่ขาดถูกจับ <b>ตั้งแต่ผู้ป่วยยังนอนอยู่</b> ไม่ต้องรอจำหน่าย —
+                เอกสารที่หายไปหลังจำหน่ายแล้วมีต้นทุนการตามเก็บสูงกว่ามาก
+            </div>
+            <!-- ⚠️ ห้ามถอดป้ายนี้ออกจนกว่าจะใส่อัตราจ่ายจริงของแต่ละกองทุน
+                 mock-ipd.js ตั้ง verified:false ไว้ทั้งชุด (IPD_FUND_RATE) -->
+            <div class="ds-warn" style="margin-top:10px">
+                <i data-lucide="alert-triangle" class="icon-sm"></i>
+                <b>ค่า DRG / AdjRW / ประมาณการรับ / ส่วนต่าง ในโซนนี้เป็นค่าจำลอง</b> —
+                ยังไม่ได้ถอดจากคู่มือ Thai DRG และประกาศอัตราจ่ายต่อ RW ฉบับจริง
+                <b>ตัวเลขส่วนต่างจึงยังไม่ใช่ข้อค้นพบ</b> ใช้ดูได้แค่รูปแบบการทำงานและวิธีวัด ·
+                ระบบจึงไม่นำส่วนต่างไปตัดสินผลตรวจแฟ้ม
+            </div>
+        </div>
+
+        <!-- ══ โซน 3 — ภาระผูกพันจากการส่งต่อ (เดิมไม่เคยปรากฏบน dashboard ใดของโรงพยาบาล) ══ -->
+        <div class="ds-zone-head is-new">
+            <span class="ds-zone-num">3</span>
+            <span class="ds-zone-title">เส้นงานส่งต่อผู้ป่วย (AP / AR)</span>
+            <span class="ds-zone-sub">เพิ่มใหม่ — ภาระผูกพันที่เกิดขึ้นแล้วแต่ยังไม่ถึงกำหนดชำระ</span>
+        </div>
+
+        <div class="section-card">
+            <div class="section-header">
+                <div class="section-title"><i data-lucide="ambulance" class="mi"></i>
+                    ภาระผูกพันจากการส่งต่อผู้ป่วย (AP / AR)</div>
+                <div class="section-actions">
+                    <button class="btn btn-ghost btn-sm" onclick="location.href='refer-dashboard.html'">
+                        <i data-lucide="external-link" class="icon-sm"></i> ภาพรวมการส่งต่อ</button>
+                </div>
+            </div>
+            <div class="ds-kpi-grid" id="referMini"></div>
+            <div id="chartDashRefer" style="margin-top:12px"></div>
+            <div class="ds-note" style="margin-top:10px">
+                <i data-lucide="info" class="icon-sm"></i>
+                ยอดตามจ่ายคือหนี้ที่เกิดขึ้นแล้วจากการส่งผู้ป่วยออกไปรักษาข้างนอก —
+                ถ้าไม่มีที่บันทึกตั้งแต่ขั้นขออนุมัติ จะรู้ยอดอีกทีตอนใบเรียกเก็บมาถึง ซึ่งโต้แย้งได้ยากแล้ว
+            </div>
+        </div>
+
+        <!-- ══ โซน 4 — ปลายทางของทั้งสามเส้นงานข้างบน ══ -->
+        <div class="ds-zone-head">
+            <span class="ds-zone-num">4</span>
+            <span class="ds-zone-title">ปลายทาง — สถานะฝั่ง สปสช.</span>
+            <span class="ds-zone-sub">ทั้งสามเส้นงานข้างบนมาจบที่คิวเดียวกันนี้</span>
+        </div>
+
+        <div class="section-card">
+            <div class="section-header">
+                <div class="section-title"><i data-lucide="hospital" class="mi"></i>
+                    สถานะฝั่ง สปสช. (NHSO Digital Platform)</div>
+                <div class="section-actions">
+                    <button class="btn btn-ghost btn-sm" onclick="location.href='nhso-submit.html'">
+                        <i data-lucide="external-link" class="icon-sm"></i> เปิดหน้าส่งเบิก</button>
+                </div>
+            </div>
+            <div class="ds-stepper" id="nhsoStepper" style="margin-bottom:14px"></div>
+            <div id="chartFunnel"></div>
+        </div>
+
         <div class="section-card">
             <div class="section-header">
                 <div class="section-title"><i data-lucide="calendar-range" class="mi"></i>
@@ -198,6 +286,8 @@
     <script src="js/ds/ds-icons.js"></script>
     <script src="js/ds/ds-navbar.js"></script>
     <script src="js/ds/ds-drawer.js"></script>
+    <!-- ds-kpi.js ต้องอยู่หลัง ds-drawer.js — การ์ด KPI เปิด drawer ผ่าน Drawer.open() -->
+    <script src="js/ds/ds-kpi.js"></script>
     <script src="js/ds/ds-toast.js"></script>
     <script src="js/ds/ds-doc-parts.js"></script>
     <script src="js/ds/ds-doc-print.js"></script>
@@ -208,10 +298,16 @@
     <script src="js/mock/mock-admin.js"></script>
     <script src="js/mock/mock-nhso.js"></script>
     <script src="js/mock/mock-claims.js"></script>
+    <!-- mock-ipd.js ต้องอยู่หลัง mock-claims.js — ตัวสร้างเคส IPD ฉายเคสที่ส่งเบิกแล้ว
+         ต่อจาก claims เพื่อให้ยอด "ส่งเบิกแล้ว" ของสองโมดูลตรงกันเสมอ -->
+    <script src="js/mock/mock-ipd.js"></script>
     <script src="js/mock/mock-referrals.js"></script>
     <script src="js/mock/mock-rules.js"></script>
     <script src="js/mock/mock-tasks.js"></script>
     <script src="js/mock/mock-metrics.js"></script>
+    <!-- mock-kpi.js ต้องเป็นไฟล์ mock สุดท้าย — นิยาม KPI อ้าง MockClaims/MockIpd/MockRefer/MockTasks
+         และหยิบข้อความ IPD_UNVERIFIED_NOTE จาก mock-ipd.js ตอนสร้างอาร์เรย์ -->
+    <script src="js/mock/mock-kpi.js"></script>
 
     <script src="js/claim-dashboard.js"></script>
 </body>

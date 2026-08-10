@@ -1,8 +1,8 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <!-- =========================================================================
-  สไลด์นำเสนอผู้บริหาร — ฉบับย่อ 10 หน้า
+  สไลด์นำเสนอผู้บริหาร — ฉบับย่อ
 
-  ต่างจาก present.html (20 สไลด์ ฉบับเต็ม) ตรงที่ย่อให้จบใน 15–20 นาที
+  ต่างจาก present.html (ฉบับเต็ม) ตรงที่ย่อให้จบใน 15–20 นาที
   เน้นแกน "ของเดิม / ของใหม่ / ที่ปรับปรุงขึ้น" และแผนพัฒนา 6 เดือน
   ผังทุกอันเป็นภาพอินโฟกราฟิก SVG
 
@@ -10,14 +10,14 @@
   ต่างกันแค่ไฟล์สไลด์ — present-exec-slides.js แทน present-slides.js
 
   ปุ่มลูกศร / PageUp-PageDown (presenter clicker) / Home-End เลื่อนสไลด์
-  Ctrl+P ได้ PDF A4 แนวนอน 10 หน้า
+  Ctrl+P ได้ PDF A4 แนวนอน หน้าละสไลด์
   ========================================================================= -->
 <html lang="th">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
-    <title>Claim Intelligence &amp; Readiness Platform — นำเสนอผู้บริหาร (10 หน้า)</title>
+    <title>MediClearing — นำเสนอผู้บริหาร (ฉบับย่อ)</title>
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
 
     <link rel="stylesheet" href="css/ds-tokens.css">
@@ -30,13 +30,15 @@
     <header class="pr-topbar">
         <div class="pr-brand">
             <span class="pr-brand-mark">+</span>
-            <span>Claim Intelligence &amp; Readiness Platform</span>
-            <span class="pr-brand-sub">ฉบับย่อ 10 หน้า · 6 ส.ค. 2569</span>
+            <span>MediClearing</span>
+            <span class="pr-brand-sub">ระบบบริหารวงจรรายได้โรงพยาบาล · ฉบับย่อ</span>
         </div>
         <div class="pr-top-actions">
             <button class="pr-btn" type="button" onclick="Deck.toggleFullscreen()">เต็มจอ</button>
             <button class="pr-btn" type="button" onclick="window.print()">พิมพ์ / PDF</button>
-            <a class="pr-btn" href="present.html">ฉบับเต็ม 20 หน้า</a>
+            <!-- ลิงก์ไปศูนย์รวม ไม่ระบุจำนวนหน้าตรงนี้ — เคยเขียน "ฉบับเต็ม 20 หน้า" ค้างไว้
+                 แล้วเพี้ยนทุกครั้งที่แทรกสไลด์ · จำนวนหน้าอยู่ที่ DS_DECKS ที่เดียว -->
+            <a class="pr-btn" href="present-hub.html">สไลด์ทั้งหมด</a>
             <a class="pr-btn accent" href="claim-dashboard.html" target="_blank" rel="noopener">เปิดระบบต้นแบบ</a>
         </div>
     </header>
@@ -56,8 +58,11 @@
 </div>
 
 <!-- ⚠️ ลำดับสำคัญ: present-exec-slides.js เรียกฟังก์ชันวาดผังตอนสร้างอาร์เรย์ทันที
-     present-flows.js จึงต้องโหลดก่อนเสมอ -->
+     present-flows.js จึงต้องโหลดก่อนเสมอ
+     present-flows-modules.js ตามมาเป็นตัวที่สอง (ใช้ PRF/prfBox ของไฟล์แรก) —
+     deck นี้เรียก pmIpdFlow() สำหรับผังผู้ป่วยใน -->
 <script src="js/present-flows.js"></script>
+<script src="js/present-flows-modules.js"></script>
 <script src="js/present-exec-slides.js"></script>
 <script src="js/present.js"></script>
 </body>

@@ -223,6 +223,41 @@
 .data-table.compact td, .data-table.compact th { padding: 7px 10px; }
 .data-table.compact input, .data-table.compact select { padding: 5px 8px; font-size: 12px; }
 
+/* แถวสรุปยอดท้ายตาราง — ใช้เมื่อตัวเลขต้องกระทบยอดให้ผู้อ่านเห็นทันที */
+.data-table tbody tr.ds-row-total { background: var(--bg); }
+.data-table tbody tr.ds-row-total:hover { background: var(--bg); }
+.data-table tbody tr.ds-row-total td {
+    border-top: 2px solid var(--brand-border); border-bottom: none;
+    font-weight: 700; color: var(--brand-navy);
+}
+/* คำอธิบายเสริมใต้ข้อความในตาราง/การ์ด */
+.ds-hint { font-size: 11.5px; line-height: 1.55; color: var(--text-muted); margin-top: 3px; }
+
+/* บรรทัดที่สองของหัวตาราง — ใช้เมื่อคอลัมน์เดียวถือ 2 ค่า (เช่น SEQ / Invoice No.) */
+.data-table thead th .ds-th-sub {
+    font-weight: 500; text-transform: none; letter-spacing: 0;
+    color: var(--text-muted); opacity: .8; margin-top: 1px;
+}
+
+/* คู่ยอด "เรียกเก็บ / ชดเชย" — หน้าจอ สปสช. ใช้ฟ้ากับเขียวคู่กันทุกที่ */
+.ds-amt { font-variant-numeric: tabular-nums; font-weight: 700; }
+.ds-amt-billed { color: var(--primary-dark); }
+.ds-amt-comp   { color: var(--status-success-strong); }
+.ds-dot {
+    display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+    margin-right: 4px; vertical-align: middle;
+}
+.ds-dot-blue  { background: var(--primary); }
+.ds-dot-green { background: var(--status-success); }
+
+/* แถบปุ่มกลุ่ม — โผล่เมื่อเลือกรายการในตารางแล้ว */
+.ds-bulk-bar {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+    padding: 10px 12px; margin-bottom: 12px; border-radius: 8px;
+    background: var(--primary-bg); border: 1px solid var(--primary);
+}
+.ds-bulk-count { font-size: 12.5px; font-weight: 700; color: var(--primary-dark); margin-right: 4px; }
+
 /* (ข) ตาราง design-system — หัวตารางพื้นเทา มุมมน */
 .sip-table {
     width: 100%; border-collapse: collapse;
@@ -249,6 +284,31 @@
 .ds-table-grid td.l { text-align: left; }
 .ds-table-grid td.c { text-align: center; }
 .ds-table-grid td.r { text-align: right; }
+
+/* หัวตาราง 2 ชั้น — กลุ่มคอลัมน์ (ตั้งเบิก/ประมวลผลจ่าย/…) คร่อมช่องย่อย ราย + จำนวนเงิน
+   ใช้ได้เพราะ .ds-table-grid มีเส้นกรอบครบทุกด้านอยู่แล้ว หัวจึงต่อกันเป็นตารางกระดาษทันที
+   (.data-table มีแต่เส้นใต้ ทำหัว 2 ชั้นแล้วอ่านไม่ออกว่าคอลัมน์ไหนอยู่ใต้กลุ่มไหน) */
+.ds-table-grid thead th { vertical-align: middle; line-height: 1.35; }
+.ds-table-grid thead th.grp { font-size: 12.5px; }
+.ds-table-grid thead th.sub {
+    font-weight: 500; font-size: 11px; color: var(--text-secondary);
+}
+
+/* ช่องตัวเลข — หลักต้องตรงกันทุกแถว ไม่งั้นสายตาไล่ยอดตามคอลัมน์ไม่ได้ */
+.ds-table-grid td.num {
+    text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+
+/* รายการย่อยใต้แถวหลัก (เช่น เบิกชดเชยโครงการพิเศษ) */
+.ds-table-grid td.sub-item { padding-left: 24px; color: var(--text-secondary); }
+
+/* แถวหลักที่เป็นผลรวมของรายการย่อย — เน้นชื่อไว้ให้แยกออกจากลูก */
+.ds-table-grid tr.is-group td.l { font-weight: 700; }
+
+/* แถว "รวม" ท้ายตาราง */
+.ds-table-grid tr.ds-row-total td {
+    background: var(--brand-bg-strong); font-weight: 700; color: var(--brand-navy);
+}
 
 /* ══════════════════════════════════════════════════════════
    5. FORMS
@@ -302,6 +362,26 @@
     color: var(--text-secondary); text-transform: uppercase;
 }
 .ds-section-label:first-child { margin-top: 0; }
+
+/* ── หัวโซนเส้นงาน — สำหรับหน้าภาพรวมที่มีหลายเส้นงานอยู่ในหน้าเดียว ──
+   ต่างจาก .ds-section-label ตรงที่ตัวนี้เป็น "หัวโซน" ไม่ใช่ป้ายกำกับกลุ่มปุ่ม
+   จึงใหญ่พออ่านออกจากโปรเจกเตอร์ตอนนำเสนอ · .is-new = โซนที่เพิ่งเพิ่มเข้ามา */
+.ds-zone-head {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    margin: 24px 0 10px; padding-bottom: 8px;
+    border-bottom: 2px solid var(--brand-border);
+}
+.ds-zone-head:first-child { margin-top: 0; }
+.ds-zone-num {
+    flex: 0 0 auto; width: 26px; height: 26px; border-radius: 50%;
+    display: grid; place-items: center;
+    background: var(--brand-navy); color: #fff;
+    font-size: 13px; font-weight: 800; font-variant-numeric: tabular-nums;
+}
+.ds-zone-title { font-size: 15px; font-weight: 800; color: var(--brand-navy); }
+.ds-zone-sub   { font-size: 12px; color: var(--text-muted); margin-left: auto; }
+.ds-zone-head.is-new { border-bottom-color: var(--brand-amber); }
+.ds-zone-head.is-new .ds-zone-num { background: var(--brand-amber-600); }
 
 /* ── Toggle switch ── */
 .ds-toggle {

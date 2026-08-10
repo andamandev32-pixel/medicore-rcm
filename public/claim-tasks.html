@@ -9,7 +9,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MediCore RCM — งานและการอนุมัติ</title>
+    <title>MediClearing — งานและการอนุมัติ</title>
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
 
     <link rel="stylesheet" href="css/ds-tokens.css">
@@ -102,6 +102,10 @@
     <script src="js/mock/mock-referrals.js"></script>
     <script src="js/mock/mock-rules.js"></script>
     <script src="js/mock/mock-tasks.js"></script>
+    <!-- ต้องอยู่หลัง mock-claims + mock-referrals — MockHIS ฉายข้อมูลจากสองตัวนี้ -->
+    <script src="js/mock/mock-his.js"></script>
+    <!-- mock-kpi.js — ใช้ตีความ ?kpi= ที่ Dashboard ส่งมา ต้องอยู่หลัง mock ที่มันอ้าง -->
+    <script src="js/mock/mock-kpi.js"></script>
 
     <script src="js/claim-tasks.js"></script>
 </body>

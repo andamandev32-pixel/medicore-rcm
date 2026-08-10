@@ -19,6 +19,10 @@ const ReferBilling = {
         this._focusRefer = p.get('refer');
         this._focusBill  = p.get('bill');
 
+        /* ?kpi= มาจากการ์ด KPI บน Dashboard — กรองด้วยชุด id ชุดเดียวกับที่ drawer แสดง
+           จำนวนแถวที่นี่จึงเท่ากับตัวเลขบนการ์ดเสมอ (คืน null ถ้าไม่มี ?kpi= หรือ key ไม่รู้จัก) */
+        this._kpi = MockKpi.fromUrl();
+
         this.fillFilters();
         this.renderSeg();
         this.render();
@@ -43,10 +47,11 @@ const ReferBilling = {
     },
 
     renderSeg() {
+        const scope = MockRefer.allBills().filter(b => MockKpi.keep(b));
         const segs = [
-            { key: 'OUT', label: 'ตามจ่ายปลายทาง (AP)', n: MockRefer.billsByDir('OUT').length },
-            { key: 'IN',  label: 'เรียกเก็บ (AR)',       n: MockRefer.billsByDir('IN').length },
-            { key: 'all', label: 'ทั้งหมด',              n: MockRefer.allBills().length },
+            { key: 'OUT', label: 'ตามจ่ายปลายทาง (AP)', n: scope.filter(b => b.direction === 'OUT').length },
+            { key: 'IN',  label: 'เรียกเก็บ (AR)',       n: scope.filter(b => b.direction === 'IN').length },
+            { key: 'all', label: 'ทั้งหมด',              n: scope.length },
         ];
         document.getElementById('segDir').innerHTML = segs.map(s => `
             <button class="ds-seg ${s.key === this.state.dir ? 'active' : ''}"
@@ -113,6 +118,7 @@ const ReferBilling = {
         const aging   = document.getElementById('fAging').value;
 
         return MockRefer.billsByDir(this.state.dir === 'all' ? null : this.state.dir).filter(b => {
+            if (!MockKpi.keep(b)) return false;
             const r = MockRefer.byId(b.refer_id) || {};
             if (partner !== 'all' && r.partner_name !== partner) return false;
             if (status  !== 'all' && b.status !== status) return false;
@@ -135,6 +141,7 @@ const ReferBilling = {
     /* ── แสดงผล ── */
 
     render() {
+        MockKpi.mountBanner('kpiFilterBar');
         const tbody = document.getElementById('rows');
         const np    = MockRefer.netPosition();
 

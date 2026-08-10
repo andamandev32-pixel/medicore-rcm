@@ -212,6 +212,333 @@ const MOCK_RULES = [
         ],
         kpi: { hit: 9, true_issue: 94, override: 1, false_positive: 6, prevented: 130900 },
     },
+
+    /* ══════════════════════════════════════════════════════
+       กฎที่ถอดตรงจาก NHSO Digital Platform Overview (23 มิ.ย. 2569)
+       ทั้ง 4 ข้อนี้อ้างหน้าเอกสารได้ ไม่ได้อนุมานเอง
+       ══════════════════════════════════════════════════════ */
+    {
+        id: 'RUL-FIL-001', name: 'ต้องส่งแฟ้มครบตามกองทุนที่เบิก',
+        category: 'ชุดข้อมูลมาตรฐาน', status: 'ACTIVE', version: 1,
+        author: 'U-005', approver: 'U-008',
+        funds: ['UC', 'OFC', 'SSS', 'LGO', 'EMS'], services: ['OPD', 'IPD', 'PP'],
+        effective_from: '2569-08-01', effective_to: null,
+        severity: 'ERROR', action: 'BLOCK', maps_to_nhso: null,
+        doc_id: 'DOC-NHSO-2566-001', doc_ref: 'ตารางกองทุน × แฟ้ม หน้า 14–16',
+        origin_doc: 'NHSO Digital Platform Overview · 23 มิ.ย. 2569 · น.14–16',
+        desc: 'ประกาศกำหนดว่าแต่ละกองทุนต้องส่งแฟ้มใดบ้าง (12 กองทุน × 15 แฟ้ม) '
+            + 'แฟ้ม 1–8 และ 14 บังคับเมื่อกองทุนครอบคลุม · แฟ้มกลุ่มเฉพาะ 9–13, 15 '
+            + 'บังคับเมื่อเข้าเงื่อนไขของเคส เช่น อุบัติเหตุฉุกเฉิน ตั้งครรภ์ ผู้พิการ ลากลับบ้าน',
+        conditions: [
+            { join: '',    field: 'กองทุนที่เบิก',            op: 'กำหนดชุดแฟ้ม', value: 'ตารางกองทุน × แฟ้ม (12 กองทุน)' },
+            { join: 'AND', field: 'แฟ้มที่ส่งมาในชุดข้อมูล',  op: 'ไม่ครบตาม',     value: 'แฟ้มบังคับของกองทุนนั้น' },
+        ],
+        kpi: { hit: 13, true_issue: 100, override: 0, false_positive: 0, prevented: 268400 },
+    },
+    {
+        id: 'RUL-FIL-002', name: 'ฟิลด์บังคับ (ต้องระบุ) ต้องครบทุกแฟ้มที่ส่ง',
+        category: 'ชุดข้อมูลมาตรฐาน', status: 'ACTIVE', version: 1,
+        author: 'U-005', approver: 'U-008',
+        funds: ['UC', 'OFC', 'SSS', 'LGO', 'EMS'], services: ['OPD', 'IPD', 'PP'],
+        effective_from: '2569-08-01', effective_to: null,
+        severity: 'ERROR', action: 'FIX', maps_to_nhso: null,
+        doc_id: 'DOC-NHSO-2566-001', doc_ref: 'ตารางจำนวนฟิลด์รายแฟ้ม หน้า 12',
+        origin_doc: 'NHSO Digital Platform Overview · 23 มิ.ย. 2569 · น.12',
+        desc: 'ชุดข้อมูลมาตรฐานมี 160 Data Points แบ่งเป็นบังคับ 72 · มีเงื่อนไข 16 · อื่น ๆ 72 '
+            + 'ฟิลด์บังคับต้องมีค่าครบทุกแฟ้มที่ส่ง มิฉะนั้นจะไม่ผ่านการตรวจสอบเบื้องต้น',
+        conditions: [
+            { join: '',    field: 'ฟิลด์ประเภท "ต้องระบุ (Y)"', op: 'มีค่าว่าง', value: 'อย่างน้อย 1 ฟิลด์' },
+            { join: 'OR',  field: 'ฟิลด์ประเภท "ระบุ/ไม่ระบุ"', op: 'เข้าเงื่อนไขแต่ว่าง', value: '16 ฟิลด์เงื่อนไข' },
+        ],
+        kpi: { hit: 27, true_issue: 96, override: 3, false_positive: 4, prevented: 158200 },
+    },
+    {
+        id: 'RUL-SET-001', name: 'กลุ่มบริการชุดที่ 2 ยังส่งผ่าน Platform ใหม่ไม่ได้',
+        category: 'ขอบเขตการใช้งาน', status: 'ACTIVE', version: 1,
+        author: 'U-004', approver: 'U-008',
+        funds: ['UC', 'OFC', 'SSS', 'LGO', 'EMS'], services: ['OPD', 'IPD'],
+        effective_from: '2569-08-01', effective_to: null,
+        severity: 'WARNING', action: 'WARN', maps_to_nhso: null,
+        doc_id: 'DOC-NHSO-2569-024', doc_ref: 'กลุ่มบริการชุดที่ 2 หน้า 13',
+        origin_doc: 'NHSO Digital Platform Overview · 23 มิ.ย. 2569 · น.13',
+        desc: 'บำบัดทดแทนไต (CKD) · ผู้ติดเชื้อ HIV/เอดส์ · วัณโรค (TB) ยังไม่ได้ประกาศ'
+            + 'ชุดข้อมูลมาตรฐาน — ต้องคงช่องทางเดิมไว้ อย่าเพิ่งย้ายมาส่งผ่าน NHSO Digital Platform',
+        conditions: [
+            { join: '',   field: 'รหัสวินิจฉัย/กลุ่มบริการ', op: 'อยู่ในชุด', value: 'CKD, HIV/AIDS, TB' },
+            { join: 'AND', field: 'ช่องทางส่งเบิกที่เลือก',  op: 'เท่ากับ',   value: 'NHSO Digital Platform' },
+        ],
+        kpi: { hit: 6, true_issue: 100, override: 0, false_positive: 0, prevented: 84300 },
+    },
+    {
+        id: 'RUL-VIS-001', name: 'ต้องปิดสิทธิและปิด Visit เป็น Complete ก่อนส่งเบิก',
+        category: 'สิทธิและการปิดสิทธิ', status: 'ACTIVE', version: 1,
+        author: 'U-004', approver: 'U-008',
+        funds: ['UC', 'OFC', 'SSS', 'LGO', 'EMS'], services: ['OPD', 'IPD', 'PP'],
+        effective_from: '2569-08-01', effective_to: null,
+        severity: 'ERROR', action: 'BLOCK', maps_to_nhso: null,
+        doc_id: 'DOC-NHSO-2569-008', doc_ref: 'เส้นทาง 7 ขั้น ขั้นที่ 4 หน้า 7',
+        origin_doc: 'NHSO Digital Platform Overview · 23 มิ.ย. 2569 · น.7',
+        desc: 'เส้นทางการทำงานกำหนดให้ปิดสิทธิ (เป๋าตัง / ระบบ สปสช.) และปิด Visit ให้ได้สถานะ '
+            + 'Complete ก่อน จึงจะเชื่อม API ส่งเบิกได้ · สถานะ Waiting และ Incomplete ยังส่งไม่ได้',
+        conditions: [
+            { join: '',   field: 'สถานะการปิด Visit', op: 'ไม่เท่ากับ', value: 'Complete' },
+            { join: 'OR', field: 'สถานะการปิดสิทธิ',  op: 'เท่ากับ',    value: 'ยังไม่ปิดสิทธิ' },
+        ],
+        kpi: { hit: 13, true_issue: 98, override: 2, false_positive: 2, prevented: 112600 },
+    },
+
+    /* ══════════════════════════════════════════════════════
+       กฎงานผู้ป่วยใน — ใช้โดยหน้า ipd-audit (ตรวจแฟ้มผู้ป่วยใน)
+       ตรรกะการยิงกฎแต่ละข้ออยู่ที่ MockIpd._ruleHit() ใน mock-ipd.js
+       ⚠️ PVT (ประกันชีวิต/สุขภาพเอกชน) ใส่ได้เฉพาะกฎที่ไม่อ้าง สปสช.
+       ══════════════════════════════════════════════════════ */
+    {
+        id: 'RUL-IPD-016', name: 'ต้องส่งแฟ้ม 15 (LVD) เมื่อผู้ป่วยในมีการลากลับบ้าน',
+        category: 'ความครบของข้อมูล', status: 'ACTIVE', version: 1,
+        author: 'U-005', approver: 'U-008',
+        funds: ['UC', 'OFC', 'SSS', 'LGO'], services: ['IPD'],
+        effective_from: '2569-07-01', effective_to: null,
+        severity: 'ERROR', action: 'FIX', maps_to_nhso: 'C112',
+        doc_id: 'DOC-NHSO-2566-001', doc_ref: 'ตารางกองทุน × แฟ้ม หน้า 14–16 (แฟ้ม 15 มีเงื่อนไข)',
+        origin_doc: 'NHSO Digital Platform Overview · 23 มิ.ย. 2569 · น.9, น.12',
+        desc: 'แฟ้ม 15 (NHSO LVD) เป็นแฟ้มมีเงื่อนไข — ส่งเฉพาะกรณีผู้ป่วยในลากลับบ้าน '
+            + 'ถ้ามีวันลาแต่ไม่ส่งแฟ้ม 15 จำนวนวันนอนที่เบิกจะไม่ตรงกับแฟ้ม 14 และถูกตีกลับด้วย C112',
+        conditions: [
+            { join: '',    field: 'จำนวนวันลากลับบ้าน',  op: 'มากกว่า',  value: '0 วัน' },
+            { join: 'AND', field: 'แฟ้มที่ส่งในชุดข้อมูล', op: 'ไม่มี',    value: 'แฟ้ม 15 (NHSO LVD)' },
+        ],
+        kpi: { hit: 7, true_issue: 100, override: 0, false_positive: 0, prevented: 96200 },
+    },
+    {
+        id: 'RUL-IPD-017', name: 'ต้องระบุการวินิจฉัยหลักและจัดกลุ่ม DRG ได้ก่อนส่งเบิก',
+        category: 'Coding', status: 'ACTIVE', version: 1,
+        author: 'U-005', approver: 'U-008',
+        funds: ['UC', 'OFC', 'SSS', 'LGO', 'EMS'], services: ['IPD'],
+        effective_from: '2569-07-01', effective_to: null,
+        severity: 'ERROR', action: 'BLOCK', maps_to_nhso: null,
+        doc_id: 'DOC-INT-2569-041', doc_ref: 'ระเบียบงานเวชระเบียน ข้อ 2.1',
+        desc: 'ผู้ป่วยในจ่ายตามกลุ่มวินิจฉัยโรคร่วม — ถ้าไม่มีการวินิจฉัยหลัก (PDx) '
+            + 'หรือรหัสที่บันทึกจัดกลุ่ม DRG ไม่ได้ จะคำนวณค่าชดเชยไม่ได้เลย ต้องระงับส่ง',
+        conditions: [
+            { join: '',   field: 'การวินิจฉัยหลัก (PDx)', op: 'ไม่มีค่า', value: '—' },
+            { join: 'OR', field: 'ผลการจัดกลุ่ม DRG',      op: 'ไม่มีค่า', value: '—' },
+        ],
+        kpi: { hit: 11, true_issue: 100, override: 0, false_positive: 0, prevented: 412000 },
+    },
+    {
+        id: 'RUL-IPD-018', name: 'วันนอนเกินจุดตัดบนของกลุ่ม DRG ต้องมีเหตุผลทางการแพทย์',
+        category: 'ความครบของข้อมูล', status: 'ACTIVE', version: 1,
+        author: 'U-005', approver: 'U-008',
+        funds: ['UC', 'OFC', 'SSS', 'LGO'], services: ['IPD'],
+        effective_from: '2569-07-01', effective_to: null,
+        severity: 'WARNING', action: 'APPROVE', maps_to_nhso: null,
+        doc_id: 'DOC-INT-2569-041', doc_ref: 'ระเบียบงานเวชระเบียน ข้อ 4.3',
+        desc: 'เคสที่นอนนานกว่าจุดตัดบน (high outlier) ได้ค่าชดเชยเพิ่มก็จริง '
+            + 'แต่ต้องมีบันทึกเหตุผลทางการแพทย์ประกอบ ไม่งั้นเสี่ยงถูกเรียกคืนตอน Audit',
+        conditions: [
+            { join: '',    field: 'จำนวนวันนอนที่เบิกได้',   op: 'มากกว่า', value: 'จุดตัดบนของกลุ่ม DRG' },
+            { join: 'AND', field: 'บันทึกเหตุผลทางการแพทย์', op: 'ไม่มีค่า', value: '—' },
+        ],
+        kpi: { hit: 9, true_issue: 78, override: 18, false_positive: 22, prevented: 74800 },
+    },
+    {
+        id: 'RUL-IPD-019', name: 'ใบสรุปการจำหน่ายต้องมีและลงนามแพทย์ผู้รักษา',
+        category: 'เอกสารประกอบ', status: 'ACTIVE', version: 1,
+        author: 'U-004', approver: 'U-008',
+        funds: ['UC', 'OFC', 'SSS', 'LGO', 'EMS', 'PVT'], services: ['IPD'],
+        effective_from: '2569-07-01', effective_to: null,
+        severity: 'ERROR', action: 'FIX', maps_to_nhso: null,
+        doc_id: 'DOC-INT-2569-041', doc_ref: 'ระเบียบงานเวชระเบียน ข้อ 3.1',
+        desc: 'ทุกกองทุนบังคับใบสรุปการจำหน่ายที่ลงนามแพทย์ผู้รักษา — เป็นเอกสารที่ผู้ตรวจสอบ'
+            + 'ของทุกกองทุนขอเป็นอันดับแรก และเป็นฐานของการให้รหัสโรค',
+        conditions: [
+            { join: '',   field: 'ใบสรุปการจำหน่าย',        op: 'ไม่พบ',    value: 'ในแฟ้มผู้ป่วยใน' },
+            { join: 'OR', field: 'ลายเซ็นแพทย์ผู้รักษา',    op: 'ไม่มีค่า', value: '—' },
+        ],
+        kpi: { hit: 24, true_issue: 97, override: 2, false_positive: 3, prevented: 186300 },
+    },
+    {
+        id: 'RUL-IPD-020', name: 'ประกันสังคม — ต้องมีหลักฐานสิทธิตามบัตรรับรองสิทธิหรือเกณฑ์ฉุกเฉิน',
+        category: 'สิทธิและการปิดสิทธิ', status: 'ACTIVE', version: 1,
+        author: 'U-004', approver: 'U-008',
+        funds: ['SSS'], services: ['IPD'],
+        effective_from: '2569-07-01', effective_to: null,
+        severity: 'ERROR', action: 'FIX', maps_to_nhso: null,
+        doc_id: 'DOC-INT-2569-042', doc_ref: 'เงื่อนไขกองทุนประกันสังคม ข้อ 1.2',
+        desc: 'ผู้ประกันตนต้องเข้ารักษาที่สถานพยาบาลตามบัตรรับรองสิทธิ '
+            + 'กรณีฉุกเฉินนอกสถานพยาบาลตามสิทธิเบิกได้เฉพาะ 72 ชั่วโมงแรก '
+            + 'จึงต้องมีหลักฐานการตรวจสอบสิทธิ ณ วันรับไว้เก็บไว้ในแฟ้มทุกราย',
+        conditions: [
+            { join: '',   field: 'หลักฐานการตรวจสอบสิทธิ ณ วันรับไว้', op: 'ไม่พบ', value: 'ในแฟ้มผู้ป่วยใน' },
+            { join: 'OR', field: 'สถานพยาบาลที่รับไว้',               op: 'ไม่ตรงกับ', value: 'บัตรรับรองสิทธิ' },
+        ],
+        kpi: { hit: 8, true_issue: 88, override: 6, false_positive: 12, prevented: 58400 },
+    },
+    {
+        id: 'RUL-IPD-021', name: 'กรมบัญชีกลาง — ต้องมีเลขอนุมัติเบิกจ่ายตรงก่อนส่งเบิกผู้ป่วยใน',
+        category: 'สิทธิและการปิดสิทธิ', status: 'ACTIVE', version: 1,
+        author: 'U-004', approver: 'U-008',
+        /* เฉพาะ OFC — เลข Approve Code เป็นกลไกของระบบเบิกจ่ายตรงกรมบัญชีกลาง
+           ฝั่ง อปท. ใช้การตรวจสอบสิทธิคนละกลไก จึงไม่รวมไว้ในกฎข้อนี้ */
+        funds: ['OFC'], services: ['IPD'],
+        effective_from: '2569-07-01', effective_to: null,
+        severity: 'ERROR', action: 'BLOCK', maps_to_nhso: 'C305',
+        doc_id: 'DOC-NHSO-2569-008', doc_ref: 'ข้อ 3.4',
+        desc: 'สิทธิเบิกจ่ายตรงต้องมีเลขอนุมัติ (Approve Code) ที่ตรงกับฐานข้อมูลหน่วยบริการ '
+            + 'ถ้าไม่ตรงหรือไม่มี จะได้ C305 กลับมาแล้ววนแก้ — ตรวจตั้งแต่ก่อนส่งจึงตัดวงจรนี้ได้',
+        conditions: [
+            { join: '',   field: 'เลขอนุมัติ / Approve Code', op: 'ไม่มีค่า',  value: '—' },
+            { join: 'OR', field: 'เลขอนุมัติที่บันทึกใน HIS',  op: 'ไม่ตรงกับ', value: 'ฐานข้อมูลหน่วยบริการ' },
+        ],
+        kpi: { hit: 16, true_issue: 94, override: 3, false_positive: 6, prevented: 224500 },
+    },
+    {
+        id: 'RUL-IPD-022', name: 'ประกันเอกชน — ต้องมีใบเรียกร้องค่าสินไหม กรมธรรม์ และหนังสือยินยอม',
+        category: 'เอกสารประกอบ', status: 'ACTIVE', version: 1,
+        author: 'U-004', approver: 'U-008',
+        funds: ['PVT'], services: ['IPD'],
+        effective_from: '2569-07-01', effective_to: null,
+        severity: 'ERROR', action: 'FIX', maps_to_nhso: null,
+        doc_id: 'DOC-INT-2569-043', doc_ref: 'เงื่อนไขการเรียกเก็บบริษัทประกัน ข้อ 2.1–2.4',
+        desc: 'การเรียกเก็บบริษัทประกันไม่ผ่านชุดข้อมูลมาตรฐาน สปสช. แต่ใช้ชุดเอกสารของบริษัท '
+            + 'ขาดเอกสารข้อใดข้อหนึ่ง บริษัทจะตีกลับทั้งรายการและนับอายุความใหม่',
+        conditions: [
+            { join: '',   field: 'ใบเรียกร้องค่าสินไหมทดแทน',    op: 'ไม่พบ', value: 'หรือยังไม่ลงนามผู้เอาประกัน' },
+            { join: 'OR', field: 'สำเนากรมธรรม์ / เลขกรมธรรม์',  op: 'ไม่พบ', value: '—' },
+            { join: 'OR', field: 'หนังสือยินยอมเปิดเผยข้อมูล',   op: 'ไม่พบ', value: '—' },
+        ],
+        kpi: { hit: 14, true_issue: 92, override: 4, false_positive: 8, prevented: 143700 },
+    },
+
+    /* ══════════════════════════════════════════════════════
+       กฎที่ "เขียนไว้แล้วแต่ยังเปิดใช้ไม่ได้" — รอเอกสารอ้างอิง
+
+       ⚠️ ต่อท้ายอาร์เรย์เท่านั้น — claim-rules.js เลือกกฎแรกเป็นค่าเริ่มต้นของหน้า
+          แทรกไว้ข้างบนแล้ว RUL-DRG-007 (สมอเดโม Maker–Checker) จะไม่ใช่หน้าแรกอีก
+
+       ทุกข้อ status:'DRAFT' + blocked_by ชี้ไป IPD_SOURCES ใน mock-ipd.js
+       → MockIpd.rulesFor() กรอง ACTIVE อยู่แล้ว จึงยังไม่ยิงกับเคสใด
+       → ตรรกะการยิงเขียนไว้ครบใน MockIpd._ruleHit() แล้ว
+          พอได้เอกสารมา เปลี่ยน status เป็น 'ACTIVE' ข้อเดียวก็ทำงานทันที
+
+       นี่คือคำตอบรูปธรรมของคำถาม "ได้คู่มือ DRG มาแล้วเอามาตรวจจับอะไรได้บ้าง"
+       ══════════════════════════════════════════════════════ */
+    {
+        id: 'RUL-IPD-023', name: 'รหัสที่บันทึกต้องจัดกลุ่ม DRG ได้ตรงกับที่ระบุในเวชระเบียน',
+        category: 'Coding', status: 'DRAFT', version: 1,
+        author: 'U-005', approver: null,
+        funds: ['UC', 'OFC', 'SSS', 'LGO', 'EMS'], services: ['IPD'],
+        effective_from: null, effective_to: null,
+        severity: 'ERROR', action: 'FIX', maps_to_nhso: null,
+        blocked_by: 'D4',
+        doc_id: 'DOC-DRG-MANUAL', doc_ref: 'ตารางจับคู่ Dx–DRG (รอเอกสาร)',
+        desc: 'จัดกลุ่มซ้ำจากรหัสที่บันทึกจริงแล้วเทียบกับกลุ่มที่ระบุไว้ในแฟ้ม '
+            + 'ถ้าไม่ตรงแปลว่าให้รหัสผิดหรือระบุกลุ่มผิด ซึ่งกระทบค่าชดเชยโดยตรง',
+        conditions: [
+            { join: '',    field: 'กลุ่ม DRG ที่จัดได้จาก PDx/SDx/Proc', op: 'ไม่ตรงกับ', value: 'กลุ่มที่ระบุในแฟ้ม 14' },
+        ],
+        kpi: { hit: 0, true_issue: 0, override: 0, false_positive: 0, prevented: 0 },
+    },
+    {
+        id: 'RUL-IPD-024', name: 'เตือนเมื่อการวินิจฉัยร่วมที่เพิ่มทำให้ RW ขยับขึ้นผิดปกติ',
+        category: 'Coding', status: 'DRAFT', version: 1,
+        author: 'U-005', approver: null,
+        funds: ['UC', 'OFC', 'SSS', 'LGO'], services: ['IPD'],
+        effective_from: null, effective_to: null,
+        severity: 'WARNING', action: 'APPROVE', maps_to_nhso: null,
+        blocked_by: 'D4',
+        doc_id: 'DOC-DRG-MANUAL', doc_ref: 'ตาราง RW รายกลุ่ม (รอเอกสาร)',
+        desc: 'คัดกรองการให้รหัสเกินจริง (upcoding) — เทียบ RW ของกลุ่มที่ได้กับกลุ่มที่ได้'
+            + 'เมื่อตัด SDx ที่ไม่มีหลักฐานสนับสนุนออก ส่วนต่างที่สูงผิดปกติต้องมีผู้ทบทวนรับรอง',
+        conditions: [
+            { join: '',    field: 'RW เมื่อรวม SDx ทั้งหมด',        op: 'มากกว่า', value: 'RW เมื่อนับเฉพาะ SDx ที่มีผลตรวจรองรับ' },
+            { join: 'AND', field: 'ส่วนต่าง RW',                     op: 'มากกว่า', value: 'เกณฑ์ที่โรงพยาบาลกำหนด' },
+        ],
+        kpi: { hit: 0, true_issue: 0, override: 0, false_positive: 0, prevented: 0 },
+    },
+    {
+        id: 'RUL-IPD-025', name: 'เตือนเมื่อการวินิจฉัยหลักที่เลือกให้ RW ต่ำกว่าที่รหัสในแฟ้มรองรับ',
+        category: 'Coding', status: 'DRAFT', version: 1,
+        author: 'U-005', approver: null,
+        funds: ['UC', 'OFC', 'SSS', 'LGO'], services: ['IPD'],
+        effective_from: null, effective_to: null,
+        severity: 'WARNING', action: 'WARN', maps_to_nhso: null,
+        blocked_by: 'D4',
+        doc_id: 'DOC-DRG-MANUAL', doc_ref: 'ตาราง RW รายกลุ่ม (รอเอกสาร)',
+        desc: 'อีกด้านของ RUL-IPD-024 — จับการให้รหัสต่ำกว่าที่ควร (downcoding) '
+            + 'ซึ่งทำให้โรงพยาบาลเสียรายได้ที่ควรได้ ไม่ใช่เรื่องทุจริตแต่เป็นเรื่องคุณภาพการให้รหัส',
+        conditions: [
+            { join: '',    field: 'RW ของกลุ่มที่ได้จาก PDx ที่เลือก', op: 'น้อยกว่า', value: 'RW ของกลุ่มที่ได้จาก PDx อื่นที่แฟ้มรองรับ' },
+        ],
+        kpi: { hit: 0, true_issue: 0, override: 0, false_positive: 0, prevented: 0 },
+    },
+    {
+        id: 'RUL-IPD-026', name: 'วันนอนต้องอยู่ในจุดตัดจริงของกลุ่ม DRG ตามคู่มือ',
+        category: 'ความครบของข้อมูล', status: 'DRAFT', version: 1,
+        author: 'U-005', approver: null,
+        funds: ['UC', 'OFC', 'SSS', 'LGO'], services: ['IPD'],
+        effective_from: null, effective_to: null,
+        severity: 'WARNING', action: 'APPROVE', maps_to_nhso: null,
+        blocked_by: 'D4',
+        doc_id: 'DOC-DRG-MANUAL', doc_ref: 'ตารางจุดตัดวันนอน (รอเอกสาร)',
+        desc: 'ฉบับที่ใช้จุดตัดจริงจากคู่มือ — จะมาแทน RUL-IPD-018 ที่ตอนนี้ใช้จุดตัดจำลอง '
+            + 'จุดตัดที่ผิดทำให้จับ outlier ผิดตัวทั้งสองทาง',
+        conditions: [
+            { join: '',   field: 'วันนอนที่เบิกได้', op: 'อยู่นอกช่วง', value: 'จุดตัดล่าง–บนของกลุ่มตามคู่มือ' },
+        ],
+        kpi: { hit: 0, true_issue: 0, override: 0, false_positive: 0, prevented: 0 },
+    },
+    {
+        id: 'RUL-IPD-027', name: 'ค่าห้องและค่าอาหารต้องไม่เกินเพดานของกองทุน',
+        category: 'ราคาและค่าใช้จ่าย', status: 'DRAFT', version: 1,
+        author: 'U-004', approver: null,
+        funds: ['OFC', 'LGO'], services: ['IPD'],
+        effective_from: null, effective_to: null,
+        severity: 'ERROR', action: 'FIX', maps_to_nhso: null,
+        blocked_by: 'D6',
+        doc_id: 'DOC-FUND-OFC', doc_ref: 'อัตราค่าห้องและค่าอาหาร (รอเอกสาร)',
+        desc: 'ส่วนที่เกินเพดานต้องให้ผู้ป่วยรับผิดชอบและต้องมีหนังสือยินยอม '
+            + 'ถ้าส่งเบิกทั้งจำนวนจะถูกตัดตอนตรวจสอบและกลายเป็นลูกหนี้ค้าง',
+        conditions: [
+            { join: '',    field: 'ค่าห้อง/ค่าอาหารต่อวัน (BILLGRCS 02)', op: 'มากกว่า', value: 'เพดานตามประกาศของกองทุน' },
+            { join: 'AND', field: 'หนังสือยินยอมส่วนเกิน',                op: 'ไม่พบ',   value: 'ในแฟ้มผู้ป่วยใน' },
+        ],
+        kpi: { hit: 0, true_issue: 0, override: 0, false_positive: 0, prevented: 0 },
+    },
+    {
+        id: 'RUL-IPD-028', name: 'ต้องยื่นภายในกำหนดจริงของแต่ละกองทุน',
+        category: 'ขอบเขตการใช้งาน', status: 'DRAFT', version: 1,
+        author: 'U-004', approver: null,
+        funds: ['UC', 'OFC', 'SSS', 'LGO', 'EMS', 'PVT'], services: ['IPD'],
+        effective_from: null, effective_to: null,
+        severity: 'ERROR', action: 'BLOCK', maps_to_nhso: null,
+        blocked_by: 'D5',
+        doc_id: 'DOC-FUND-DUE', doc_ref: 'กำหนดเวลายื่นรายกองทุน (รอเอกสาร)',
+        desc: 'ตอนนี้ระบบใช้ 30 วันเท่ากันทุกกองทุนเพราะยังไม่มีประกาศฉบับจริง '
+            + 'ซึ่งไม่ตรงความจริง — แต่ละกองทุนกำหนดคนละกรอบเวลาและนับตั้งต้นคนละจุด '
+            + 'เลยกำหนดแล้วเรียกเก็บไม่ได้เลย ไม่ใช่แค่ช้า',
+        conditions: [
+            { join: '',    field: 'วันที่ยื่นเรียกเก็บ', op: 'หลังจาก', value: 'กำหนดยื่นตามประกาศของกองทุนนั้น' },
+        ],
+        kpi: { hit: 0, true_issue: 0, override: 0, false_positive: 0, prevented: 0 },
+    },
+    {
+        id: 'RUL-IPD-029', name: 'UCEP — เกิน 72 ชั่วโมงต้องย้ายไปใช้สิทธิหลักของผู้ป่วย',
+        category: 'สิทธิและการปิดสิทธิ', status: 'DRAFT', version: 1,
+        author: 'U-004', approver: null,
+        funds: ['EMS'], services: ['IPD'],
+        effective_from: null, effective_to: null,
+        severity: 'ERROR', action: 'FIX', maps_to_nhso: null,
+        blocked_by: 'D8',
+        doc_id: 'DOC-FUND-UCEP', doc_ref: 'เงื่อนไข 72 ชั่วโมง (รอเอกสาร)',
+        desc: 'สิทธิ UCEP ครอบคลุมเฉพาะช่วงวิกฤต 72 ชั่วโมงแรก '
+            + 'ส่วนที่เกินต้องเบิกจากสิทธิหลัก และต้องมีหลักฐานการประสานย้ายผู้ป่วย',
+        conditions: [
+            { join: '',    field: 'ระยะเวลานับจากรับไว้', op: 'มากกว่า', value: '72 ชั่วโมง' },
+            { join: 'AND', field: 'การเปลี่ยนสิทธิผู้จ่าย', op: 'ไม่พบ',   value: 'ในระเบียนการนอน' },
+        ],
+        kpi: { hit: 0, true_issue: 0, override: 0, false_positive: 0, prevented: 0 },
+    },
 ];
 
 /** ประวัติเวอร์ชัน — พิสูจน์ BR-02 ว่ากฎ Active ไม่เคยถูกแก้ทับ */
@@ -292,6 +619,32 @@ const MockRules = {
         const n = this.all().filter(r => r.id.startsWith(prefix)).length + 1;
         return `${prefix}-${String(900 + n)}`;
     },
+
+    /**
+     * SRS BR-03 / FR-05 — ผลตรวจทุกครั้งต้องย้อนกลับได้ถึงแหล่งอ้างอิง
+     * คืน { text, verified } เพื่อให้หน้าจอขึ้นป้าย "รอยืนยัน" ได้ตรงจุด
+     */
+    origin(rule) {
+        if (!rule) return null;
+        /* กฎที่ยังรอเอกสารต้องบอกตรง ๆ ว่ายังอ้างอิงไม่ได้
+           ⚠️ ต้องเช็กก่อน 2 เงื่อนไขล่าง ไม่งั้นกฎที่ไม่มีทั้ง origin_doc และ maps_to_nhso
+              จะตกไปที่บรรทัดสุดท้ายแล้วได้ป้ายเขียว "อ้างหน้าเอกสารได้" ซึ่งตรงข้ามกับความจริง */
+        if (rule.blocked_by) {
+            const s = (window.IPD_SOURCES || []).find(x => x.id === rule.blocked_by);
+            return { text: `รอเอกสาร [${rule.blocked_by}] ${s ? s.title : ''}`.trim(), verified: false };
+        }
+        if (rule.origin_doc) return { text: rule.origin_doc, verified: true };
+        if (rule.maps_to_nhso) {
+            return {
+                text: 'โครงการ NHSO Digital Platform Communication V4 · 3 ส.ค. 2569 (ภาพหน้าจอ)',
+                verified: false,
+            };
+        }
+        return { text: 'ระเบียบ/คู่มือภายในโรงพยาบาล', verified: true };
+    },
+
+    /** กฎที่ถอดมาจากเอกสาร สปสช. โดยตรง (อ้างหน้าได้) */
+    fromNhsoDoc() { return this.all().filter(r => !!r.origin_doc); },
 };
 
 MockDB.register('rules', MOCK_RULES);

@@ -1,9 +1,14 @@
 <!DOCTYPE html>
 <!-- =========================================================================
   ส่งเบิก NHSO — รายการส่งเบิก
-  เนื้อหาถอดจาก doc/โครงการ NHSO Digital Platform_Commu_03082026_V4.pdf (3 ส.ค. 2569)
-  · ขั้นตอนการทำงาน 6 ขั้น + สถานะย่อย 1000/1100/4103/3101 + กิจกรรม F000/F001/F002
-  · Business Journey 4 เลน
+  เนื้อหาถอดจากเอกสาร สปสช. 2 ฉบับ
+  · doc/โครงการ NHSO Digital Platform_Commu_03082026_V4.pdf (3 ส.ค. 2569)
+      ขั้นตอนการทำงาน 6 ขั้น + สถานะย่อย 1000/1100/4103/3101 + กิจกรรม F000/F001/F002
+      + Business Journey 4 เลน
+  · doc/2. NHSO.Digital.Platform.Overview.23.06.2569.pdf (23 มิ.ย. 2569)
+      น.7  เส้นทาง 7 ขั้นฝั่งหน่วยบริการ + สถานะปิด Visit
+      น.23 โมเดล 2 ถัง (หน่วยบริการ / สปสช.) + ยอดเรียกเก็บคู่ยอดชดเชย
+      น.25 ตัวกรองและปุ่มกลุ่มของหน้าจอจริง + UID / หมายเลขอ้างอิงรายการก่อนหน้า
 
   ⚠️ หน้าต้นแบบ: ข้อมูลจำลองล้วน ไม่เรียก /api จึงไม่ gate ด้วย Auth.requireLogin()
      เมื่อผูก backend จริง ให้เพิ่มบรรทัด Auth.requireLogin(); กลับเข้าไปในส่วนหัวของหน้า
@@ -12,7 +17,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MediCore RCM — ส่งเบิก NHSO</title>
+    <title>MediClearing — ส่งเบิก NHSO</title>
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
 
     <link rel="stylesheet" href="css/ds-tokens.css">
@@ -57,6 +62,17 @@
             </div>
         </div>
 
+        <!-- 2 ถัง: ใครเป็นเจ้าของงานตอนนี้ — โครงหลักของหน้าแรก NHSO -->
+        <div class="section-card">
+            <div class="section-header">
+                <div class="section-title">
+                    <i data-lucide="split" class="mi"></i> ตอนนี้งานอยู่ที่ใคร
+                </div>
+                <div class="section-actions" id="amountLegend"></div>
+            </div>
+            <div class="cards-row" id="ownerBuckets"></div>
+        </div>
+
         <!-- ขั้นตอน 6 ขั้น — กดกรองได้ -->
         <div class="section-card" style="padding:16px">
             <div class="section-title" style="margin-bottom:12px">
@@ -82,6 +98,11 @@
                 <div class="sip-kpi-value" id="kpiPay">0</div>
                 <div class="sip-kpi-label">มูลค่ารอจ่าย (บาท)</div>
             </div>
+            <div class="sip-kpi critical" onclick="NhsoSubmit.setFileFilter()" style="cursor:pointer">
+                <i data-lucide="file-x" class="sip-kpi-icon icon-lg"></i>
+                <div class="sip-kpi-value" id="kpiFiles">0</div>
+                <div class="sip-kpi-label">ส่งแฟ้มไม่ครบตามกองทุน</div>
+            </div>
             <div class="sip-kpi">
                 <i data-lucide="shield-check" class="sip-kpi-icon icon-lg"></i>
                 <div class="sip-kpi-value" id="kpiPre">0%</div>
@@ -96,45 +117,105 @@
                     <span class="ds-pane-count" id="rowCount">0 รายการ</span>
                 </div>
                 <div class="section-actions">
+                    <button class="btn btn-ghost btn-sm" onclick="NhsoSubmit.toggleAdvanced()">
+                        <i data-lucide="sliders-horizontal" class="icon-sm"></i>
+                        <span id="advBtnText">เพิ่มการค้นหาขั้นสูง</span>
+                    </button>
                     <select class="sip-select" id="fFund" style="width:130px" onchange="NhsoSubmit.render()">
                         <option value="all">ทุกกองทุน</option>
                     </select>
-                    <select class="sip-select" id="fService" style="width:120px" onchange="NhsoSubmit.render()">
-                        <option value="all">ทุกบริการ</option>
-                        <option value="OPD">OP</option>
+                    <select class="sip-select" id="fService" style="width:130px" onchange="NhsoSubmit.render()">
+                        <option value="all">ทุกประเภทบริการ</option>
+                        <option value="OPD">OP / PP</option>
                         <option value="PP">PP</option>
                         <option value="IPD">IP</option>
                     </select>
                     <input type="text" id="searchBox" class="sip-input" style="width:240px"
-                           placeholder="ค้นหา SEQ / HN / AN / ชื่อ..." oninput="NhsoSubmit.render()">
+                           placeholder="ค้นหา SEQ / HN / AN / ชื่อ / UID..." oninput="NhsoSubmit.render()">
+                </div>
+            </div>
+
+            <!-- เงื่อนไขในการค้นหา — ชุดเดียวกับหน้าจอ สปสช. -->
+            <div id="advBox" style="display:none;padding:0 0 12px">
+                <div class="sip-field-row">
+                    <div class="sip-field"><label>SEQ</label>
+                        <input type="text" id="fSeq" class="sip-input" oninput="NhsoSubmit.render()"></div>
+                    <div class="sip-field"><label>Invoice No.</label>
+                        <input type="text" id="fInvoice" class="sip-input" oninput="NhsoSubmit.render()"></div>
+                    <div class="sip-field"><label>HN</label>
+                        <input type="text" id="fHn" class="sip-input" oninput="NhsoSubmit.render()"></div>
+                    <div class="sip-field"><label>AN</label>
+                        <input type="text" id="fAn" class="sip-input" oninput="NhsoSubmit.render()"></div>
+                    <div class="sip-field"><label>หมายเลขอ้างอิง</label>
+                        <input type="text" id="fRef" class="sip-input" oninput="NhsoSubmit.render()"></div>
+                    <div class="sip-field"><label>UID</label>
+                        <input type="text" id="fUid" class="sip-input" oninput="NhsoSubmit.render()"></div>
+                    <div class="sip-field"><label>สิทธิการรักษาที่ใช้</label>
+                        <select class="sip-select" id="fRight" onchange="NhsoSubmit.render()">
+                            <option value="all">ALL เลือกทั้งหมด</option>
+                        </select></div>
+                    <div class="sip-field"><label>วันที่รับบริการ (ตั้งแต่)</label>
+                        <input type="date" id="fFrom" class="sip-input" onchange="NhsoSubmit.render()"></div>
+                    <div class="sip-field"><label>วันที่รับบริการ (ถึง)</label>
+                        <input type="date" id="fTo" class="sip-input" onchange="NhsoSubmit.render()"></div>
+                    <div class="sip-field"><label>ความครบของแฟ้ม</label>
+                        <select class="sip-select" id="fFiles" onchange="NhsoSubmit.render()">
+                            <option value="all">แสดงทั้งหมด</option>
+                            <option value="incomplete">เฉพาะที่ส่งแฟ้มไม่ครบ</option>
+                            <option value="complete">เฉพาะที่ส่งแฟ้มครบ</option>
+                        </select></div>
+                </div>
+                <div style="margin-top:8px">
+                    <button class="btn btn-outline btn-sm" onclick="NhsoSubmit.clearFilters()">
+                        <i data-lucide="eraser" class="icon-sm"></i> ล้างข้อมูล</button>
                 </div>
             </div>
 
             <!-- สถานะย่อย — เปลี่ยนตามขั้นที่เลือก -->
             <div id="subBar" style="padding:0 0 12px"></div>
 
+            <!-- ปุ่มกลุ่ม — ชุดเดียวกับหน้าจอ สปสช. -->
+            <div id="bulkBar" class="ds-bulk-bar" style="display:none"></div>
+
             <div class="table-responsive">
                 <table class="data-table compact">
                     <thead>
                         <tr>
                             <th style="width:1%"><input type="checkbox" onclick="NhsoSubmit.toggleAll(this)"></th>
-                            <th style="width:1%">SEQ</th>
-                            <th style="width:1%">HN</th>
-                            <th style="width:1%">AN</th>
-                            <th>ชื่อ-สกุล</th>
+                            <th style="width:1%">SEQ<div class="ds-th-sub">Invoice No.</div></th>
+                            <th style="width:1%">HN<div class="ds-th-sub">AN</div></th>
+                            <th>ชื่อ-สกุล<div class="ds-th-sub">UID</div></th>
+                            <th style="width:1%">สิทธิ</th>
                             <th style="width:1%">หน่วยบริการ</th>
                             <th style="width:1%">วันที่รับบริการ</th>
                             <th style="width:1%">บริการ</th>
-                            <th style="width:1%;text-align:right">ยอดขอเบิก</th>
+                            <th style="width:1%;text-align:right">ยอดเรียกเก็บ<div class="ds-th-sub">ยอดชดเชย</div></th>
                             <th style="width:1%">สถานะรายการ</th>
+                            <th style="width:1%">แฟ้ม</th>
                             <th style="width:1%">ตรวจก่อนส่ง (ระบบเรา)</th>
-                            <th style="width:1%">หมายเลขอ้างอิง</th>
+                            <th style="width:1%">หมายเลขอ้างอิง<div class="ds-th-sub">รายการก่อนหน้า</div></th>
                             <th style="width:1%"></th>
                         </tr>
                     </thead>
-                    <tbody id="rows"><tr><td colspan="13" class="ds-empty">กำลังโหลด...</td></tr></tbody>
+                    <tbody id="rows"><tr><td colspan="14" class="ds-empty">กำลังโหลด...</td></tr></tbody>
                 </table>
             </div>
+        </div>
+
+        <!-- เส้นทาง 7 ขั้นฝั่งหน่วยบริการ — พับไว้ -->
+        <div class="section-card">
+            <div class="section-header" style="cursor:pointer" onclick="NhsoSubmit.toggleSteps7()">
+                <div class="section-title">
+                    <i data-lucide="footprints" class="mi"></i>
+                    เส้นทางการทำงาน 7 ขั้น — ตั้งแต่เตรียมข้อมูลจนถึงตัดบัญชีลูกหนี้
+                </div>
+                <div class="section-actions">
+                    <button class="btn btn-ghost btn-sm" id="steps7Btn">
+                        <i data-lucide="chevron-down" class="icon-sm"></i> แสดง
+                    </button>
+                </div>
+            </div>
+            <div id="steps7Body" style="display:none"></div>
         </div>
 
         <!-- Business Journey — พับไว้ ไม่ให้บังรายการงาน -->

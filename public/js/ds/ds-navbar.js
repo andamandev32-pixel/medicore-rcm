@@ -62,6 +62,44 @@ const DS_ICONS = {
 
 
 /* ══════════════════════════════════════════════════════════
+   2A. DECK REGISTRY — ⭐ เพิ่มชุดสไลด์ที่นี่ที่เดียว
+
+   ทั้งเมนู "นำเสนอ" บน navbar และการ์ดบนหน้า present-hub.html
+   อ่านจากอาร์เรย์นี้ตัวเดียวกัน — เพิ่ม 1 รายการแล้วขึ้นครบทั้งสองที่
+
+   เวลามีเรื่องเฉพาะที่ต้องทำสไลด์แยก (เจาะโมดูลเดียว · วาระประชุมหนึ่ง ๆ ·
+   สรุปให้ผู้ฟังกลุ่มใดกลุ่มหนึ่ง) ให้ทำ 3 อย่าง
+     1. คัดลอก present-modules.html เป็น shell ใหม่ แล้วสลับชื่อไฟล์สไลด์ที่ <script>
+     2. เขียนไฟล์สไลด์ของตัวเอง — ประกาศ const PRESENT_SLIDES แล้ว window.PRESENT_SLIDES = ...
+        (ห้ามโหลดไฟล์สไลด์สองไฟล์ในหน้าเดียว ชื่อตัวแปรชนกัน)
+     3. เพิ่มรายการที่นี่
+
+   ⚠️ count ต้องตรงกับจำนวนสมาชิกจริงในอาร์เรย์ PRESENT_SLIDES ของไฟล์นั้น
+      เดิมตัวเลขนี้กระจายอยู่หลายที่ (index.html, ปุ่มใน present-exec.html, README)
+      แล้วเพี้ยนเมื่อมีการแทรกสไลด์ — ย้ายมาไว้ที่เดียวเพื่อไม่ให้เกิดซ้ำ
+   ══════════════════════════════════════════════════════════ */
+/* ลำดับในอาร์เรย์ = ลำดับที่โชว์ทั้งบนเมนูและหน้า present-hub
+   ฉบับย่อผู้บริหารอยู่บนสุดโดยตั้งใจ — เป็นชุดที่หยิบไปใช้บ่อยที่สุด */
+const DS_DECKS = [
+    { href: 'present-exec.html', label: 'ฉบับย่อผู้บริหาร', icon: 'gauge', count: 16,
+      desc: 'ที่มาของโครงการจากเสียงหน้างาน · แกน “ของเดิม / ของใหม่ / ที่ปรับปรุงขึ้น” · ' +
+            'ผังเป็นอินโฟกราฟิก · แผนพัฒนา 6 เดือน — จบใน 15–20 นาที',
+      tags: ['ที่มาจากหน้างาน', 'เปรียบเทียบก่อน–หลัง', 'ควบคุมการส่งต่อ', 'ติดตามผู้ป่วยใน', 'แผน 6 เดือน'] },
+
+    { href: 'present-modules.html', label: 'สรุปงานรายส่วน', icon: 'listChecks', count: 24,
+      badge: { text: 'New', type: 'new' },
+      desc: 'เริ่มจากสิ่งที่หน้างานบอกมา แล้วไล่ทีละส่วนงาน — มีฟีเจอร์อะไร ทำงานอย่างไร ' +
+            'จะได้อะไร และปิดจุดบอดอะไร พร้อมผังขั้นตอนของทุกโมดูล',
+      tags: ['ที่มาจากหน้างาน', 'ภาพรวมผู้บริหาร', 'Claim', 'ผู้ป่วยใน (IPD)', 'ส่งต่อผู้ป่วย', 'ส่งเบิก NHSO'] },
+
+    { href: 'present.html', label: 'ฉบับเต็ม', icon: 'bookOpen', count: 30,
+      desc: 'ที่มาจากเสียงหน้างาน 6 ข้อ · บริบท สปสช. · สองวงจรย้อนกลับ · สถาปัตยกรรม · ' +
+            'สองโมดูลใหม่ · แผนส่งมอบ 4 ระยะ · ตัวชี้วัด',
+      tags: ['ที่มาจากหน้างาน', 'SRS', 'NHSO Digital Platform', 'สถาปัตยกรรม', 'ควบคุมการส่งต่อ', 'ติดตามผู้ป่วยใน'] },
+];
+
+
+/* ══════════════════════════════════════════════════════════
    2. MENU CONFIG — ⭐ แก้เมนูที่นี่ที่เดียว
 
    รูปแบบกลุ่ม dropdown:
@@ -83,7 +121,18 @@ const DS_ICONS = {
 const DS_MENU = [
     { link: 'index.html', label: 'หน้าแรก', icon: 'home' },
 
-    { link: 'claim-dashboard.html', label: 'ภาพรวมผู้บริหาร', icon: 'gauge', accent: 'amber' },
+    {
+        /* เดิมเป็นลิงก์เดี่ยวชี้ claim-dashboard.html — แตกเป็นกลุ่มเมื่อมีหน้าการเงินเข้ามา
+           accent:'amber' ใช้ได้กับกลุ่มเหมือนลิงก์เดี่ยว (.mc-nav-dropdown.accent-amber)
+           เมนูนี้จึงยังเด่นเท่าเดิมหลังกลายเป็น dropdown
+           ⚠️ ห้ามใส่ roles: — กลุ่มต้นแบบ (PAGE-GUIDE §7B) */
+        group: 'exec', label: 'ภาพรวมผู้บริหาร', icon: 'gauge', accent: 'amber',
+        items: [
+            { href: 'claim-dashboard.html', label: 'Claim Control Tower', icon: 'gauge' },
+            { href: 'exec-finance.html',    label: 'สรุปยอดเงินโอน สปสช./ประกันสังคม',
+              icon: 'banknote', badge: { text: 'New', type: 'new' } },
+        ],
+    },
 
     {
         group: 'claim', label: 'Claim Intelligence', icon: 'checkSquare',
@@ -105,6 +154,25 @@ const DS_MENU = [
     },
 
     {
+        /* วางหลัง claim เพราะงานผู้ป่วยในเป็นเส้นงานคู่ขนานกับเคลมผู้ป่วยนอก
+           แล้วไปจบที่คิวส่งเบิกเดียวกัน
+           ⚠️ ห้ามใส่ roles: — กลุ่มต้นแบบ (PAGE-GUIDE §7B) */
+        group: 'ipd', label: 'ผู้ป่วยใน (IPD)', icon: 'bed',
+        items: [
+            { section: 'งานประจำวัน' },
+            { href: 'ipd-worklist.html', label: 'ทะเบียนผู้ป่วยใน',  icon: 'listChecks',
+              badge: { text: 'New', type: 'new' } },
+            { href: 'ipd-admit.html',    label: 'ติดตามระหว่างนอน',   icon: 'heartPulse' },
+            { sep: true },
+            { section: 'ตรวจสอบก่อนส่งเบิก' },
+            { href: 'ipd-audit.html',    label: 'ตรวจแฟ้มผู้ป่วยใน',  icon: 'checkSquare' },
+            { sep: true },
+            { section: 'ข้อมูลอ้างอิง' },
+            { href: 'ipd-reference.html', label: 'ตารางอ้างอิง / DRG', icon: 'bookOpen' },
+        ],
+    },
+
+    {
         /* วางระหว่าง claim กับ nhso เพราะลำดับงานจริงคือ เคลม → ส่งต่อ → ส่งเบิก
            และการส่งต่อป้อนงานให้ทั้งสองฝั่ง
            ⚠️ ห้ามใส่ roles: — กลุ่มต้นแบบ (PAGE-GUIDE §7B) DSNavbar._role() คืน ''
@@ -114,7 +182,11 @@ const DS_MENU = [
             { section: 'งานประจำวัน' },
             { href: 'refer-worklist.html',  label: 'ทะเบียนการส่งต่อ',    icon: 'listChecks',
               badge: { text: 'New', type: 'new' } },
+            { href: 'refer-new.html',       label: 'สร้างคำขอส่งต่อ',      icon: 'edit' },
             { href: 'refer-case.html',      label: 'รายละเอียดการส่งต่อ',  icon: 'fileText' },
+            { sep: true },
+            { section: 'อนุมัติวงเงิน' },
+            { href: 'exec-approve.html',    label: 'อนุมัติระดับผู้บริหาร', icon: 'shield' },
             { sep: true },
             { section: 'การเงิน' },
             { href: 'refer-billing.html',   label: 'ตามจ่าย / เรียกเก็บ', icon: 'banknote' },
@@ -152,7 +224,24 @@ const DS_MENU = [
         ],
     },
 
-    { link: 'present.html', label: 'นำเสนอ', icon: 'presentation', accent: 'green', tag: 'Deck' },
+    {
+        /* เมนูนำเสนอ — รายการสไลด์ generate จาก DS_DECKS ข้างบน ไม่พิมพ์ซ้ำที่นี่
+           alignRight เพราะอยู่ท้ายแถบ ถ้าปล่อยชิดซ้ายแผงจะล้นขอบจอ 1366px
+           ⚠️ ห้ามใส่ roles: — กลุ่มต้นแบบ (PAGE-GUIDE §7B) */
+        group: 'present', label: 'นำเสนอ', icon: 'presentation', accent: 'green',
+        alignRight: true, title: 'เลือกชุดสไลด์ที่จะนำเสนอ',
+        items: [
+            { section: 'ชุดสไลด์ที่มี' },
+            ...DS_DECKS.map(d => ({
+                href:  d.href,
+                label: d.label + ' · ' + d.count + ' หน้า',
+                icon:  d.icon,
+                badge: d.badge,
+            })),
+            { sep: 'strong' },
+            { href: 'present-hub.html', label: 'ศูนย์รวมสไลด์ทั้งหมด', icon: 'box' },
+        ],
+    },
 
     {
         group: 'settings', label: '', icon: 'settings', alignRight: true,
@@ -189,7 +278,7 @@ const DSNavbar = {
 
     /* ── ปรับแต่งได้จากหน้า (เรียกก่อน DOMContentLoaded) ── */
     opts: {
-        brand:    'MediCore',
+        brand:    'MediClearing',
         brandSub: 'RCM',
         homeHref: 'index.html',
         menu:     null,          // null = ใช้ DS_MENU
@@ -285,7 +374,9 @@ const DSNavbar = {
                     </a>`;
         }).join('\n');
 
-        return `<div class="mc-nav-dropdown" data-group="${e.group}" ${dsGate(e.roles)}>
+        // accent ใช้ได้ทั้งลิงก์เดี่ยวและกลุ่ม — กลุ่ม "นำเสนอ" ต้องเด่นเท่าตอนที่ยังเป็นลิงก์เดี่ยว
+        return `<div class="mc-nav-dropdown${e.accent ? ' accent-' + e.accent : ''}"
+                     data-group="${e.group}" ${dsGate(e.roles)}>
                     <button class="mc-nav-dd-btn" ${e.title ? `title="${dsEsc(e.title)}"` : ''}>
                         <span class="mc-nav-ic">${DS_ICONS[e.icon] || ''}</span>
                         ${e.label ? dsEsc(e.label) : ''}
@@ -434,5 +525,6 @@ function dsSlug(href) {
 
 window.DSNavbar = DSNavbar;
 window.DS_ICONS = DS_ICONS;
+window.DS_DECKS = DS_DECKS;   /* present-hub.js อ่านต่อ — ทะเบียนสไลด์อยู่ที่เดียว */
 
 document.addEventListener('DOMContentLoaded', () => DSNavbar.init());

@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<!-- =========================================================================
+  สร้างคำขอส่งต่อผู้ป่วย (New Referral Request)
+
+  โครงหน้า: doc/PAGE-GUIDE.md §3(ข) — .ds-shell แบบ 2 คอลัมน์
+    กลาง = ฟอร์ม · ขวา = สรุปสด + ความพร้อมส่งขออนุมัติ + ปุ่มบันทึก
+  ⚠️ ไม่ใส่คลาส .cols-2 ที่ .ds-shell — คลาสนั้น "ซ่อน" แผงขวา (ds-layout.css)
+     หน้านี้ไม่มีแผงซ้าย จึงได้ 2 คอลัมน์จากการไม่ใส่ .ds-pane-left เอง
+
+  ⚠️ หน้าต้นแบบ: ข้อมูลจำลองล้วน ไม่เรียก /api จึงไม่ gate ด้วย Auth.requireLogin()
+     (PAGE-GUIDE §7B) เมื่อผูก backend จริงให้เพิ่ม Auth.requireLogin(); กลับเข้ามา
+     และเปลี่ยน MockDB.insert เป็น fetch('/api/referrals', {method:'POST'})
+  ========================================================================= -->
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>MediClearing — สร้างคำขอส่งต่อ</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+
+    <link rel="stylesheet" href="css/ds-tokens.css">
+    <link rel="stylesheet" href="css/ds-base.css">
+    <link rel="stylesheet" href="css/ds-navbar.css">
+    <link rel="stylesheet" href="css/ds-layout.css">
+    <link rel="stylesheet" href="css/ds-components.css">
+    <link rel="stylesheet" href="css/ds-overlays.css">
+    <link rel="stylesheet" href="css/ds-print.css">
+    <link rel="stylesheet" href="css/ds-portal.css">
+
+    <script src="js/ds/ds-auth.js"></script>
+</head>
+<body data-page="refer-new" class="ds-shell-page">
+
+    <nav id="appNavbar"></nav>
+
+    <div class="ds-shell" id="shell">
+
+        <!-- ══════════ กลาง — ฟอร์ม ══════════ -->
+        <main class="ds-pane-main">
+            <div style="padding:16px 24px 40px">
+
+                <div id="demoBanner"></div>
+
+                <div class="page-header">
+                    <div>
+                        <div class="page-title">
+                            <i data-lucide="file-plus" class="mi"></i>
+                            <span>สร้างคำขอส่งต่อผู้ป่วย</span>
+                        </div>
+                        <div class="page-subtitle">
+                            บันทึกคำขอไว้เป็นร่างก่อน หรือส่งขออนุมัติวงเงินต่อทันที —
+                            เลขที่ใบส่งตัวและเลขอนุมัติจะออกให้หลังผู้มีอำนาจอนุมัติเท่านั้น
+                        </div>
+                    </div>
+                    <div class="section-actions">
+                        <button class="btn btn-outline" onclick="location.href='refer-worklist.html'">
+                            <i data-lucide="list" class="icon-sm"></i> ทะเบียนการส่งต่อ
+                        </button>
+                    </div>
+                </div>
+
+                <!-- ── 1. ทิศทางและผู้ป่วย ── -->
+                <div class="section-card">
+                    <div class="section-header">
+                        <div class="section-title">
+                            <i data-lucide="user" class="mi"></i> ทิศทางและผู้ป่วย
+                        </div>
+                        <div class="ds-segbar" id="segDir"></div>
+                    </div>
+                    <div class="card-body">
+                        <div class="ds-note" id="dirNote" style="margin-bottom:12px"></div>
+
+                        <div class="sip-field-row">
+                            <div class="sip-field">
+                                <label class="sip-label">HN *</label>
+                                <input class="sip-input" id="fHn" list="hnList" autocomplete="off"
+                                       placeholder="เช่น 00131204" oninput="ReferNew.onHn()">
+                                <datalist id="hnList"></datalist>
+                            </div>
+                            <div class="sip-field" style="grid-column:span 2">
+                                <label class="sip-label">ชื่อ–สกุลผู้ป่วย *</label>
+                                <input class="sip-input" id="fPatient" placeholder="เช่น นายบุญส่ง ทองสุข">
+                            </div>
+                        </div>
+
+                        <div class="sip-field-row">
+                            <div class="sip-field">
+                                <label class="sip-label">อายุ (ปี)</label>
+                                <input class="sip-input" id="fAge" type="number" min="0" max="120">
+                            </div>
+                            <div class="sip-field">
+                                <label class="sip-label">เพศ</label>
+                                <select class="sip-select" id="fGender">
+                                    <option value="M">ชาย</option>
+                                    <option value="F">หญิง</option>
+                                </select>
+                            </div>
+                            <div class="sip-field">
+                                <label class="sip-label">กองทุน / สิทธิ *</label>
+                                <select class="sip-select" id="fFund" onchange="ReferNew.onFund()"></select>
+                            </div>
+                            <div class="sip-field">
+                                <label class="sip-label">เลขที่สิทธิ</label>
+                                <input class="sip-input" id="fRightNo" placeholder="ระบบเติมให้จาก HN + กองทุน">
+                            </div>
+                        </div>
+
+                        <!-- AN ใช้เฉพาะเมื่อขอบเขตเป็น "รับไว้เป็นผู้ป่วยใน" -->
+                        <div class="sip-field" id="rowAn" style="display:none">
+                            <label class="sip-label">AN (เลขที่ผู้ป่วยใน)</label>
+                            <input class="sip-input" id="fAn" placeholder="เช่น AN690812">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ── 2. คู่สัญญาและเหตุผล ── -->
+                <div class="section-card">
+                    <div class="section-header">
+                        <div class="section-title">
+                            <i data-lucide="hospital" class="mi"></i>
+                            <span id="partnerCardTitle">ปลายทางและเหตุผลที่ส่งต่อ</span>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="sip-field">
+                            <label class="sip-label" id="partnerLabel">ปลายทางที่ส่งไป *</label>
+                            <select class="sip-select" id="fPartner" onchange="ReferNew.sync()"></select>
+                        </div>
+
+                        <div class="sip-field-row">
+                            <div class="sip-field">
+                                <label class="sip-label">เหตุผลที่ส่งต่อ *</label>
+                                <select class="sip-select" id="fReason" onchange="ReferNew.sync()"></select>
+                            </div>
+                            <div class="sip-field">
+                                <label class="sip-label">ความเร่งด่วน</label>
+                                <select class="sip-select" id="fUrgency" onchange="ReferNew.sync()"></select>
+                            </div>
+                            <div class="sip-field">
+                                <label class="sip-label">วันที่ขอส่งต่อ *</label>
+                                <input class="sip-input" id="fReferDate" type="date" value="2026-08-06">
+                            </div>
+                        </div>
+
+                        <!-- เจ้าของไข้กับผู้เขียนใบส่งต่ออาจเป็นคนละคน (แพทย์เวร/แพทย์ที่ปรึกษา)
+                             ผู้อนุมัติต้องเห็นทั้งคู่ ไม่งั้นตามกลับไม่ได้ว่าใครรับผิดชอบทางคลินิก -->
+                        <div class="sip-field-row">
+                            <div class="sip-field">
+                                <label class="sip-label">แพทย์เจ้าของไข้ *</label>
+                                <input class="sip-input" id="fAttending" list="docList" autocomplete="off"
+                                       placeholder="เช่น พญ.ชลธิชา ภักดีวงศ์">
+                            </div>
+                            <div class="sip-field">
+                                <label class="sip-label">แพทย์ผู้เขียนใบส่งต่อ *</label>
+                                <input class="sip-input" id="fDoctor" list="docList" autocomplete="off"
+                                       placeholder="เช่น นพ.ธนกฤต วงศ์สถาพร">
+                                <datalist id="docList"></datalist>
+                            </div>
+                            <div class="sip-field">
+                                <label class="sip-label">แผนก / คลินิกที่ดูแล</label>
+                                <input class="sip-input" id="fClinicDept" list="deptList" autocomplete="off"
+                                       placeholder="เช่น คลินิกโรคหัวใจ · อายุรกรรม">
+                                <datalist id="deptList"></datalist>
+                            </div>
+                        </div>
+                        <div class="ds-note" id="doctorNote" style="display:none">
+                            <i data-lucide="user-round-check" class="icon-sm"></i>
+                            <span>เจ้าของไข้กับผู้เขียนใบส่งต่อเป็นคนเดียวกัน — ปล่อยไว้ได้
+                            ถ้าใบนี้เขียนโดยแพทย์เวรหรือแพทย์ที่ปรึกษา ให้แก้ช่องผู้เขียนเป็นชื่อคนนั้น</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ── 3. สรุปทางคลินิก — เนื้อหาหลักที่ผู้อนุมัติใช้ตัดสิน ── -->
+                <div class="section-card">
+                    <div class="section-header">
+                        <div class="section-title">
+                            <i data-lucide="notebook-pen" class="mi"></i> สรุปทางคลินิก (Clinical Review)
+                        </div>
+                        <div class="section-actions">
+                            <span class="ds-pane-count" id="reviewCount">0/5 หัวข้อ</span>
+                            <button class="btn btn-outline btn-sm" onclick="ReferNew.openHis()">
+                                <i data-lucide="database" class="icon-sm"></i> ดึงข้อมูลจาก HIS
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="ds-note" style="margin-bottom:12px">
+                            <i data-lucide="lightbulb" class="icon-sm"></i>
+                            <span>เหตุผลที่เลือกจากรายการด้านบนเป็นแค่ "หมวด" — ผู้อนุมัติตัดสินวงเงินจาก
+                            ข้อความในส่วนนี้ ยิ่งเขียนละเอียด ยิ่งถูกตีกลับน้อย และใช้อ้างอิงตอน
+                            สปสช. ขอเวชระเบียนย้อนหลังได้ · กด <strong>ดึงข้อมูลจาก HIS</strong>
+                            เพื่อเลือกหมวดที่ต้องการแทนการพิมพ์ซ้ำจากอีกจอ</span>
+                        </div>
+                        <div id="hisPulled"></div>
+                        <!-- ช่องกรอกสร้างจาก REFER_REVIEW_PARTS เพื่อไม่ให้หัวข้อสองที่หลุดจากกัน -->
+                        <div id="reviewFields"></div>
+                    </div>
+                </div>
+
+                <!-- ── 4. การตรวจทานโดยเจ้าหน้าที่ (maker ของ Maker–Checker) ── -->
+                <div class="section-card">
+                    <div class="section-header">
+                        <div class="section-title">
+                            <i data-lucide="user-check" class="mi"></i> การตรวจทานก่อนส่งขออนุมัติ
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="sip-field-row">
+                            <div class="sip-field" style="grid-column:span 2">
+                                <label class="sip-label">เจ้าหน้าที่ผู้ตรวจทาน *</label>
+                                <select class="sip-select" id="fReviewer"></select>
+                            </div>
+                            <div class="sip-field" style="display:flex;align-items:flex-end">
+                                <label class="sip-checkbox" style="margin-bottom:8px">
+                                    <input type="checkbox" id="fReviewed"> ตรวจทานแล้ว
+                                </label>
+                            </div>
+                        </div>
+                        <div class="sip-field">
+                            <label class="sip-label">ความเห็นเจ้าหน้าที่ตรวจทาน</label>
+                            <textarea class="sip-textarea" id="fReviewNote" rows="3"
+                                placeholder="สิทธิยังใช้ได้ไหม · เอกสารครบไหม · วงเงินเทียบอัตราตามจ่ายแล้วสมเหตุผลไหม · เสนออนุมัติหรือให้แก้อะไรก่อน"></textarea>
+                        </div>
+                        <div class="ds-note">
+                            <i data-lucide="shield-check" class="icon-sm"></i>
+                            <span>เจ้าหน้าที่ที่ตรวจทานคือ <strong>ผู้เสนอ (maker)</strong> —
+                            ระบบจะส่งงานอนุมัติไปหาผู้มีอำนาจคนอื่นเสมอ ผู้เสนออนุมัติเองไม่ได้ (BR-05)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ── 5. การวินิจฉัยและหัตถการ ── -->
+                <div class="section-card">
+                    <div class="section-header">
+                        <div class="section-title">
+                            <i data-lucide="stethoscope" class="mi"></i> การวินิจฉัยและหัตถการ
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="ds-section-label">การวินิจฉัยหลัก</div>
+                        <div class="sip-field-row">
+                            <div class="sip-field">
+                                <label class="sip-label">รหัส ICD-10 *</label>
+                                <input class="sip-input" id="fDxCode" placeholder="เช่น N18.5"
+                                       oninput="ReferNew.sync()">
+                            </div>
+                            <div class="sip-field" style="grid-column:span 2">
+                                <label class="sip-label">ชื่อการวินิจฉัย *</label>
+                                <input class="sip-input" id="fDxName"
+                                       placeholder="เช่น Chronic kidney disease, stage 5"
+                                       oninput="ReferNew.sync()">
+                            </div>
+                        </div>
+
+                        <div class="ds-section-label" style="margin-top:12px">
+                            หัตถการที่วางแผน
+                            <button class="btn btn-ghost btn-sm" style="margin-left:auto"
+                                    onclick="ReferNew.addProc()">
+                                <i data-lucide="plus" class="icon-sm"></i> เพิ่มแถว
+                            </button>
+                        </div>
+                        <div id="procRows"></div>
+                    </div>
+                </div>
+
+                <!-- ── 6. ขอบเขตและวงเงิน ── -->
+                <div class="section-card">
+                    <div class="section-header">
+                        <div class="section-title">
+                            <i data-lucide="wallet" class="mi"></i> ขอบเขตที่ขอและวงเงิน
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="sip-field-row">
+                            <div class="sip-field" style="grid-column:span 2">
+                                <label class="sip-label">ขอบเขตที่ขออนุมัติ *</label>
+                                <select class="sip-select" id="fScope" onchange="ReferNew.onScope()"></select>
+                            </div>
+                            <div class="sip-field">
+                                <label class="sip-label">จำนวนครั้งที่ขอ</label>
+                                <input class="sip-input" id="fVisitLimit" type="number" min="1" value="1">
+                            </div>
+                        </div>
+
+                        <div class="sip-field">
+                            <label class="sip-label">รายละเอียดขอบเขต</label>
+                            <input class="sip-input" id="fScopeNote"
+                                   placeholder="เช่น ฟอกเลือดด้วยเครื่องไตเทียม ไม่เกิน 12 ครั้ง">
+                        </div>
+
+                        <div class="sip-field-row">
+                            <div class="sip-field">
+                                <label class="sip-label">วงเงินที่ขออนุมัติ (บาท) *</label>
+                                <input class="sip-input" id="fCap" type="number" min="0" step="1000"
+                                       oninput="ReferNew.sync()">
+                            </div>
+                            <div class="sip-field">
+                                <label class="sip-label">ประมาณการค่าใช้จ่าย (บาท)</label>
+                                <input class="sip-input" id="fEst" type="number" min="0" step="1000">
+                            </div>
+                            <div class="sip-field">
+                                <label class="sip-label">ประเภทบริการ</label>
+                                <select class="sip-select" id="fServiceType">
+                                    <option value="OPD">ผู้ป่วยนอก (OPD)</option>
+                                    <option value="IPD">ผู้ป่วยใน (IPD)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="sip-field-row">
+                            <div class="sip-field" style="grid-column:span 2">
+                                <label class="sip-label">ช่องทางตามจ่าย / เรียกเก็บ</label>
+                                <select class="sip-select" id="fChannel"></select>
+                            </div>
+                            <div class="sip-field" style="display:flex;align-items:flex-end">
+                                <label class="sip-checkbox" style="margin-bottom:8px">
+                                    <input type="checkbox" id="fReimbursable" checked> เบิกคืนได้
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ── 7. มอบหมายและบันทึก ── -->
+                <div class="section-card">
+                    <div class="section-header">
+                        <div class="section-title">
+                            <i data-lucide="clipboard" class="mi"></i> มอบหมายและบันทึก
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="sip-field-row">
+                            <div class="sip-field">
+                                <label class="sip-label">ผู้รับผิดชอบ</label>
+                                <select class="sip-select" id="fOwner"></select>
+                            </div>
+                            <div class="sip-field">
+                                <label class="sip-label">กำหนดถัดไป</label>
+                                <input class="sip-input" id="fDue" type="date" value="2026-08-12">
+                            </div>
+                        </div>
+
+                        <div class="sip-field">
+                            <label class="sip-label">บันทึกเพิ่มเติมถึงผู้อนุมัติ</label>
+                            <textarea class="sip-textarea" id="fNote" rows="3"
+                                placeholder="เรื่องที่ไม่ใช่เนื้อหาทางคลินิก เช่น ผู้ป่วยมีนัดปลายทางแล้ว · ญาติร้องขอ · เอกสารที่ตามอยู่..."></textarea>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+
+        <!-- ══════════ ขวา — สรุปสดและปุ่มบันทึก ══════════ -->
+        <aside class="ds-pane-right">
+            <div class="ds-pane-header">
+                <h3><i data-lucide="clipboard-check" class="mi"></i> สรุปและความพร้อม</h3>
+            </div>
+            <div class="ds-pane-scroll" style="padding:0 16px 100px" id="summaryPane"></div>
+            <div class="ds-actions">
+                <button class="btn btn-outline" onclick="ReferNew.cancel()">ยกเลิก</button>
+                <button class="btn btn-save" onclick="ReferNew.save(false)">บันทึกร่าง</button>
+                <button class="btn btn-save-send" id="btnSubmit" onclick="ReferNew.save(true)">
+                    บันทึกและส่งขออนุมัติ
+                </button>
+            </div>
+        </aside>
+
+    </div>
+
+    <div id="toastContainer" class="toast-container"></div>
+
+    <script src="js/ds/ds-icons.js"></script>
+    <script src="js/ds/ds-navbar.js"></script>
+    <script src="js/ds/ds-drawer.js"></script>
+    <script src="js/ds/ds-toast.js"></script>
+    <script src="js/ds/ds-doc-parts.js"></script>
+    <script src="js/ds/ds-doc-print.js"></script>
+
+    <script src="js/mock/mock-core.js"></script>
+    <script src="js/mock/mock-session.js"></script>
+    <script src="js/mock/mock-admin.js"></script>
+    <script src="js/mock/mock-nhso.js"></script>
+    <script src="js/mock/mock-claims.js"></script>
+    <script src="js/mock/mock-referrals.js"></script>
+    <script src="js/mock/mock-tasks.js"></script>
+    <!-- ต้องอยู่หลัง mock-claims + mock-referrals — MockHIS ฉายข้อมูลจากสองตัวนี้ -->
+    <script src="js/mock/mock-his.js"></script>
+
+    <script src="js/refer-new.js"></script>
+</body>
+</html>

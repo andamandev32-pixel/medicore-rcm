@@ -473,7 +473,7 @@ const CaseView = {
                     <tbody>${n.errors.map(e => `<tr>
                         <td><span class="sip-chip ${e.level === 'ERROR' ? 'sip-chip-danger' : 'sip-chip-amber'}">${esc(e.code)}</span></td>
                         <td class="td-sub">${esc(e.level)}</td>
-                        <td class="td-sub">${e.group === 'PROCESS' ? 'ประมวลผลไฟล์' : 'ตรวจสอบขั้นต้น'}</td>
+                        <td class="td-sub">${e.group === 'PROCESS' ? 'ประมวลผลไฟล์' : 'ตรวจสอบเบื้องต้น'}</td>
                         <td style="font-size:11px">${esc(e.text)}</td>
                     </tr>`).join('')}</tbody>
                 </table>

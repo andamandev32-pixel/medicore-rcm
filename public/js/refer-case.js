@@ -235,7 +235,11 @@ const ReferCase = {
                         'ระดับ / จังหวัด': `${esc(r.partner_level)} · ${esc(r.partner_province)}`,
                         'เหตุผล': `<span class="sip-chip ${esc(MockRefer.reasonMeta(r).chip)}">${esc(MockRefer.reasonMeta(r).label)}</span>`,
                         'ความเร่งด่วน': esc((REFER_URGENCY[r.urgency] || {}).label || r.urgency),
-                        'แพทย์ผู้ส่งต่อ': esc(r.doctor),
+                        'แพทย์เจ้าของไข้': esc(MockRefer.doctorMeta(r).attending || '—'),
+                        'ผู้เขียนใบส่งต่อ': esc(r.doctor || '—') +
+                            (MockRefer.doctorMeta(r).sameCoin ? ''
+                                : ' <span class="sip-chip sip-chip-amber">คนละคนกับเจ้าของไข้</span>'),
+                        'แผนก / คลินิก': esc(r.clinic_dept || '—'),
                         'การวินิจฉัย': dxHtml,
                     })}
                     <div class="ds-section-label" style="margin-top:10px">หัตถการที่ทำจริง</div>
@@ -287,7 +291,63 @@ const ReferCase = {
                     <div class="ds-section-label" style="margin-top:12px">ความพร้อมตามจ่าย</div>
                     <div class="ds-stepper">${stepper}</div>
                 </div>
-            </div>`;
+            </div>
+
+            ${this.reviewCard(r)}`;
+    },
+
+    /**
+     * สรุปทางคลินิก + ลายเซ็นเจ้าหน้าที่ตรวจทาน
+     * เนื้อหาชุดเดียวกับที่ผู้อนุมัติเห็นบน claim-tasks.html — ตั้งใจให้ตรงกัน
+     * เพื่อให้คนกรอกรู้ล่วงหน้าว่าอีกฝั่งจะอ่านอะไร
+     */
+    reviewCard(r) {
+        const parts   = MockRefer.reviewParts(r);
+        const missing = MockRefer.reviewMissing(r);
+        const rv      = MockRefer.reviewer(r);
+
+        return `
+        <div class="section-card" style="margin-top:14px">
+            <div class="section-header">
+                <div class="section-title"><i data-lucide="notebook-pen" class="mi"></i>
+                    สรุปทางคลินิกและการตรวจทาน</div>
+                <div class="section-actions">
+                    <span class="ds-pane-count" style="color:${missing.length
+                        ? 'var(--status-danger)' : 'var(--status-success)'}">
+                        ${parts.filter(p => p.text).length}/${parts.length} หัวข้อ</span>
+                    ${rv ? `<span class="sip-chip sip-chip-success">ตรวจทานโดย ${esc(rv.name)}</span>`
+                         : '<span class="sip-chip sip-chip-amber">ยังไม่มีผู้ตรวจทาน</span>'}
+                </div>
+            </div>
+            ${parts.some(p => p.text) ? parts.map(p => `
+                <div style="padding:8px 0;border-bottom:1px dashed var(--brand-border)">
+                    <div class="ds-section-label" style="margin:0 0 4px">${esc(p.label)}
+                        ${p.text ? '' : p.required
+                            ? '<span class="sip-chip sip-chip-danger">ยังไม่เขียน</span>' : ''}</div>
+                    <div style="font-size:12.5px;line-height:1.75;${p.text ? '' : 'color:var(--text-muted)'}">
+                        ${p.text ? esc(p.text) : '—'}</div>
+                </div>`).join('')
+              : `<div class="ds-empty">ยังไม่มีสรุปทางคลินิกสำหรับรายการนี้
+                    <div class="td-sub" style="margin-top:6px">
+                        คำขอที่เขียนก่อนเปิดใช้แบบฟอร์มใหม่จะมีแต่หมายเหตุบรรทัดเดียว —
+                        เพิ่มรายละเอียดได้ที่ช่องบันทึกการดำเนินการทางขวา</div></div>`}
+            ${MockRefer.reviewSources(r).length ? `
+            <div class="ds-note" style="margin-top:10px">
+                <i data-lucide="database" class="icon-sm"></i>
+                ดึงจากระบบ HIS ${MockRefer.reviewSources(r).length} หมวด —
+                ${esc(MockRefer.reviewSources(r).map(s => s.label).join(' · '))}
+            </div>` : ''}
+            ${rv && rv.note ? `
+            <div class="ds-note" style="margin-top:10px">
+                <i data-lucide="user-check" class="icon-sm"></i>
+                ความเห็นผู้ตรวจทาน (${esc(rv.name)} · ${esc(MockFmt.dateTimeTH(rv.at))}): ${esc(rv.note)}
+            </div>` : ''}
+            ${r.refer_note ? `
+            <div class="ds-note" style="margin-top:8px">
+                <i data-lucide="message-square" class="icon-sm"></i>
+                บันทึกเพิ่มเติม: ${esc(r.refer_note)}
+            </div>` : ''}
+        </div>`;
     },
 
     /* ══════════ แท็บ 2 — ตรวจสอบ ══════════ */
@@ -655,6 +715,17 @@ const ReferCase = {
                 เสี่ยง ${esc(MockFmt.baht(MockRefer.amountAtRisk(r)))} บาท</span>
             </div>` : ''}
 
+            ${canRequest ? (MockRefer.reviewMissing(r).length ? `
+            <div class="sip-banner sip-banner-warning" style="margin-bottom:12px">
+                <i data-lucide="notebook-pen" class="icon-sm"></i>
+                <span>สรุปทางคลินิกยังขาด ${MockRefer.reviewMissing(r).length} หัวข้อ —
+                ต้องให้แพทย์เติมก่อนจึงส่งขออนุมัติได้</span>
+            </div>` : `
+            <div class="sip-banner sip-banner-info" style="margin-bottom:12px">
+                <i data-lucide="user-check" class="icon-sm"></i>
+                <span>สรุปทางคลินิกครบแล้ว — เหลือให้เจ้าหน้าที่ตรวจทานและลงชื่อก่อนส่ง</span>
+            </div>`) : ''}
+
             <div class="ds-section-label">งานที่ผูกกับรายการนี้</div>
             ${tasks.length ? tasks.map(t => `
                 <div class="ds-list-card" onclick="location.href='claim-tasks.html?id=${encodeURIComponent(t.id)}'">
@@ -681,7 +752,7 @@ const ReferCase = {
 
             <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap">
                 ${canRequest ? `<button class="btn btn-primary btn-sm" onclick="ReferCase.requestApproval()">
-                    <i data-lucide="send" class="icon-sm"></i> ส่งขออนุมัติ</button>` : ''}
+                    <i data-lucide="user-check" class="icon-sm"></i> ตรวจทานและส่งขออนุมัติ</button>` : ''}
                 ${MockRefer.hasError(r) ? `<button class="btn btn-danger btn-sm" onclick="ReferCase.openOverride(0)">
                     <i data-lucide="shield-alert" class="icon-sm"></i> ขอ Override</button>` : ''}
             </div>`;
@@ -742,14 +813,97 @@ const ReferCase = {
         this.select(r.id);
     },
 
+    /**
+     * ตรวจทานแล้วส่งขออนุมัติ — ขั้นของเจ้าหน้าที่ (maker) ก่อนถึงโต๊ะผู้อนุมัติ (checker)
+     * ⚠️ ด่านตรงนี้ต้องตรงกับ ReferList.submitSelected() และ ReferNew.validate(f, true)
+     */
     requestApproval() {
         const r = this.current(); if (!r) return;
+
+        const missing = MockRefer.reviewMissing(r);
+        const rv      = MockRefer.reviewer(r);
+        const me      = MockSession.userId();
+
+        Drawer.open({
+            title: 'ตรวจทานและส่งขออนุมัติ — ' + r.id,
+            contentHtml: `
+                <div class="ds-note" style="margin-bottom:12px">
+                    <i data-lucide="ambulance" class="icon-sm"></i>
+                    ${esc(r.patient)} → ${esc(r.partner_name)} ·
+                    ${esc(MockRefer.scopeLabel(r))} · ${esc(MockFmt.baht(r.cap_amount))} บาท
+                </div>
+
+                <div class="ds-section-label">สรุปทางคลินิกที่แพทย์เขียนไว้</div>
+                ${MockRefer.reviewParts(r).map(p => `
+                    <div style="display:flex;align-items:flex-start;gap:8px;padding:5px 0;font-size:12px">
+                        <i data-lucide="${p.text ? 'check-circle-2' : p.required ? 'alert-circle' : 'circle'}"
+                           class="icon-sm" style="flex-shrink:0;margin-top:1px;color:${
+                            p.text ? '#22c55e' : p.required ? 'var(--status-danger)' : 'var(--text-muted)'}"></i>
+                        <span>${esc(p.label)}
+                            <span class="td-sub">${p.text ? esc(p.text.slice(0, 70)) + (p.text.length > 70 ? '…' : '')
+                                                          : 'ยังไม่เขียน'}</span></span>
+                    </div>`).join('')}
+
+                ${missing.length ? `
+                <div class="sip-banner sip-banner-danger" style="margin-top:12px">
+                    <i data-lucide="x-circle" class="icon-sm"></i>
+                    <span>ส่งขออนุมัติไม่ได้ — สรุปทางคลินิกยังขาด
+                    <strong>${esc(missing.map(m => m.label).join(' · '))}</strong><br>
+                    <span class="td-sub">ให้แพทย์เจ้าของไข้หรือผู้เขียนใบส่งต่อเติมก่อน
+                    ผู้อนุมัติจึงจะตัดสินวงเงินได้</span></span>
+                </div>` : `
+                <div class="sip-field" style="margin-top:14px">
+                    <label class="sip-label">ความเห็นเจ้าหน้าที่ตรวจทาน *</label>
+                    <textarea class="sip-textarea" id="rvNote" rows="3"
+                        placeholder="สิทธิยังใช้ได้ไหม · เอกสารครบไหม · วงเงินเทียบอัตราตามจ่ายแล้วสมเหตุผลไหม"
+                        >${esc(rv ? rv.note : '')}</textarea>
+                </div>
+                <label class="sip-checkbox" style="margin-bottom:10px">
+                    <input type="checkbox" id="rvDone" ${rv ? 'checked' : ''}>
+                    ตรวจทานแล้ว — ลงชื่อในนาม ${esc(MockAdmin.userName(me))}
+                </label>
+                <div class="ds-note">
+                    <i data-lucide="shield-check" class="icon-sm"></i>
+                    เมื่อส่ง ระบบจะเลือกผู้อนุมัติที่ไม่ใช่คุณเสมอ — ผู้ตรวจทานอนุมัติเองไม่ได้ (BR-05)
+                </div>`}`,
+            footerHtml: `<button class="btn btn-outline" onclick="Drawer.close()">ปิด</button>
+                ${missing.length ? '' : `<button class="btn btn-save-send"
+                    onclick="ReferCase.doRequestApproval()">ตรวจทานแล้ว ส่งขออนุมัติ</button>`}`,
+            onOpen: () => refreshIcons(),
+        });
+    },
+
+    doRequestApproval() {
+        const r = this.current(); if (!r) return;
+        const note = document.getElementById('rvNote').value.trim();
+        if (!document.getElementById('rvDone').checked) {
+            showToast('ต้องติ๊ก "ตรวจทานแล้ว" ก่อนส่งขออนุมัติ', 'warning'); return;
+        }
+        if (!note) { showToast('กรุณาบันทึกความเห็นของผู้ตรวจทาน', 'warning'); return; }
+
         const me = MockSession.userId();
+        MockDB.patch('referrals', r.id, {
+            reviewed_by: me, reviewer_name: MockAdmin.userName(me),
+            reviewed_at: '2569-08-06T09:00', review_note: note,
+            timeline: [...(r.timeline || []), {
+                at: '2569-08-06T09:00', tone: 'success', title: 'เจ้าหน้าที่ตรวจทานคำขอ',
+                by: MockAdmin.userName(me), note,
+            }],
+        });
+
+        /* ผู้อนุมัติต้องไม่ใช่ผู้ตรวจทาน — ทั้งคู่คือฝั่ง maker */
         const approver = (MockAdmin.users().find(u => u.active && u.id !== me &&
                             (u.roles || []).some(x => /APPROVER/i.test(x))) ||
                           MockAdmin.users().find(u => u.active && u.id !== me) || {}).id;
 
-        const t = MockRefer.requestApproval(r.id, { owner: approver });
+        const t = MockRefer.requestApproval(r.id, {
+            owner: approver,
+            detail: `วงเงินที่ขอ ${MockFmt.baht(r.cap_amount)} บาท · ขอบเขต: ${MockRefer.scopeLabel(r)}\n`
+                  + `เจ้าของไข้: ${MockRefer.doctorMeta(r).attending || '—'} · `
+                  + `ผู้เขียนใบส่งต่อ: ${r.doctor || '—'}\n`
+                  + `ตรวจทานโดย: ${MockAdmin.userName(me)}`,
+        });
+        Drawer.close();
         if (!t) { showToast('ส่งขออนุมัติไม่สำเร็จ', 'error'); return; }
         showToast(`ส่งขออนุมัติแล้ว — ${t.id} ถึง ${MockAdmin.userName(approver)}`);
         this.select(r.id);
@@ -846,6 +1000,15 @@ const ReferCase = {
         </tr>`).join('');
 
         const fields = this._fields(r, [['วันที่ส่งต่อ', MockFmt.dateTH(r.refer_date)]]);
+        const dm = MockRefer.doctorMeta(r);
+
+        /* สรุปทางคลินิกลงใบส่งตัวด้วย — ปลายทางต้องอ่านได้จากกระดาษใบเดียว
+           ไม่ต้องโทรกลับมาถามว่า "ส่งมาทำไม ขอให้ทำอะไร" */
+        const reviewRows = MockRefer.reviewParts(r).map(p => `<tr>
+            <td style="${C}width:26%;vertical-align:top;">${DocParts.esc(p.label)}</td>
+            <td style="${C}line-height:1.6;" class="${
+                p.required ? DocPrint.miss(p.text, p.label, warnings) : ''}">${DocParts.esc(p.text)}</td>
+        </tr>`).join('');
 
         const html = `<div style="color:#000;font-size:12px;">
             ${DocParts.docHead({ title: 'ใบส่งตัวผู้ป่วยไปรับการรักษาต่อ', formCode: 'REF-01/2569', fields })}
@@ -868,6 +1031,11 @@ const ReferCase = {
                     <tr><td style="${C}">เหตุผลการส่งต่อ</td>
                         <td style="${C}" colspan="3">${DocParts.esc(MockRefer.reasonMeta(r).label)}
                             ${r.refer_note ? ' — ' + DocParts.esc(r.refer_note) : ''}</td></tr>
+                    <tr><td style="${C}">แพทย์เจ้าของไข้</td>
+                        <td style="${C}" class="${DocPrint.miss(dm.attending, 'แพทย์เจ้าของไข้', warnings)}">
+                            ${DocParts.esc(dm.attending)}</td>
+                        <td style="${C}">แผนก / คลินิก</td>
+                        <td style="${C}">${DocParts.esc(dm.dept)}</td></tr>
                 </tbody>
             </table>
 
@@ -883,7 +1051,12 @@ const ReferCase = {
                 <tbody>${DocParts.fillRows(procRows, 4, 3)}</tbody>
             </table>
 
-            <div style="font-weight:700;margin:12px 0 4px">3. ขอบเขตและวงเงินที่อนุมัติ</div>
+            <div style="font-weight:700;margin:12px 0 4px">3. สรุปทางคลินิกและเหตุผลการส่งต่อ</div>
+            <table style="width:100%;border-collapse:collapse;">
+                <tbody>${reviewRows}</tbody>
+            </table>
+
+            <div style="font-weight:700;margin:12px 0 4px">4. ขอบเขตและวงเงินที่อนุมัติ</div>
             <table style="width:100%;border-collapse:collapse;">
                 <tbody>
                     <tr><td style="${C}width:22%;">ขอบเขตที่อนุมัติ</td>
@@ -901,12 +1074,14 @@ const ReferCase = {
                 หมายเหตุ: การให้บริการนอกขอบเขตหรือหลังวันหมดอายุที่ระบุไว้ หน่วยบริการต้นสังกัดสงวนสิทธิ์ไม่ตามจ่าย
             </div>
 
-            ${DocParts.signatureBlock(['ลงชื่อ แพทย์ผู้ส่งต่อ', 'ลงชื่อ ผู้อนุมัติวงเงิน', 'ลงชื่อ ผู้รับผู้ป่วย'])}
+            ${DocParts.signatureBlock(['ลงชื่อ แพทย์ผู้เขียนใบส่งต่อ', 'ลงชื่อ เจ้าหน้าที่ผู้ตรวจทาน',
+                                       'ลงชื่อ ผู้อนุมัติวงเงิน', 'ลงชื่อ ผู้รับผู้ป่วย'])}
             ${DocParts.footer(fields)}
         </div>`;
 
-        /* แพทย์ผู้ส่งต่อยังต้องเตือนแยก เพราะไม่ได้อยู่ในตารางด้านบน */
-        DocPrint.miss(r.doctor, 'แพทย์ผู้ส่งต่อ', warnings);
+        /* สองรายการนี้เตือนแยก เพราะไม่ได้อยู่ในตารางด้านบน */
+        DocPrint.miss(r.doctor, 'แพทย์ผู้เขียนใบส่งต่อ', warnings);
+        DocPrint.miss((MockRefer.reviewer(r) || {}).name, 'เจ้าหน้าที่ผู้ตรวจทาน', warnings);
 
         return { html: DocParts.toPrintBorders(html), warnings };
     },

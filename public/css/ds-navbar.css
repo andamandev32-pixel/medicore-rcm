@@ -51,6 +51,30 @@
 .mc-caret { font-size: 9px; opacity: .6; transition: .2s; }
 .mc-nav-dropdown.open .mc-caret { transform: rotate(180deg); }
 
+/* variant สีของ "ปุ่มกลุ่ม" — ให้กลุ่มที่เด่นอยู่แล้วตอนเป็นลิงก์เดี่ยว (เช่น "นำเสนอ")
+   ยังเด่นเท่าเดิมหลังกลายเป็น dropdown · ตั้งผ่าน accent ใน DS_MENU
+   ⚠️ ใช้อย่างประหยัด ถ้าทุกกลุ่มเด่นก็เท่ากับไม่มีกลุ่มไหนเด่น */
+.mc-nav-dropdown[class*="accent-"] .mc-nav-dd-btn {
+    border: 1px solid transparent; margin-left: 8px;
+}
+.mc-nav-dropdown.accent-green .mc-nav-dd-btn {
+    background: rgba(56,207,154,.12); border-color: rgba(56,207,154,.35); color: #6ee7b7;
+}
+.mc-nav-dropdown.accent-green .mc-nav-dd-btn:hover,
+.mc-nav-dropdown.accent-green.open .mc-nav-dd-btn { background: rgba(56,207,154,.22); color: #fff; }
+
+.mc-nav-dropdown.accent-amber .mc-nav-dd-btn {
+    background: rgba(251,191,36,.10); border-color: rgba(251,191,36,.30); color: #fde68a;
+}
+.mc-nav-dropdown.accent-amber .mc-nav-dd-btn:hover,
+.mc-nav-dropdown.accent-amber.open .mc-nav-dd-btn { background: rgba(251,191,36,.20); color: #fff; }
+
+.mc-nav-dropdown.accent-blue .mc-nav-dd-btn {
+    background: rgba(96,165,250,.12); border-color: rgba(96,165,250,.35); color: #93c5fd;
+}
+.mc-nav-dropdown.accent-blue .mc-nav-dd-btn:hover,
+.mc-nav-dropdown.accent-blue.open .mc-nav-dd-btn { background: rgba(96,165,250,.22); color: #fff; }
+
 .mc-dd-menu {
     position: absolute; top: 100%; left: 0;
     background: #fff; border-radius: 14px;

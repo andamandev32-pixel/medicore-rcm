@@ -11,7 +11,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MediCore RCM — รายการเคลม</title>
+    <title>MediClearing — รายการเคลม</title>
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
 
     <link rel="stylesheet" href="css/ds-tokens.css">
@@ -88,6 +88,9 @@
             </div>
         </div>
 
+        <!-- แถบบอกว่ารายการกำลังถูกกรองด้วย ?kpi= ที่ Dashboard ส่งมา
+             ถ้าไม่บอก ผู้ใช้จะนึกว่าข้อมูลหายไปเอง (MockKpi.mountBanner) -->
+        <div id="kpiFilterBar"></div>
         <div class="section-card">
             <div class="section-header">
                 <div class="section-title">
@@ -115,6 +118,12 @@
                     </select>
                     <select class="sip-select" id="fStage" style="width:170px" onchange="Worklist.render()">
                         <option value="all">ทุกสถานะ NHSO</option>
+                    </select>
+                    <select class="sip-select" id="fFiles" style="width:180px" onchange="Worklist.render()"
+                            title="แฟ้มที่ต้องส่งของแต่ละกองทุนตามประกาศ สปสช.">
+                        <option value="all">ความครบของแฟ้ม</option>
+                        <option value="incomplete">แฟ้มไม่ครบตามกองทุน</option>
+                        <option value="complete">แฟ้มครบตามกองทุน</option>
                     </select>
                     <input type="text" id="searchBox" class="sip-input" style="width:220px"
                            placeholder="ค้นหา HN / ชื่อ / รหัสเคส..." oninput="Worklist.render()">
@@ -172,6 +181,8 @@
     <script src="js/mock/mock-nhso.js"></script>
     <script src="js/mock/mock-claims.js"></script>
     <script src="js/mock/mock-tasks.js"></script>
+    <!-- mock-kpi.js — ใช้ตีความ ?kpi= ที่ Dashboard ส่งมา ต้องอยู่หลัง mock ที่มันอ้าง -->
+    <script src="js/mock/mock-kpi.js"></script>
 
     <script src="js/claim-worklist.js"></script>
 </body>

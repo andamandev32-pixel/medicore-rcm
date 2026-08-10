@@ -27,11 +27,18 @@ const Tasks = {
         const p = new URLSearchParams(location.search);
         this.state.id = p.get('id');
         if (p.get('filter')) this.state.filter = p.get('filter');
+
+        /* ?kpi=sla มาจากการ์ด "งานเกิน SLA" บน claim-dashboard
+           กล่อง 'sla' ของหน้านี้เรียก MockTasks.overSla() ตัวเดียวกับที่การ์ดนับ
+           จึงเลือกกล่องนั้นแทนการกรองซ้อน — ตัวนับบน pill คือหลักฐานว่ายอดตรงกัน */
+        const kpi = MockKpi.fromUrl();
+        if (kpi && this.FILTERS.some(f => f.key === kpi.def.taskBox)) this.state.filter = kpi.def.taskBox;
+
         if (this.state.id) this.state.filter = 'all';
 
         /* บาง persona ไม่มีงานในกล่องเริ่มต้น — เลื่อนไปกล่องแรกที่มีงาน
            ไม่งั้นหน้าจะขึ้นมาว่างเปล่าและดูเหมือนระบบพัง */
-        if (!p.get('filter') && !this.state.id) {
+        if (!p.get('filter') && !p.get('kpi') && !this.state.id) {
             const f = this.FILTERS.find(x => x.fn().length);
             if (f) this.state.filter = f.key;
         }
@@ -250,14 +257,130 @@ const Tasks = {
         </div>`;
     },
 
+    /* ══════════ ของที่ผู้อนุมัติต้องอ่านก่อนกดอนุมัติ (คำขอส่งต่อ) ══════════ */
+
+    /** เจ้าของไข้ / ผู้เขียนใบส่งต่อ — ติดป้ายเมื่อเป็นคนละคน จะได้ไม่อ่านข้าม */
+    _doctors(r) {
+        const d = MockRefer.doctorMeta(r);
+        if (!d.attending && !d.writer) return '<span class="td-sub">ยังไม่ระบุแพทย์</span>';
+        return `เจ้าของไข้ <strong>${esc(d.attending || '—')}</strong>
+            ${d.sameCoin
+                ? '<span class="td-sub">· เขียนใบส่งต่อเอง</span>'
+                : `<span class="td-sub">· เขียนใบส่งต่อโดย</span> <strong>${esc(d.writer || '—')}</strong>
+                   <span class="sip-chip sip-chip-amber" title="ผู้เขียนไม่ใช่เจ้าของไข้ — ตรวจว่าได้ปรึกษาเจ้าของไข้แล้ว">คนละคน</span>`}
+            ${d.dept ? `<div class="td-sub">${esc(d.dept)}</div>` : ''}`;
+    },
+
+    /** สรุปทางคลินิกเต็ม ๆ — หัวข้อที่ยังไม่เขียนก็แสดง เพื่อให้ตีกลับได้ตรงจุด */
+    _clinicalReview(r) {
+        const parts   = MockRefer.reviewParts(r);
+        const missing = MockRefer.reviewMissing(r);
+        if (!parts.some(p => p.text) && !missing.length) return '';
+
+        return `
+        <div class="section-card">
+            <div class="section-header">
+                <div class="section-title"><i data-lucide="notebook-pen" class="mi"></i>
+                    สรุปทางคลินิกจากแพทย์</div>
+                <div class="section-actions">
+                    <span class="ds-pane-count" style="color:${missing.length
+                        ? 'var(--status-danger)' : 'var(--status-success)'}">
+                        ${parts.filter(p => p.text).length}/${parts.length} หัวข้อ</span>
+                </div>
+            </div>
+            ${missing.length ? `
+            <div class="sip-banner sip-banner-warning" style="margin-bottom:12px">
+                <i data-lucide="alert-triangle" class="icon-sm"></i>
+                <span>ยังขาด ${missing.length} หัวข้อที่จำเป็น — <strong>${esc(
+                    missing.map(m => m.label).join(' · '))}</strong><br>
+                <span class="td-sub">ถ้าข้อมูลไม่พอตัดสิน ให้ตีกลับพร้อมระบุว่าขาดอะไร
+                แทนการอนุมัติไปก่อน</span></span>
+            </div>` : ''}
+            ${parts.map(p => `
+                <div style="padding:8px 0;border-bottom:1px dashed var(--brand-border)">
+                    <div class="ds-section-label" style="margin:0 0 4px">
+                        ${esc(p.label)}
+                        ${p.text ? '' : p.required
+                            ? '<span class="sip-chip sip-chip-danger">ยังไม่เขียน</span>'
+                            : '<span class="sip-chip sip-chip-muted">ไม่บังคับ</span>'}
+                    </div>
+                    <div style="font-size:12.5px;line-height:1.75;${p.text ? '' : 'color:var(--text-muted)'}">
+                        ${p.text ? esc(p.text) : '—'}</div>
+                </div>`).join('')}
+            ${this._hisNote(r)}
+            ${r.refer_note ? `
+            <div class="ds-note" style="margin-top:10px">
+                <i data-lucide="message-square" class="icon-sm"></i>
+                บันทึกเพิ่มเติมถึงผู้อนุมัติ: ${esc(r.refer_note)}
+            </div>` : ''}
+        </div>`;
+    },
+
+    /** ที่มาของข้อความ — ข้อความที่ดึงจาก HIS ยังไม่ผ่านการเรียบเรียงโดยแพทย์เสมอไป */
+    _hisNote(r) {
+        const src = MockRefer.reviewSources(r);
+        if (!src.length) return '';
+        return `
+            <div class="ds-note" style="margin-top:10px">
+                <i data-lucide="database" class="icon-sm"></i>
+                <span>${src.length} หมวดในสรุปนี้ดึงจากระบบ HIS —
+                <strong>${esc(src.map(s => s.label).join(' · '))}</strong><br>
+                <span class="td-sub">${esc((window.MockHIS && MockHIS.SIMULATED_NOTE) || '')}</span></span>
+            </div>`;
+    },
+
+    /** เจ้าหน้าที่ผู้ตรวจทาน = maker — ไม่มีลายเซ็นนี้ คำขอยังไม่ควรมาถึงโต๊ะอนุมัติ */
+    _reviewerBlock(r) {
+        const rv = MockRefer.reviewer(r);
+        return `
+        <div class="section-card">
+            <div class="section-title" style="margin-bottom:10px">
+                <i data-lucide="user-check" class="mi"></i> การตรวจทานโดยเจ้าหน้าที่</div>
+            ${rv ? `
+            <table class="ds-table-grid"><tbody>
+                <tr><td class="l" style="width:26%">ผู้ตรวจทาน</td>
+                    <td class="l"><strong>${esc(rv.name)}</strong>
+                        <span class="td-sub">· ${esc((MockAdmin.user(rv.id) || {}).dept || '')}</span></td></tr>
+                <tr><td class="l">เวลาที่ตรวจทาน</td>
+                    <td class="l">${esc(MockFmt.dateTimeTH(rv.at))}</td></tr>
+                <tr><td class="l">ความเห็น</td>
+                    <td class="l">${rv.note ? esc(rv.note)
+                        : '<span class="td-sub">ไม่ได้บันทึกความเห็นไว้</span>'}</td></tr>
+            </tbody></table>
+            <div class="ds-note" style="margin-top:10px">
+                <i data-lucide="shield-check" class="icon-sm"></i>
+                ผู้ตรวจทานคือผู้เสนอ (maker) — คุณในฐานะผู้อนุมัติ (checker) ต้องเป็นคนละคนเสมอ (BR-05)
+            </div>`
+            : `<div class="sip-banner sip-banner-danger">
+                <i data-lucide="user-x" class="icon-sm"></i>
+                <span><strong>ยังไม่มีเจ้าหน้าที่ตรวจทานคำขอนี้</strong> —
+                คำขอมาถึงโต๊ะอนุมัติโดยข้ามขั้นตรวจทาน<br>
+                <span class="td-sub">ควรตีกลับให้ตรวจทานก่อน หรืออนุมัติพร้อมระบุเหตุผล
+                ที่ยอมข้าม ซึ่งจะถูกบันทึกลง Audit Trail</span></span>
+            </div>`}
+        </div>`;
+    },
+
     tabApproval(t) {
         const isAuthor  = t.assigner === MockSession.userId();
         const isOwner   = t.owner === MockSession.userId();
         const canApprove = isOwner && !isAuthor;   /* ประตูนี้ไม่ผูกกับ kind จึงรองรับชนิดใหม่ได้เอง */
         const refer = (t.refer_id && window.MockRefer) ? MockRefer.byId(t.refer_id) : null;
+        const isExec = t.kind === 'APPROVE_REFER_EXEC';
 
         return `
-        ${refer && t.kind === 'APPROVE_REFER' ? `
+        ${refer && (t.kind === 'APPROVE_REFER' || isExec) ? `
+        ${isExec ? `
+        <div class="sip-banner sip-banner-warning" style="margin-bottom:12px">
+            <i data-lucide="shield-check" class="icon-sm"></i>
+            <span><strong>เรื่องนี้มาถึงโต๊ะผู้บริหารเพราะวงเงินเกินเกณฑ์</strong> —
+            ขอ ${esc(MockFmt.baht(refer.cap_amount))} บาท เกินเกณฑ์
+            ${esc(MockFmt.baht(REFER_APPROVAL.EXEC_THRESHOLD))} บาท อยู่
+            <strong>${esc(MockFmt.baht(MockRefer.execExcess(refer)))} บาท</strong><br>
+            <span class="td-sub">ผ่านการอนุมัติชั้นเจ้าหน้าที่แล้วโดย
+            ${esc(refer.ops_approver ? MockAdmin.userName(refer.ops_approver) : '—')}
+            ${refer.ops_approve_note ? '· ' + esc(refer.ops_approve_note) : ''}</span></span>
+        </div>` : ''}
         <div class="section-card">
             <div class="section-title" style="margin-bottom:10px">
                 <i data-lucide="ambulance" class="mi"></i> สรุปคำขอส่งต่อที่ต้องตัดสิน</div>
@@ -268,6 +391,7 @@ const Tasks = {
                     `${esc(d.code)} ${esc(d.name)}`).join(' · ') || '—'}</td></tr>
                 <tr><td class="l">${esc(MockRefer.partnerLabel(refer))}</td><td class="l">${esc(refer.partner_name)}
                     <span class="td-sub">· ${esc(refer.partner_level)} · ${esc(refer.partner_province)}</span></td></tr>
+                <tr><td class="l">แพทย์ผู้รับผิดชอบ</td><td class="l">${this._doctors(refer)}</td></tr>
                 <tr><td class="l">เหตุผลการส่งต่อ</td><td class="l">${esc(MockRefer.reasonMeta(refer).label)}</td></tr>
                 <tr><td class="l">ขอบเขตที่ขอ</td><td class="l">${esc(MockRefer.scopeLabel(refer))}
                     <span class="td-sub">— ${esc(refer.scope_note || '')}</span></td></tr>
@@ -285,7 +409,10 @@ const Tasks = {
                 เมื่ออนุมัติ ระบบจะออกเลขที่ใบส่งตัวและเลขอนุมัติให้อัตโนมัติ พร้อมกำหนดวันหมดอายุ
                 — พิมพ์ใบส่งตัวได้ทันทีจากหน้ารายละเอียดการส่งต่อ
             </div>
-        </div>` : ''}
+        </div>
+
+        ${this._clinicalReview(refer)}
+        ${this._reviewerBlock(refer)}` : ''}
         ${isAuthor && isOwner ? `
         <div class="sip-banner sip-banner-danger" style="margin-bottom:12px">
             <i data-lucide="user-x" class="icon-sm"></i>

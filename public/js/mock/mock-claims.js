@@ -19,7 +19,12 @@
 
 /* ── ข้อความ error/warning จริงจากหน้าจอ NHSO Digital Platform ──
    คัดจาก doc/โครงการ NHSO Digital Platform_Commu_03082026_V4.pdf (3 ส.ค. 2569)
-   ห้ามแก้ถ้อยคำ — ความน่าเชื่อถือของการนำเสนออยู่ตรงที่มันตรงกับของจริง */
+   ห้ามแก้ถ้อยคำ — ความน่าเชื่อถือของการนำเสนออยู่ตรงที่มันตรงกับของจริง
+
+   ⚠️ รหัสทั้งชุดนี้ยังยืนยันกับเนื้อความเอกสารไม่ได้ (อยู่ในภาพสไลด์ที่ดึงข้อความไม่ได้)
+      → ทุกหน้าที่แสดงรหัสเหล่านี้ต้องขึ้นป้าย "รอยืนยัน"
+      เอกสาร Overview 23 มิ.ย. 2569 น.8 ระบุว่า สปสช. จะรวบรวม "Error ที่พบบ่อย"
+      พร้อมแนวทางแก้ไขเผยแพร่ — เมื่อได้แคตตาล็อกจริงมาให้แทนที่ทั้งชุด */
 const NHSO_ERR_TEXT = {
     P124: 'พบสาเหตุส่งเบิก ไม่เท่ากับ ราคา Drug Catalogue รบกวนตรวจสอบ แฟ้ม 7 Seq.690014144 '
         + 'หมวดค่าใช้จ่าย ยาสารอาหารทางเส้นเลือดที่ใช้ที่ รพ. (BILLGRCS = 03) STDCODE 338139 '
@@ -36,6 +41,9 @@ const NHSO_ERR_TEXT = {
         + 'กรุณาตรวจสอบข้อมูลผู้ป่วยในและการลากลับบ้าน (แฟ้ม 15)',
 };
 
+/** รหัส error ที่ยืนยันกับเนื้อความเอกสารได้ — ตอนนี้ยังไม่มีสักตัว */
+const NHSO_ERR_VERIFIED = new Set();
+
 const NHSO_PROVIDERS = [
     { name: 'ศูนย์บริการสาธารณสุข 12 (กทม.)', code: '11812' },
     { name: 'โรงพยาบาลกลาง',                  code: '10670' },
@@ -46,6 +54,18 @@ const NHSO_PROVIDERS = [
 
 const CLAIM_FUNDS   = ['UC', 'OFC', 'SSS', 'LGO', 'EMS'];
 const CLAIM_OWNERS  = ['U-004', 'U-005', 'U-006', 'U-007', 'U-009'];
+
+/**
+ * [D2 น.26] คอลัมน์ "สิทธิหลัก / สิทธิย่อย" ของ Transaction Report ตัวจริง
+ * สิทธิหลักบนหน้าจอ สปสช. คือ UCS / SSS / WEL — ไม่ใช่ชื่อกองทุนภายในของเรา
+ */
+const CLAIM_RIGHT_MAP = {
+    UC:  { main: 'UCS', subs: ['89', '91'] },
+    OFC: { main: 'WEL', subs: ['S1', 'S51'] },
+    SSS: { main: 'SSS', subs: ['D1', '89'] },
+    LGO: { main: 'WEL', subs: ['91'] },
+    EMS: { main: 'UCS', subs: ['S51'] },
+};
 
 /* ══════════════════════════════════════════════════════════
    เคสที่เขียนมือ — ใช้เดโมและใช้ทำสไลด์
@@ -463,11 +483,15 @@ const MOCK_CLAIMS = (function buildClaims() {
         BLOCK:   ['AWAIT_SUBMIT', 'AWAIT_FIX', 'AWAIT_FIX'],
     };
 
+    /* ชื่อสถานะย่อยตามแดชบอร์ดจริง [D2 น.23–24] — ต้องตรงกับ NHSO_STATUS_PIPELINE */
     const SUB_BY_STAGE = {
-        AWAIT_SUBMIT:  [{ code: '1000', label: 'กำลังตรวจสอบขั้นต้น' }, { code: '1100', label: 'รอส่งเบิก' }],
+        AWAIT_SUBMIT:  [{ code: '1000', label: 'กำลังตรวจสอบเบื้องต้น' }, { code: '1100', label: 'รอส่งเบิก' }],
         AWAIT_PROCESS: [{ code: null,   label: 'รอประมวลผล' }],
         IN_AUDIT:      [{ code: null,   label: 'อยู่กระบวนการ Audit' }],
-        AWAIT_FIX:     [{ code: '4103', label: 'ยกเลิกและรอส่งใหม่' }, { code: '3101', label: 'ขอยกเลิกรายการโดยหน่วยบริการ' }],
+        AWAIT_FIX:     [{ code: null,   label: 'ไม่ผ่านการตรวจสอบเบื้องต้น' },
+                        { code: null,   label: 'ไม่ผ่านการประมวลผล' },
+                        { code: null,   label: 'ส่งเบิกไม่สำเร็จ' },
+                        { code: null,   label: 'รอยืนยัน Authen' }],
         AWAIT_PAY:     [{ code: null,   label: 'รอจ่ายเงิน' }],
         PAID:          [{ code: null,   label: 'ออกรายงานการจ่ายเงินแล้ว' }],
     };
@@ -579,7 +603,73 @@ const MOCK_CLAIMS = (function buildClaims() {
         });
     }
 
-    return [...MOCK_CLAIMS_SEED, ...gen];
+    /* ── เติมฟิลด์ฝั่ง NHSO ที่เอกสารระบุ ให้ทุกเคสด้วยสูตรเดียวกัน ──
+       [D2 น.25–26] หน้าจอจริงมี UID, Invoice No., หมายเลขอ้างอิงรายการก่อนหน้า,
+       สิทธิหลัก/สิทธิย่อย, Model, หน่วยบริการประจำ และแสดง 2 ยอดคู่กันเสมอ
+       [D2 น.7]     ปิด Visit ต้องเป็น Complete จึงส่งเบิกได้
+       เขียนเป็น normalizer แทนการไล่แก้ทีละเคส เพื่อให้ทุกเคสสอดคล้องกันเสมอ */
+
+    const FUND_KEY_BY_SERVICE = { OPD: 'OP', IPD: 'IP', PP: 'PP' };
+
+    function enrich(c, i) {
+        const n = c.nhso; if (!n) return c;
+
+        const svc     = c.service_type;
+        const fundKey = c.fund === 'EMS' ? 'AE' : (FUND_KEY_BY_SERVICE[svc] || 'OP');
+
+        /* เงื่อนไขที่ทำให้ต้องส่งแฟ้มกลุ่มเฉพาะ — ผูกกับข้อมูลของเคสเอง */
+        const ctx = {
+            emergency:  c.fund === 'EMS',
+            prenatal:   false,
+            newborn:    false,
+            psych:      false,
+            disability: false,
+            leaveDay:   svc === 'IPD' && n.seq % 3 === 0,
+        };
+
+        /* แฟ้มที่ส่งได้จริงวันนี้ = แฟ้มที่ต้องส่ง ลบแฟ้มที่ยัง Mapping ไม่เสร็จ
+           → ตัวเลข "แฟ้มไม่ครบ" บนหน้าจอ กระทบยอดกับ Pre-task ข้อ 5 ได้ตรง ๆ */
+        const required = MockNhso.checkFiles(fundKey, [], ctx).required;
+        const filesSent = required.filter(no => {
+            const f = MockNhso.file(no);
+            return f && f.mapping !== 'TODO';
+        });
+
+        const right = CLAIM_RIGHT_MAP[c.fund] || CLAIM_RIGHT_MAP.UC;
+        const home  = NHSO_PROVIDERS[(Number(c.hn) || i) % NHSO_PROVIDERS.length];
+
+        /* ยอดชดเชยจะรู้ก็ต่อเมื่อ สปสช. ประมวลผลแล้ว
+           ระหว่าง Audit จะเห็นเฉพาะส่วนที่ผ่านเบื้องต้น = ยอดเรียกเก็บ − ยอดที่เสี่ยง */
+        let compensated = 0;
+        if (n.stage === 'PAID' || n.stage === 'AWAIT_PAY') {
+            compensated = c.amount_claimed - (c.amount_rejected || 0);
+        } else if (n.stage === 'IN_AUDIT') {
+            compensated = c.amount_claimed - (c.amount_at_risk || 0);
+        }
+
+        c.fund_key   = fundKey;
+        c.file_ctx   = ctx;
+        c.files_sent = filesSent;
+        /* ปิด Visit ไม่ครบ = ยังส่งเบิกไม่ได้ — ผูกกับผลตรวจของเราเอง */
+        c.visit_close = n.stage === 'AWAIT_SUBMIT' && (c.result === 'BLOCK' || c.result === 'FIX')
+            ? 'INCOMPLETE'
+            : (n.stage === 'AWAIT_SUBMIT' && c.result === 'APPROVE' ? 'WAITING' : 'COMPLETE');
+
+        n.invoice_no  = `${String(c.service_date).slice(2).replace(/-/g, '')}-${String(n.seq).slice(-4)}`;
+        n.prev_ref    = n.stage === 'AWAIT_FIX' && n.ref_no
+            ? 'E' + String(Number(String(n.ref_no).slice(1)) - 1).padStart(String(n.ref_no).length - 1, '0')
+            : null;
+        n.main_right  = right.main;
+        n.sub_right   = right.subs[i % right.subs.length];
+        n.model       = '1';
+        n.home_provider = home.name;
+        n.home_provider_code = home.code;
+        n.billed      = c.amount_claimed;
+        n.compensated = compensated;
+        return c;
+    }
+
+    return [...MOCK_CLAIMS_SEED, ...gen].map(enrich);
 })();
 
 
@@ -629,12 +719,37 @@ const MockClaims = {
         const clean = submitted.filter(c => c.nhso.stage !== 'AWAIT_FIX');
         return (clean.length / submitted.length) * 100;
     },
+
+    /** ผลตรวจแฟ้มตามกองทุนของเคสหนึ่ง [D2 น.14–16] */
+    fileCheck(c) {
+        if (!c) return null;
+        return MockNhso.checkFiles(c.fund_key, c.files_sent, c.file_ctx);
+    },
+
+    /** เคสที่ส่งแฟ้มไม่ครบตามกองทุน — ใช้เป็นตัวกรองในหน้า Worklist */
+    filesIncomplete() {
+        return this.all().filter(c => { const r = this.fileCheck(c); return r && !r.ok; });
+    },
+
+    /** รหัส NHSO ตัวนี้ยืนยันกับเอกสารได้หรือยัง */
+    codeVerified(code) { return NHSO_ERR_VERIFIED.has(code); },
+
+    /** ยอดเรียกเก็บ / ยอดชดเชย รวมทั้งระบบ — หน้าจอ สปสช. แสดงคู่กันเสมอ */
+    amountPair(fn) {
+        const rows = this.all().filter(fn || (() => true));
+        return {
+            billed:      rows.reduce((a, c) => a + (c.amount_claimed || 0), 0),
+            compensated: rows.reduce((a, c) => a + MockNhso.compensated(c), 0),
+        };
+    },
 };
 
 MockDB.register('claims', MOCK_CLAIMS);
 
-window.MOCK_CLAIMS    = MOCK_CLAIMS;
-window.MockClaims     = MockClaims;
-window.NHSO_ERR_TEXT  = NHSO_ERR_TEXT;
+window.MOCK_CLAIMS        = MOCK_CLAIMS;
+window.MockClaims         = MockClaims;
+window.NHSO_ERR_TEXT      = NHSO_ERR_TEXT;
+window.NHSO_ERR_VERIFIED  = NHSO_ERR_VERIFIED;
+window.CLAIM_RIGHT_MAP    = CLAIM_RIGHT_MAP;
 window.NHSO_PROVIDERS = NHSO_PROVIDERS;
 window.CLAIM_FUNDS    = CLAIM_FUNDS;
