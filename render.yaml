@@ -1,14 +1,39 @@
-# Render Blueprint — MediCore RCM (Express + MySQL)
-# ใช้ได้ 2 แบบ:
-#   1) Blueprint: Render → New → Blueprint → เลือก repo (อ่านไฟล์นี้อัตโนมัติ)
-#   2) Manual:    New → Web Service → ตั้งค่าตามด้านล่างด้วยมือ
+# Render Blueprint — MediClearing (Express + MySQL)
 #
-# ค่า secret (DB_PASSWORD / JWT_SECRET) ตั้ง sync:false → ต้องกรอกใน dashboard
-# ไม่เก็บลงไฟล์นี้ เพื่อไม่ให้ความลับหลุดเข้า git
+# ⚠️ อ่านก่อนแก้ไฟล์นี้ — service ที่ใช้งานจริง "ไม่ได้" สร้างจาก Blueprint
+#    สร้างผ่าน Render REST API (POST /v1/services) ค่าจริงจึงอยู่ที่ dashboard
+#    Render อ่านไฟล์นี้เฉพาะตอนสร้าง service จาก Blueprint เท่านั้น
+#    → แก้ที่นี่แล้วของจริงไม่เปลี่ยน ต้องไปแก้ที่ Render dashboard
+#
+#    ไฟล์นี้เก็บไว้เป็น 2 อย่าง: บันทึกว่าตั้งค่าอะไรไว้บ้าง และแม่แบบเผื่อวันหนึ่ง
+#    ย้ายไปสร้างจาก Blueprint จริง ๆ — ถ้าแก้ค่าที่ dashboard ให้มาแก้ที่นี่ตามด้วย
+#
+# ── บทเรียนตอน deploy ครั้งแรก (10 ส.ค. 2569) เขียนไว้กันเสียเวลาซ้ำ ──
+#
+# 1) hostname .onrender.com ผูกตอน "สร้าง" service แล้วตรึงถาวร
+#    เปลี่ยนชื่อ service ทีหลัง hostname ไม่เปลี่ยนตาม — ถ้าอยากได้ชื่อใหม่ต้องสร้างใหม่
+#
+# 2) ลบ static site แล้ว hostname ของมันยังค้างที่ edge
+#    ครั้งแรกเผลอสร้างเป็น Static Site ชื่อ medicore-rcm (Static Site รัน Express ไม่ได้
+#    เพราะไม่มี Node process — มันหา publish directory ชื่อ build แล้ว build ล้ม)
+#    พอลบทิ้งแล้วสร้าง web service ชื่อเดิม กลับได้ 404 ทุก path
+#    ดู header: x-render-routing: static-no-asset = edge ยังส่งไปหา static site เดิม
+#    สั่ง deploy ซ้ำไม่หาย → ต้องเปลี่ยนไปใช้ชื่อใหม่ที่ยังไม่เคยถูกใช้ (mediclearing)
+#
+# 3) ตรึง NODE_VERSION ไว้ด้วย
+#    ไม่ตรึง Render หยิบ Node ล่าสุด (เจอ 26.7.0) ตาม engines ">=20" ใน package.json
+#    ซึ่งไม่เคยทดสอบกับ mysql2 ชุดนี้
+#
+# 4) free tier ทิ้ง connection ถ้ายิงรัวเกิน
+#    ยิง 35 request รวดเดียวได้ 404 (x-render-routing: no-server) ทั้งที่ instance ปกติดี
+#    เว้นจังหวะสัก 400ms แล้วผ่านครบ — อย่าตกใจว่าเว็บพัง ให้ดู header ก่อน
+#
+# ค่า secret (DB_PASSWORD / JWT_SECRET) ตั้ง sync:false → ไม่เก็บลงไฟล์นี้
+# เพื่อไม่ให้ความลับหลุดเข้า git (repo นี้เป็น public)
 
 services:
   - type: web
-    name: medicore-rcm
+    name: mediclearing         # = https://mediclearing.onrender.com (ห้ามเปลี่ยน ดูข้อ 1-2 ข้างบน)
     runtime: node
     plan: free
     region: singapore          # ใกล้ไทยสุด (ลด latency ไป DB)
@@ -19,6 +44,9 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+      # ตรึงให้ตรงกับที่ทดสอบ — ไม่ตรึงแล้ว Render หยิบ Node ล่าสุดมาให้
+      - key: NODE_VERSION
+        value: "20"
       - key: DB_HOST
         sync: false
       - key: DB_PORT
