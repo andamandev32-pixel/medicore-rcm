@@ -296,9 +296,13 @@ async function validateClaim(pool, claim) {
                 else sum += amt;
                 if (!String(it?.billgrcs || '').trim())
                     add('CHARGE', 'WARNING', null, 'ENG-CHG-CAT', `${label} — ไม่ระบุหมวด BILLGRCS`);
-                // ค่าห้อง/ค่าอาหาร (BILLGRCS 02) เบิกเกินจำนวนวันนอน = C312
+                // ค่าห้อง/ค่าอาหารเบิกเกินจำนวนวันนอน = C312
+                // หมวดค่าห้องคนละเลขกันในแต่ละมาตรฐาน (BILLGRCS 02 · CHRGITEM 16 แฟ้ม = 01)
+                // จึงดูจากชื่อรายการประกอบด้วย
+                const isRoom = String(it?.billgrcs || '').trim() === '02'
+                    || /ค่าห้อง/.test(String(it?.name || ''));
                 const qty = Number(it?.qty);
-                if (String(it?.billgrcs || '').trim() === '02' && isFinite(qty) && isFinite(los) && qty > los)
+                if (isRoom && isFinite(qty) && isFinite(los) && qty > los)
                     add('CHARGE', 'ERROR', 'C312', null, `${label} — เบิกค่าห้อง ${qty} วัน > วันนอน ${los} วัน`);
             });
             if (c.total != null && Number(c.total) > 0 && Math.abs(Number(c.total) - sum) > 0.01)

@@ -228,7 +228,169 @@ const NhsoImport = {
                     <i data-lucide="rotate-ccw" class="icon-sm"></i> ตัวอย่างเคสมีปัญหา</button>
             </div>
             <div id="preResult" style="margin-top:12px"></div>
+        </div>
+
+        <div class="section-card" style="margin-top:16px">
+            <div class="section-header">
+                <div class="section-title"><i data-lucide="database" class="mi"></i>
+                    นำเข้า 16 แฟ้มจริง — ผู้ป่วยใน (FR-01)</div>
+                <div class="section-actions">
+                    <span class="status-badge active">เขียนลงฐานข้อมูลจริง</span>
+                </div>
+            </div>
+            <p style="font-size:13px;color:var(--text-secondary);margin:0 0 10px">
+                เลือกแฟ้ม <strong>IPD (บังคับ)</strong> + PAT / INS / IDX / IOP / CHA (มีเท่าไหนใส่เท่านั้น)
+                — คั่นด้วย | หรือ , หรือ tab ก็ได้ · วันที่รับทั้ง พ.ศ./ค.ศ. · จับคู่เคสด้วย AN
+                (นำเข้าซ้ำ = อัปเดตเคสเดิม ไม่สร้างซ้ำ) · ทุกเคสถูกส่งเข้า rule engine ตรวจทันที
+                · ต้องล็อกอินก่อนนำเข้าจริง</p>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px">
+                ${['IPD', 'PAT', 'INS', 'IDX', 'IOP', 'CHA'].map(k => `
+                <div class="sip-field" style="margin:0">
+                    <label class="sip-label">${k}${k === 'IPD' ? ' *' : ''}
+                        <span id="f16chip-${k}"></span></label>
+                    <input class="sip-input" type="file" accept=".txt,.csv,.dat"
+                           onchange="NhsoImport.pick16('${k}', this)">
+                </div>`).join('')}
+            </div>
+            <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+                <button class="btn btn-outline" onclick="NhsoImport.import16(true)">
+                    <i data-lucide="scan-search" class="icon-sm"></i> ตรวจอย่างเดียว (dry run)</button>
+                <button class="btn btn-primary" onclick="NhsoImport.import16(false)">
+                    <i data-lucide="database" class="icon-sm"></i> นำเข้าจริง + ตรวจ</button>
+                <button class="btn btn-outline" onclick="NhsoImport.sample16()">
+                    <i data-lucide="file-text" class="icon-sm"></i> โหลดไฟล์ตัวอย่าง 2 เคส</button>
+            </div>
+            <div id="importResult" style="margin-top:12px"></div>
         </div>`;
+    },
+
+    /* ══════════ นำเข้า 16 แฟ้มจริง (FR-01) ══════════ */
+
+    _files16: {},
+
+    /* ไฟล์ตัวอย่าง 2 เคส: 691208 เคสปกติ · 691209 เคสมีปัญหา
+       (Pdx ไม่เหมาะ IPD? — ไม่ใช่: K35.8 แต่ DRG ไม่ตรง + Sdx มั่ว + ค่าห้องเกินวันนอน + ยอดติดลบ) */
+    SAMPLE_16: {
+        PAT: `HCODE|HN|TITLE|FNAME|LNAME|DOB|SEX|PERSON_ID
+10999|00160101|นาง|วิไล|แสงทอง|25030214|2|3101500445561
+10999|00160102|นาย|พงษ์ศักดิ์|ใจดี|25100610|1|3101500446126`,
+        INS: `HCODE|HN|INSCL|SUBTYPE|CID|AN
+10999|00160101|UCS||3101500445561|691208
+10999|00160102|OFC||3101500446126|691209`,
+        IPD: `HCODE|HN|AN|DATEADM|TIMEADM|DATEDSC|TIMEDSC|DISCHS|DISCHT|WARDDSC|DRG|RW|ADJRW|ACTLOS
+10999|00160101|691208|25690801|0930|25690806|1100|1|1|MED-2|04530|1.4820|1.4820|6
+10999|00160102|691209|25690802|1415|25690806|0900|1|1|SUR-4|04510|1.0230|1.0230|5`,
+        IDX: `HCODE|AN|DIAG|DXTYPE|DRDX
+10999|691208|J18.9|1|ว12345
+10999|691208|E11.9|2|ว12345
+10999|691209|K35.8|1|ว23456
+10999|691209|X999|2|ว23456`,
+        IOP: `HCODE|AN|OPER|OPTYPE|DROPER|DATEIN
+10999|691209|47.09|1|ว23456|25690803`,
+        CHA: `HCODE|AN|CHRGITEM|AMOUNT|QTY
+10999|691208|01|7200|6
+10999|691208|03|5200|
+10999|691208|07|3100|
+10999|691209|01|9600|9
+10999|691209|03|-500|
+10999|691209|11|18400|`,
+    },
+
+    pick16(key, input) {
+        const f = input.files && input.files[0];
+        const chip = document.getElementById('f16chip-' + key);
+        if (!f) { delete this._files16[key]; if (chip) chip.innerHTML = ''; return; }
+        const reader = new FileReader();
+        reader.onload = () => {
+            this._files16[key] = String(reader.result);
+            const lines = this._files16[key].split(/\r?\n/).filter(l => l.trim()).length - 1;
+            if (chip) chip.innerHTML = ` <span class="sip-chip sip-chip-active" style="font-size:10px">${lines} แถว</span>`;
+        };
+        reader.readAsText(f);
+    },
+
+    sample16() {
+        this._files16 = { ...this.SAMPLE_16 };
+        for (const k of Object.keys(this.SAMPLE_16)) {
+            const chip = document.getElementById('f16chip-' + k);
+            const lines = this.SAMPLE_16[k].split('\n').length - 1;
+            if (chip) chip.innerHTML = ` <span class="sip-chip sip-chip-amber" style="font-size:10px">ตัวอย่าง ${lines} แถว</span>`;
+        }
+        showToast('โหลดไฟล์ตัวอย่างแล้ว — กด dry run เพื่อดูผลก่อนนำเข้าจริง');
+    },
+
+    async import16(dryRun) {
+        const out = document.getElementById('importResult');
+        if (!this._files16.IPD) {
+            out.innerHTML = `<div class="ds-warn"><i data-lucide="alert-triangle" class="icon-sm"></i>
+                ต้องมีแฟ้ม IPD ก่อน — เลือกไฟล์หรือกด "โหลดไฟล์ตัวอย่าง"</div>`;
+            refreshIcons();
+            return;
+        }
+        out.innerHTML = '<span style="font-size:13px;color:var(--text-secondary)">กำลังประมวลผล…</span>';
+        try {
+            const res = await fetch('/api/ipd/import', {
+                method: 'POST', dsOptional: true,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ files: this._files16, dry_run: dryRun }),
+            });
+            const r = await res.json();
+            if (!res.ok) throw new Error(r.error || ('HTTP ' + res.status));
+            out.innerHTML = this.import16ResultHtml(r);
+        } catch (e) {
+            const authHint = /401|เข้าสู่ระบบ/.test(e.message)
+                ? ' — การนำเข้าต้องล็อกอินด้วยบทบาทเจ้าหน้าที่ก่อน (<a href="index.html">ไปหน้าล็อกอิน</a>)' : '';
+            out.innerHTML = `<div class="ds-warn"><i data-lucide="wifi-off" class="icon-sm"></i>
+                นำเข้าไม่สำเร็จ (${esc(e.message)})${authHint}</div>`;
+        }
+        refreshIcons();
+    },
+
+    import16ResultHtml(r) {
+        const tone = { ERROR: 'rejected', WARNING: 'waiting', INFO: 'active' };
+        const caseBlocks = r.cases.map(c => {
+            const s = c.summary || {};
+            const pass = s.result === 'PASS';
+            const issueRows = (c.issues || []).map(i => `
+                <tr>
+                    <td><span class="status-badge ${tone[i.severity] || 'active'}">${esc(i.severity)}</span></td>
+                    <td>${i.code ? `<code>${esc(i.code)}</code>` : `<span class="td-sub">${esc(i.rule || '—')}</span>`}</td>
+                    <td class="l">${esc(i.message)}${i.detail && i.detail !== i.message
+                        ? `<div class="td-sub">${esc(i.detail)}</div>` : ''}
+                        ${i.guidance ? `<div style="font-size:12px;color:var(--status-success)">→ ${esc(i.guidance)}</div>` : ''}</td>
+                </tr>`).join('');
+            const sugRows = (c.suggestions || []).map(g => `
+                <div style="font-size:12.5px;padding:4px 0;border-top:1px dashed var(--border-color)">
+                    <code style="font-size:11px">${esc(g.id)}</code>
+                    ${g.simulated ? '<span class="sip-chip sip-chip-amber" style="font-size:10px">ค่าจำลอง</span>' : ''}
+                    ${esc(g.message)}</div>`).join('');
+            return `
+            <div class="section-card" style="margin-top:10px">
+                <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+                    <strong>AN ${esc(c.an)}</strong> <span>${esc(c.patient_name)}</span>
+                    <span class="sip-chip ${c.action === 'CREATED' ? 'sip-chip-active' : 'sip-chip-muted'}">${
+                        c.action === 'CREATED' ? 'สร้างใหม่' : c.action === 'UPDATED' ? 'อัปเดตเคสเดิม' : 'dry run'}</span>
+                    <span class="status-badge ${pass ? 'active' : 'rejected'}">${esc(s.result || '—')}</span>
+                    <span class="td-sub">Error ${s.errors ?? 0} · Warning ${s.warnings ?? 0} · ข้อเสนอแนะ ${s.suggestions ?? 0}</span>
+                    ${c.admission_id ? `<a href="ipd-audit.html?an=${esc(c.an)}" style="margin-left:auto;font-size:12.5px">
+                        เปิดในจอตรวจแฟ้ม →</a>` : ''}
+                </div>
+                ${issueRows ? `<div class="table-responsive" style="margin-top:8px"><table class="data-table compact">
+                    <thead><tr><th>ระดับ</th><th>รหัส</th><th class="l">รายละเอียด</th></tr></thead>
+                    <tbody>${issueRows}</tbody></table></div>` : ''}
+                ${sugRows ? `<div style="margin-top:6px">${sugRows}</div>` : ''}
+            </div>`;
+        }).join('');
+
+        return `
+        <div class="${r.dry_run ? 'ds-note' : 'sip-banner sip-banner-success'}" style="margin-bottom:4px">
+            <i data-lucide="${r.dry_run ? 'scan-search' : 'check-circle-2'}" class="icon-sm"></i>
+            ${r.dry_run
+                ? `<strong>Dry run</strong> — แปลงและตรวจ ${r.cases.length} เคส ยังไม่เขียนฐานข้อมูล`
+                : `นำเข้าแล้ว — สร้างใหม่ ${r.imported} · อัปเดต ${r.updated} เคส`}
+            ${r.skipped.length ? ` · ข้าม ${r.skipped.length} แถว (${esc(r.skipped.slice(0, 2).join(' / '))}${r.skipped.length > 2 ? ' …' : ''})` : ''}
+        </div>
+        ${caseBlocks}`;
     },
 
     /* ══════════ Pre-validate — เรียก rule engine จริงที่ /api/reference/validate ══════════ */

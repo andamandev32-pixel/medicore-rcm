@@ -5,6 +5,7 @@ const { requireRole } = require('../middleware/auth');
 const { auditLog, readAuditLog, assertRev, activeOnly } = require('../services/audit-log');
 const { validateClaim, normCode } = require('../services/claim-validator');
 const { suggestForClaim } = require('../services/claim-suggester');
+const { buildIpdCases } = require('../services/nhso-16files');
 
 // ============================================================
 // /api/ipd — ผู้ป่วยในจริง (แทน MockDB('ipd_stays') ฝั่ง browser)
@@ -365,55 +366,199 @@ router.put('/admissions/:id/charges', requireRole(...STAFF), async (req, res) =>
 // เคสผู้ป่วยในตรวจกับกองทุน NHSO 'IP' เสมอ — payer (UC/OFC/...) เป็นสิทธิผู้ป่วย
 // ไม่ใช่ fund_key · เคส PVT ไม่ผ่าน NHSO: ตรวจได้แต่ชั้น FILES จะไม่สื่อความหมาย
 // ─────────────────────────────────────────────
+/* ── ประกอบ payload สำหรับ rule engine จาก admission ที่โหลดครบชุดแล้ว ── */
+function buildClaimFromAdmission(adm) {
+    const admitDate = dateOnly(adm.admit_at);
+    const dischDate = dateOnly(adm.discharge_at);
+    // เคสยังนอนอยู่ นับวันนอนถึงวันนี้ (เหมือน MockIpd.los)
+    const endDate = dischDate || dateOnly(new Date());
+    let los = null;
+    if (admitDate && endDate) {
+        const ms = Date.parse(endDate) - Date.parse(admitDate);
+        los = Math.round(ms / 86400000) + 1 - (Number(adm.leave_days) || 0);
+    }
+
+    const total = adm.charges.reduce((s, c) => s + Number(c.amount || 0), 0);
+    return {
+        fund_key: 'IP',
+        flags: adm.file_ctx,
+        files_present: adm.files_sent,
+        patient: {
+            name: adm.patient_name, birth_date: adm.birth_date, sex: adm.sex,
+            cid: adm.cid, hn: adm.hn, an: adm.an,
+        },
+        admission: {
+            admit_date: admitDate, discharge_date: dischDate,
+            los, leave_days: Number(adm.leave_days) || 0,
+        },
+        diagnosis: {
+            pdx: adm.pdx ? adm.pdx.code : null,
+            sdx: adm.sdx.map(d => d.code),
+        },
+        procedures: adm.procedures.map(p => ({ code: p.code, date: p.proc_date })),
+        charges: adm.charges.length
+            ? { total: Number(total.toFixed(2)),
+                items: adm.charges.map(c => ({ billgrcs: c.billgrcs, name: c.name,
+                                               amount: Number(c.amount), qty: c.qty != null ? Number(c.qty) : undefined })) }
+            : undefined,
+        drg: adm.drg_code ? { code: adm.drg_code } : undefined,
+    };
+}
+
+async function validateAdmission(id) {
+    const adm = await loadAdmission(pool, id);
+    if (!adm) return null;
+    const claim = buildClaimFromAdmission(adm);
+    const result = await validateClaim(pool, claim);
+    result.suggestions = await suggestForClaim(pool, claim, result.fund);
+    result.summary.suggestions = result.suggestions.length;
+    result.claim = claim;   // ให้หน้าจอ/ผู้ตรวจเห็นว่า engine ตรวจจากข้อมูลชุดไหน
+    return result;
+}
+
 router.post('/admissions/:id/validate', async (req, res) => {
     try {
-        const adm = await loadAdmission(pool, req.params.id);
-        if (!adm) return res.status(404).json({ error: 'ไม่พบ admission นี้' });
-
-        const admitDate = dateOnly(adm.admit_at);
-        const dischDate = dateOnly(adm.discharge_at);
-        // เคสยังนอนอยู่ นับวันนอนถึงวันนี้ (เหมือน MockIpd.los)
-        const endDate = dischDate || dateOnly(new Date());
-        let los = null;
-        if (admitDate && endDate) {
-            const ms = Date.parse(endDate) - Date.parse(admitDate);
-            los = Math.round(ms / 86400000) + 1 - (Number(adm.leave_days) || 0);
-        }
-
-        const total = adm.charges.reduce((s, c) => s + Number(c.amount || 0), 0);
-        const claim = {
-            fund_key: 'IP',
-            flags: adm.file_ctx,
-            files_present: adm.files_sent,
-            patient: {
-                name: adm.patient_name, birth_date: adm.birth_date, sex: adm.sex,
-                cid: adm.cid, hn: adm.hn, an: adm.an,
-            },
-            admission: {
-                admit_date: admitDate, discharge_date: dischDate,
-                los, leave_days: Number(adm.leave_days) || 0,
-            },
-            diagnosis: {
-                pdx: adm.pdx ? adm.pdx.code : null,
-                sdx: adm.sdx.map(d => d.code),
-            },
-            procedures: adm.procedures.map(p => ({ code: p.code, date: p.proc_date })),
-            charges: adm.charges.length
-                ? { total: Number(total.toFixed(2)),
-                    items: adm.charges.map(c => ({ billgrcs: c.billgrcs, name: c.name,
-                                                   amount: Number(c.amount), qty: c.qty != null ? Number(c.qty) : undefined })) }
-                : undefined,
-            drg: adm.drg_code ? { code: adm.drg_code } : undefined,
-        };
-
-        const result = await validateClaim(pool, claim);
-        result.suggestions = await suggestForClaim(pool, claim, result.fund);
-        result.summary.suggestions = result.suggestions.length;
-        result.claim = claim;   // ให้หน้าจอ/ผู้ตรวจเห็นว่า engine ตรวจจากข้อมูลชุดไหน
+        const result = await validateAdmission(req.params.id);
+        if (!result) return res.status(404).json({ error: 'ไม่พบ admission นี้' });
         res.json(result);
     } catch (err) {
         if (err.status === 400) return res.status(400).json({ error: err.message });
         console.error('[IPD] POST /admissions/:id/validate', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ─────────────────────────────────────────────
+// POST /api/ipd/import — นำเข้า 16 แฟ้ม (ส่วนผู้ป่วยใน) แล้วตรวจกับ engine ทันที (FR-01)
+//
+// body: { files: { IPD: "<เนื้อไฟล์>", PAT?, INS?, IDX?, IOP?, CHA? }, dry_run? }
+// เนื้อไฟล์เป็นข้อความ (UI อ่านด้วย FileReader) — คั่น | หรือ , หรือ tab ก็ได้
+//
+// upsert ด้วย AN: มีแล้ว = อัปเดต admission + แทนที่ dx/หัตถการ/ค่าใช้จ่ายทั้งชุด
+// (นำเข้าไฟล์เดิมซ้ำปลอดภัย — BR-08: ระบบไม่เขียนอะไรกลับ HIS)
+// dry_run: แปลง+ตรวจอย่างเดียว ไม่เขียน DB — ให้หน้างานดูผลก่อนนำเข้าจริง
+// ─────────────────────────────────────────────
+router.post('/import', requireRole(...STAFF), async (req, res) => {
+    let parsed;
+    try {
+        parsed = buildIpdCases((req.body && req.body.files) || {});
+    } catch (err) {
+        return res.status(err.status || 400).json({ error: err.message });
+    }
+    const dryRun = !!(req.body && req.body.dry_run);
+    const results = [];
+
+    try {
+        for (const c of parsed.cases) {
+            let admissionId = null;
+            let action = 'DRY_RUN';
+
+            if (!dryRun) {
+                const conn = await pool.getConnection();
+                try {
+                    await conn.beginTransaction();
+                    const [[exists]] = await conn.query(
+                        `SELECT admission_id FROM ipd_admissions WHERE an = ? AND is_deleted = 0 FOR UPDATE`,
+                        [c.an]);
+
+                    if (exists) {
+                        admissionId = exists.admission_id;
+                        action = 'UPDATED';
+                        await conn.query(
+                            `UPDATE ipd_admissions SET hn=?, patient_name=?, cid=?, birth_date=?, sex=?,
+                                 payer=COALESCE(?, payer), ward=?, admit_at=?, discharge_at=?,
+                                 discharge_type=?, discharge_status=?, leave_days=?, drg_code=?,
+                                 files_sent=?, file_ctx=?, updated_by=?, rev=rev+1
+                             WHERE admission_id = ?`,
+                            [c.hn, c.patient_name, c.cid, c.birth_date, c.sex, c.payer, c.ward,
+                             c.admit_at, c.discharge_at, c.discharge_type, c.discharge_status,
+                             c.leave_days, c.drg_code, JSON.stringify(c.files_sent),
+                             JSON.stringify(c.file_ctx), req.user.user_id, admissionId]);
+                        await conn.query(`DELETE FROM ipd_diagnoses WHERE admission_id = ?`, [admissionId]);
+                        await conn.query(`DELETE FROM ipd_procedures WHERE admission_id = ?`, [admissionId]);
+                        await conn.query(`DELETE FROM ipd_charges WHERE admission_id = ?`, [admissionId]);
+                    } else {
+                        action = 'CREATED';
+                        const [r] = await conn.query(
+                            `INSERT INTO ipd_admissions
+                                 (an, hn, patient_name, cid, birth_date, sex, payer, ward,
+                                  admit_at, discharge_at, discharge_type, discharge_status, leave_days,
+                                  drg_code, files_sent, file_ctx, status, created_by, updated_by, rev)
+                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'DRAFT', ?, ?, 0)`,
+                            [c.an, c.hn, c.patient_name, c.cid, c.birth_date, c.sex, c.payer, c.ward,
+                             c.admit_at, c.discharge_at, c.discharge_type, c.discharge_status,
+                             c.leave_days, c.drg_code, JSON.stringify(c.files_sent),
+                             JSON.stringify(c.file_ctx), req.user.user_id, req.user.user_id]);
+                        admissionId = r.insertId;
+                    }
+
+                    const dxRows = [];
+                    if (c.pdx) dxRows.push([admissionId, 'PDX', 0, c.pdx.code, normCode(c.pdx.code), c.pdx.name]);
+                    c.sdx.forEach((d, i) => dxRows.push([admissionId, 'SDX', i + 1, d.code, normCode(d.code), d.name]));
+                    if (dxRows.length) {
+                        await conn.query(
+                            `INSERT INTO ipd_diagnoses (admission_id, dx_type, seq, code, code_key, name) VALUES ?`,
+                            [dxRows]);
+                    }
+                    if (c.proc.length) {
+                        await conn.query(
+                            `INSERT INTO ipd_procedures (admission_id, seq, code, code_key, name, proc_date) VALUES ?`,
+                            [c.proc.map((p, i) => [admissionId, i, p.code, normCode(p.code), p.name, p.date])]);
+                    }
+                    if (c.charges.length) {
+                        await conn.query(
+                            `INSERT INTO ipd_charges (admission_id, seq, billgrcs, name, amount, qty) VALUES ?`,
+                            [c.charges.map((ch, i) => [admissionId, i, ch.billgrcs, ch.name, ch.amount, ch.qty])]);
+                    }
+
+                    await auditLog(conn, {
+                        entity: 'ipd_admission', entity_id: admissionId, action: 'IMPORT',
+                        actor: req.user,
+                        after: { an: c.an, source: '16files', action,
+                                 dx: dxRows.length, proc: c.proc.length, charges: c.charges.length },
+                    });
+                    await conn.commit();
+                } catch (e) {
+                    await conn.rollback();
+                    throw e;
+                } finally {
+                    conn.release();
+                }
+            }
+
+            /* ต่อท่อเข้า rule engine ทันที — ผลตรวจติดไปกับผลนำเข้าเป็นรายเคส */
+            let validation = null;
+            if (admissionId) {
+                validation = await validateAdmission(admissionId);
+            } else {
+                const claim = buildClaimFromAdmission({
+                    ...c, charges: c.charges, procedures: c.proc.map(p => ({ code: p.code, proc_date: p.date })),
+                    sdx: c.sdx, pdx: c.pdx, files_sent: c.files_sent, file_ctx: c.file_ctx,
+                    admit_at: c.admit_at.replace(' ', 'T'), discharge_at: c.discharge_at ? c.discharge_at.replace(' ', 'T') : null,
+                });
+                validation = await validateClaim(pool, claim);
+                validation.suggestions = await suggestForClaim(pool, claim, validation.fund);
+                validation.summary.suggestions = validation.suggestions.length;
+            }
+
+            results.push({
+                an: c.an, patient_name: c.patient_name, action,
+                admission_id: admissionId,
+                summary: validation ? validation.summary : null,
+                issues: validation ? validation.issues : [],
+                suggestions: validation ? validation.suggestions : [],
+            });
+        }
+
+        res.json({
+            dry_run: dryRun,
+            imported: results.filter(r => r.action === 'CREATED').length,
+            updated:  results.filter(r => r.action === 'UPDATED').length,
+            cases: results,
+            skipped: parsed.skipped,
+        });
+    } catch (err) {
+        console.error('[IPD] POST /import', err);
         res.status(500).json({ error: err.message });
     }
 });
