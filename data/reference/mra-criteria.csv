@@ -1,0 +1,10 @@
+version_code,component_key,criterion_no,text_th,score,source_doc,source_ref,source_date,verified
+MRA-2563,discharge_summary_dxop,1,บันทึกการวินิจฉัยโรคหลัก (Principal diagnosis) ถูกต้องครบถ้วน,1,แหล่งทุติยภูมิ: เวชระเบียน ราชบุรี (djphapho.blogspot.com) สรุปเกณฑ์ MR1 — รอทวนกับคู่มือฉบับจริง,MR1 ข้อ 1,,0
+MRA-2563,discharge_summary_dxop,2,บันทึกการวินิจฉัยอื่นและหัตถการที่ทำครบถ้วน,1,แหล่งทุติยภูมิ: เวชระเบียน ราชบุรี (djphapho.blogspot.com) สรุปเกณฑ์ MR1 — รอทวนกับคู่มือฉบับจริง,MR1 ข้อ 2,,0
+MRA-2563,discharge_summary_dxop,3,ไม่ใช้ตัวย่อที่ไม่เป็นสากล,1,แหล่งทุติยภูมิ: เวชระเบียน ราชบุรี (djphapho.blogspot.com) สรุปเกณฑ์ MR1 — รอทวนกับคู่มือฉบับจริง,MR1 ข้อ 3,,0
+MRA-2563,discharge_summary_dxop,4,บันทึกด้วยลายมือที่สามารถอ่านได้โดยง่าย,1,แหล่งทุติยภูมิ: เวชระเบียน ราชบุรี (djphapho.blogspot.com) สรุปเกณฑ์ MR1 — รอทวนกับคู่มือฉบับจริง,MR1 ข้อ 4,,0
+MRA-2563,discharge_summary_dxop,5,มีสรุปอาการและการรักษาทางคลินิก (clinical summary),1,แหล่งทุติยภูมิ: เวชระเบียน ราชบุรี (djphapho.blogspot.com) สรุปเกณฑ์ MR1 — รอทวนกับคู่มือฉบับจริง,MR1 ข้อ 5,,0
+MRA-2563,discharge_summary_dxop,6,บันทึกสถานภาพเมื่อจำหน่าย (discharge status) ถูกต้อง,1,แหล่งทุติยภูมิ: เวชระเบียน ราชบุรี (djphapho.blogspot.com) สรุปเกณฑ์ MR1 — รอทวนกับคู่มือฉบับจริง,MR1 ข้อ 6,,0
+MRA-2563,discharge_summary_dxop,7,บันทึกประเภทการจำหน่าย (discharge type) ถูกต้อง,1,แหล่งทุติยภูมิ: เวชระเบียน ราชบุรี (djphapho.blogspot.com) สรุปเกณฑ์ MR1 — รอทวนกับคู่มือฉบับจริง,MR1 ข้อ 7,,0
+MRA-2563,discharge_summary_dxop,8,มีลายเซ็นแพทย์ผู้สรุปการจำหน่าย,1,แหล่งทุติยภูมิ: เวชระเบียน ราชบุรี (djphapho.blogspot.com) สรุปเกณฑ์ MR1 — รอทวนกับคู่มือฉบับจริง,MR1 ข้อ 8,,0
+MRA-2563,discharge_summary_dxop,9,ระบุชื่อหรือรหัสแพทย์ผู้สรุปได้ชัดเจน,1,แหล่งทุติยภูมิ: เวชระเบียน ราชบุรี (djphapho.blogspot.com) สรุปเกณฑ์ MR1 — รอทวนกับคู่มือฉบับจริง,MR1 ข้อ 9,,0

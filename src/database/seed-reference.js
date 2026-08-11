@@ -167,6 +167,168 @@ const DATASETS = [
                     S(r.operative) == null ? null : BOOL(r.operative), ...prov(r)];
         },
     },
+    {
+        /* เอกสารอ้างอิง — ต้องมาก่อนคลังกฎ (rule_versions.doc_id/blocked_by มี FK มาที่นี่) */
+        name: 'doc_sources', file: 'doc-sources.csv',
+        sql: `INSERT INTO ref_doc_sources (doc_id, kind, status, title, issuer, doc_no,
+                  published, effective_from, effective_to, version, certified_by, file_path,
+                  page_unit, provides, note, source_doc, source_ref, source_date, verified)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+              ON DUPLICATE KEY UPDATE kind=VALUES(kind), status=VALUES(status), title=VALUES(title),
+                  issuer=VALUES(issuer), doc_no=VALUES(doc_no), published=VALUES(published),
+                  effective_from=VALUES(effective_from), effective_to=VALUES(effective_to),
+                  version=VALUES(version), certified_by=VALUES(certified_by), file_path=VALUES(file_path),
+                  page_unit=VALUES(page_unit), provides=VALUES(provides), note=VALUES(note),
+                  source_doc=VALUES(source_doc), source_ref=VALUES(source_ref),
+                  source_date=VALUES(source_date), verified=VALUES(verified)`,
+        map(r, errs) {
+            if (!S(r.doc_id) || !S(r.title)) { errs.push('doc_id/title ว่าง'); return null; }
+            return [S(r.doc_id), S(r.kind) || 'ANNOUNCE', S(r.status) || 'MISSING', S(r.title),
+                    S(r.issuer), S(r.doc_no), toCEDate(r.published),
+                    toCEDate(r.effective_from), toCEDate(r.effective_to),
+                    N(r.version) || 0, S(r.certified_by), S(r.file_path),
+                    S(r.page_unit), S(r.provides), S(r.note), ...prov(r)];
+        },
+    },
+    {
+        name: 'payers', file: 'payers.csv',
+        sql: `INSERT INTO ref_payers (payer_key, label_th, sort_order, drg_based, note,
+                  source_doc, source_ref, source_date, verified)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+              ON DUPLICATE KEY UPDATE label_th=VALUES(label_th), sort_order=VALUES(sort_order),
+                  drg_based=VALUES(drg_based), note=VALUES(note), source_doc=VALUES(source_doc),
+                  source_ref=VALUES(source_ref), source_date=VALUES(source_date), verified=VALUES(verified)`,
+        map(r, errs) {
+            if (!S(r.payer_key) || !S(r.label_th)) { errs.push('payer_key/label_th ว่าง'); return null; }
+            return [S(r.payer_key), S(r.label_th), N(r.sort_order) || 0,
+                    S(r.drg_based) == null ? 1 : BOOL(r.drg_based), S(r.note), ...prov(r)];
+        },
+    },
+    {
+        name: 'payer_rules', file: 'payer-rules.csv',
+        sql: `INSERT INTO ref_payer_rules (payer_key, rule_key, num_value, text_value, label_th,
+                  effective_from, effective_to, source_doc, source_ref, source_date, verified)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+              ON DUPLICATE KEY UPDATE num_value=VALUES(num_value), text_value=VALUES(text_value),
+                  label_th=VALUES(label_th), effective_to=VALUES(effective_to),
+                  source_doc=VALUES(source_doc), source_ref=VALUES(source_ref),
+                  source_date=VALUES(source_date), verified=VALUES(verified)`,
+        map(r, errs) {
+            if (!S(r.payer_key) || !S(r.rule_key)) { errs.push('payer_key/rule_key ว่าง'); return null; }
+            return [S(r.payer_key), S(r.rule_key), N(r.num_value), S(r.text_value), S(r.label_th),
+                    toCEDate(r.effective_from), toCEDate(r.effective_to), ...prov(r)];
+        },
+    },
+    {
+        name: 'payer_docs', file: 'payer-docs.csv',
+        sql: `INSERT INTO ref_payer_docs (payer_key, check_key, label_th, required, seq,
+                  source_doc, source_ref, source_date, verified)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+              ON DUPLICATE KEY UPDATE label_th=VALUES(label_th), required=VALUES(required),
+                  seq=VALUES(seq), source_doc=VALUES(source_doc), source_ref=VALUES(source_ref),
+                  source_date=VALUES(source_date), verified=VALUES(verified)`,
+        map(r, errs) {
+            if (!S(r.payer_key) || !S(r.check_key)) { errs.push('payer_key/check_key ว่าง'); return null; }
+            return [S(r.payer_key), S(r.check_key), S(r.label_th) || S(r.check_key),
+                    S(r.required) == null ? 1 : BOOL(r.required), N(r.seq) || 0, ...prov(r)];
+        },
+    },
+    {
+        name: 'fund_rates', file: 'fund-rates.csv',
+        sql: `INSERT INTO ref_fund_rates (payer_key, rate_per_rw, effective_from, effective_to, note,
+                  source_doc, source_ref, source_date, verified)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+              ON DUPLICATE KEY UPDATE rate_per_rw=VALUES(rate_per_rw), effective_to=VALUES(effective_to),
+                  note=VALUES(note), source_doc=VALUES(source_doc), source_ref=VALUES(source_ref),
+                  source_date=VALUES(source_date), verified=VALUES(verified)`,
+        map(r, errs) {
+            if (!S(r.payer_key)) { errs.push('payer_key ว่าง'); return null; }
+            return [S(r.payer_key), N(r.rate_per_rw),
+                    toCEDate(r.effective_from), toCEDate(r.effective_to), S(r.note), ...prov(r)];
+        },
+    },
+    {
+        name: 'drg_outlier', file: 'drg-outlier.csv',
+        sql: `INSERT INTO ref_drg_outlier (version_code, drg_code, rw0d, wtlos, ot, of_factor, drg_kind,
+                  source_doc, source_ref, source_date, verified)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+              ON DUPLICATE KEY UPDATE rw0d=VALUES(rw0d), wtlos=VALUES(wtlos), ot=VALUES(ot),
+                  of_factor=VALUES(of_factor), drg_kind=VALUES(drg_kind), source_doc=VALUES(source_doc),
+                  source_ref=VALUES(source_ref), source_date=VALUES(source_date), verified=VALUES(verified)`,
+        map(r, errs) {
+            if (!S(r.version_code) || !S(r.drg_code)) { errs.push('version_code/drg_code ว่าง'); return null; }
+            const kind = String(r.drg_kind || '').toUpperCase();
+            return [S(r.version_code), S(r.drg_code), N(r.rw0d), N(r.wtlos), N(r.ot), N(r.of_factor),
+                    (kind === 'SURGICAL' || kind === 'MEDICAL') ? kind : null, ...prov(r)];
+        },
+    },
+    {
+        name: 'drg_outlier_coeff', file: 'drg-outlier-coeff.csv',
+        sql: `INSERT INTO ref_drg_outlier_coeff (version_code, drg_kind, rw_min, rw_max, b12, b23,
+                  source_doc, source_ref, source_date, verified)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+              ON DUPLICATE KEY UPDATE rw_max=VALUES(rw_max), b12=VALUES(b12), b23=VALUES(b23),
+                  source_doc=VALUES(source_doc), source_ref=VALUES(source_ref),
+                  source_date=VALUES(source_date), verified=VALUES(verified)`,
+        map(r, errs) {
+            const b12 = N(r.b12), b23 = N(r.b23);
+            const kind = String(r.drg_kind || '').toUpperCase();
+            if (!S(r.version_code) || (kind !== 'SURGICAL' && kind !== 'MEDICAL')) {
+                errs.push('version_code/drg_kind ไม่ถูกต้อง'); return null;
+            }
+            if (b12 == null || b23 == null) { errs.push('b12/b23 ว่าง'); return null; }
+            return [S(r.version_code), kind, N(r.rw_min) || 0, N(r.rw_max), b12, b23, ...prov(r)];
+        },
+    },
+    {
+        name: 'mra_versions', file: 'mra-versions.csv',
+        sql: `INSERT INTO ref_mra_versions (version_code, label, effective_from, effective_to,
+                  source_doc, source_ref, source_date, verified)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+              ON DUPLICATE KEY UPDATE label=VALUES(label), effective_from=VALUES(effective_from),
+                  effective_to=VALUES(effective_to), source_doc=VALUES(source_doc),
+                  source_ref=VALUES(source_ref), source_date=VALUES(source_date), verified=VALUES(verified)`,
+        map(r, errs) {
+            if (!S(r.version_code) || !S(r.label)) { errs.push('version_code/label ว่าง'); return null; }
+            return [S(r.version_code), S(r.label),
+                    toCEDate(r.effective_from), toCEDate(r.effective_to), ...prov(r)];
+        },
+    },
+    {
+        name: 'mra_components', file: 'mra-components.csv',
+        sql: `INSERT INTO ref_mra_components (version_code, component_key, seq, name_th, name_en,
+                  always_required, needs, max_score, source_doc, source_ref, source_date, verified)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+              ON DUPLICATE KEY UPDATE seq=VALUES(seq), name_th=VALUES(name_th), name_en=VALUES(name_en),
+                  always_required=VALUES(always_required), needs=VALUES(needs), max_score=VALUES(max_score),
+                  source_doc=VALUES(source_doc), source_ref=VALUES(source_ref),
+                  source_date=VALUES(source_date), verified=VALUES(verified)`,
+        map(r, errs) {
+            if (!S(r.version_code) || !S(r.component_key) || !S(r.name_th)) {
+                errs.push('version_code/component_key/name_th ว่าง'); return null;
+            }
+            return [S(r.version_code), S(r.component_key), N(r.seq) || 0, S(r.name_th), S(r.name_en),
+                    S(r.always_required) == null ? 1 : BOOL(r.always_required),
+                    S(r.needs), N(r.max_score) || 0, ...prov(r)];
+        },
+    },
+    {
+        name: 'mra_criteria', file: 'mra-criteria.csv',
+        sql: `INSERT INTO ref_mra_criteria (version_code, component_key, criterion_no, text_th, score,
+                  source_doc, source_ref, source_date, verified)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+              ON DUPLICATE KEY UPDATE text_th=VALUES(text_th), score=VALUES(score),
+                  source_doc=VALUES(source_doc), source_ref=VALUES(source_ref),
+                  source_date=VALUES(source_date), verified=VALUES(verified)`,
+        map(r, errs) {
+            const no = N(r.criterion_no);
+            if (!S(r.version_code) || !S(r.component_key) || no == null) {
+                errs.push('version_code/component_key/criterion_no ว่าง'); return null;
+            }
+            if (!S(r.text_th)) { errs.push('text_th ว่าง'); return null; }
+            return [S(r.version_code), S(r.component_key), no, S(r.text_th), N(r.score) || 1, ...prov(r)];
+        },
+    },
 ];
 
 async function seed() {

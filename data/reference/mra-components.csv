@@ -1,0 +1,13 @@
+version_code,component_key,seq,name_th,name_en,always_required,needs,max_score,source_doc,source_ref,source_date,verified
+MRA-2563,discharge_summary_dxop,1,สรุปการจำหน่าย: การวินิจฉัยและหัตถการ,Discharge summary (Dx Op),1,,9,คู่มือ MRA 2563 ผู้ป่วยใน (สปสช.) — องค์ประกอบ MR1,MR1,2021-03-22,1
+MRA-2563,discharge_summary_other,2,สรุปการจำหน่าย: ส่วนอื่นและองค์ประกอบของใบสรุป,Discharge summary (Other),1,,0,คู่มือ MRA 2563 ผู้ป่วยใน (สปสช.) — องค์ประกอบ MR2,MR2,2021-03-22,1
+MRA-2563,informed_consent,3,หนังสือแสดงความยินยอมรับการรักษา,Informed consent,1,,0,คู่มือ MRA 2563 ผู้ป่วยใน (สปสช.) — องค์ประกอบ MR3,MR3,2021-03-22,1
+MRA-2563,history,4,การซักประวัติ,History,1,,0,คู่มือ MRA 2563 ผู้ป่วยใน (สปสช.) — องค์ประกอบ MR4,MR4,2021-03-22,1
+MRA-2563,physical_exam,5,การตรวจร่างกาย,Physical examination,1,,0,คู่มือ MRA 2563 ผู้ป่วยใน (สปสช.) — องค์ประกอบ MR5,MR5,2021-03-22,1
+MRA-2563,progress_note,6,บันทึกความก้าวหน้าการรักษา,Progress notes,1,,0,คู่มือ MRA 2563 ผู้ป่วยใน (สปสช.) — องค์ประกอบ MR6,MR6,2021-03-22,1
+MRA-2563,consultation_record,7,บันทึกการปรึกษาระหว่างแผนก,Consultation record,0,consult,0,คู่มือ MRA 2563 ผู้ป่วยใน (สปสช.) — องค์ประกอบ MR7,MR7,2021-03-22,1
+MRA-2563,anesthetic_record,8,บันทึกการให้ยาระงับความรู้สึก,Anesthetic record,0,anesthesia,0,คู่มือ MRA 2563 ผู้ป่วยใน (สปสช.) — องค์ประกอบ MR8,MR8,2021-03-22,1
+MRA-2563,operative_note,9,บันทึกการผ่าตัด/หัตถการ,Operative notes,0,proc,0,คู่มือ MRA 2563 ผู้ป่วยใน (สปสช.) — องค์ประกอบ MR9,MR9,2021-03-22,1
+MRA-2563,labour_record,10,บันทึกการคลอด,Labour record,0,labour,0,คู่มือ MRA 2563 ผู้ป่วยใน (สปสช.) — องค์ประกอบ MR10,MR10,2021-03-22,1
+MRA-2563,rehabilitation_record,11,บันทึกการฟื้นฟูสมรรถภาพ,Rehabilitation record,0,rehab,0,คู่มือ MRA 2563 ผู้ป่วยใน (สปสช.) — องค์ประกอบ MR11,MR11,2021-03-22,1
+MRA-2563,nurses_note,12,บันทึกทางการพยาบาล,Nurses' note,1,,0,คู่มือ MRA 2563 ผู้ป่วยใน (สปสช.) — องค์ประกอบ MR12,MR12,2021-03-22,1

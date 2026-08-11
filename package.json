@@ -14,6 +14,7 @@
     "seed:users": "node src/database/seed-users.js",
     "seed:demo": "node src/database/seed-demo.js",
     "seed:reference": "node src/database/seed-reference.js",
+    "seed:rules": "node src/database/seed-rules.js",
     "seed:tmt": "node src/database/load-tmt.js",
     "seed:ipd": "node src/database/seed-ipd-demo.js",
     "load:icd": "node src/database/load-icd.js",

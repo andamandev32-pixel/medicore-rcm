@@ -1,0 +1,7 @@
+﻿"payer_key","label_th","sort_order","drg_based","note","source_doc","verified"
+"UC","สิทธิหลักประกันสุขภาพแห่งชาติ (บัตรทอง)","1","1","","ยกจาก public/js/mock/mock-ipd.js","0"
+"OFC","สิทธิสวัสดิการรักษาพยาบาลข้าราชการ","2","1","","ยกจาก public/js/mock/mock-ipd.js","0"
+"SSS","สิทธิประกันสังคม","3","1","","ยกจาก public/js/mock/mock-ipd.js","0"
+"LGO","สิทธิพนักงานองค์กรปกครองส่วนท้องถิ่น","4","1","","ยกจาก public/js/mock/mock-ipd.js","0"
+"EMS","สิทธิกรณีเจ็บป่วยฉุกเฉินวิกฤต (UCEP)","5","1","","ยกจาก public/js/mock/mock-ipd.js","0"
+"PVT","ประกันเอกชน / ชำระเอง","6","0","จ่ายตามค่าใช้จ่ายจริงภายใต้เพดานกรมธรรม์ ไม่ใช่ระบบ DRG","ยกจาก public/js/mock/mock-ipd.js","0"
