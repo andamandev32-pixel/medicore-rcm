@@ -11,27 +11,44 @@
 
 | กลุ่มกฎ | จำนวน | เก็บที่ | ดู/ทดลองได้ที่ | สถานะ |
 |---|---|---|---|---|
-| **แคตตาล็อกรหัสติด C สปสช.** (เกณฑ์ deny มาตรฐานที่ทุก รพ. เจอ) | 446 รหัส (ทวนแล้ว 440) | ตาราง MySQL `ref_error_codes` · ไฟล์ต้นทาง `data/reference/error-codes.csv` | `GET /api/reference/error-codes?q=ยา` (ค้นได้) · สถานะรวม `GET /api/reference/meta` | ✅ ข้อมูลจริง ครบ 100% ของแหล่ง |
-| **กฎที่ execute ได้จริง (rule engine)** — ตรวจเคลมก่อนส่ง 6 ชั้น | ~20 เช็ค | `src/services/claim-validator.js` | `POST /api/reference/validate` · หน้าเว็บ **nhso-import.html → แท็บอัปโหลด → กล่อง "ทดลองตรวจด้วยกฎมาตรฐานจริง"** | ✅ ใช้งานได้ ข้อความ error ดึงจากแคตตาล็อกจริง |
+| **แคตตาล็อกรหัสติด C สปสช.** (เกณฑ์ deny มาตรฐานที่ทุก รพ. เจอ) | 446 รหัส (ทวนแล้ว 440) + **fix_guidance_th 22 รหัส** (ระบบเขียนเอง) | ตาราง MySQL `ref_error_codes` · ไฟล์ต้นทาง `data/reference/error-codes.csv` | `GET /api/reference/error-codes?q=ยา` (ค้นได้) · สถานะรวม `GET /api/reference/meta` | ✅ ข้อมูลจริง ครบ 100% ของแหล่ง |
+| **แคตตาล็อก ICD-10 / ICD-9-CM** (ชุดคัดย่อเดโม) | 83 + 28 รหัส | `ref_icd10` / `ref_icd9` · `data/reference/icd10-sample.csv`, `icd9-sample.csv` · ไฟล์เต็มโหลดด้วย `src/database/load-icd.js` | `GET /api/reference/icd10?q=pneumonia` (ค้น/autocomplete ได้ รับทั้งรูปมีจุด-ไร้จุด) | ⚠️ ชุดคัดย่อ verified=0 — ครอบคลุมรหัสในเคสเดโมทั้งหมด |
+| **กฎที่ execute ได้จริง (rule engine)** — ตรวจเคลมก่อนส่ง **8 ชั้น + ชั้นเสนอแนะ** | ~30 เช็ค + 6 suggestion | `src/services/claim-validator.js` · `src/services/claim-suggester.js` | `POST /api/reference/validate` (stateless) · `POST /api/ipd/admissions/:id/validate` (จากข้อมูลจริง) · หน้าเว็บ **nhso-import.html → กล่อง Pre-validate** และ **ipd-audit.html → ปุ่ม "ตรวจกับ rule engine จริง"** | ✅ ใช้งานได้ ข้อความ error + แนวทางแก้ดึงจากแคตตาล็อกจริง |
+| **ข้อมูลผู้ป่วยในจริง** (admission + การลงรหัส) | 7 เคสเดโม | ตาราง `ipd_admissions` + `ipd_diagnoses`/`ipd_procedures`/`ipd_charges` (`src/database/ipd.sql`) · seed `npm run seed:ipd` | `GET/POST/PUT /api/ipd/admissions` (ต้องล็อกอิน) · หน้า **ipd-admit.html** ลงรหัสผ่านฟอร์มได้จริง (autocomplete จากแคตตาล็อก) | ✅ CRUD + replace-set + audit log + optimistic lock |
 | **กฎเชิงนโยบาย 27 ข้อ** (RUL-DRG-007, RUL-ELG-004, RUL-FIL-001 ฯลฯ พร้อม lifecycle DRAFT→ACTIVE, maker-checker, KPI) | 27 ข้อ | `public/js/mock/mock-rules.js` (ยังเป็น mock ฝั่ง browser) | หน้า **claim-rules.html** (คลังกฎ + no-code builder + backtest) | ⚠️ โครงจอครบ แต่เงื่อนไขยังเป็นข้อความ ไม่ execute |
 | **กฎ IPD pre-audit** (25 หัวข้อตรวจเวชระเบียน + DRG/trim/อัตราจ่าย) | 25+ | `public/js/mock/mock-ipd.js` (`_ruleHit`, `IPD_CHART_SECTIONS`) | หน้า **ipd-audit.html**, **ipd-reference.html** | ⚠️ execute ใน browser กับข้อมูล mock |
 
-**เช็คลิสต์ 6 ชั้นที่ engine ตรวจแล้ววันนี้** (`claim-validator.js`):
+**เช็คลิสต์ 8 ชั้นที่ engine ตรวจแล้ววันนี้** (`claim-validator.js`):
 
 1. **FILES** — แฟ้มครบตามกองทุน (เมทริกซ์ 12 กองทุน×แฟ้ม จากเอกสาร NHSO DP) → `RUL-FIL-001`
-2. **PATIENT** — ชื่อ C101 · วันเกิด C102 · เพศ C103 · เลขบัตร ปชช. + checksum C104/C116 · HN C105 · AN (กรณี IP) C106 · วันรับ/จำหน่าย C107/C120/C121
-3. **DX** — ไม่มี Pdx C201 · Pdx เกิน 1 รหัส C202 · Pdx ไม่เหมาะกับผู้ป่วยใน C206
-4. **DRUG** — ยาไม่พบใน Drug Catalogue C562 · ราคาไม่ตรงราคาอ้างอิง C195 (= P124 บน platform ใหม่) · ไม่ระบุจำนวน C303
-5. **CHARGE** — ค่าใช้จ่ายเป็นศูนย์/ลบ C301
-6. **DRG** — จัดกลุ่มไม่ได้ C210 · วันนอนหลุด trim point (คำเตือน AdjRW)
+2. **PATIENT** — ชื่อ C101 · วันเกิด C102 · เพศ C103 · เลขบัตร ปชช. + checksum C104/C116 · HN C105 · AN (กรณี IP) C106
+3. **ADMISSION** — รูปแบบวันที่ C107/C120/C121 · วันนอนไม่ตรงสูตร (จำหน่าย−รับ+1−ลากลับบ้าน) `ENG-ADM-LOS` (= C112 บน NHSO DP)
+4. **DX** — ไม่มี Pdx C201 · Pdx เกิน 1 รหัส C202 · Pdx/Sdx ไม่พบในแคตตาล็อก ICD-10 **C203** · Pdx ไม่เหมาะกับผู้ป่วยใน C206 · รหัสซ้ำ `ENG-DX-DUP`
+5. **PROC** — หัตถการไม่พบในแคตตาล็อก ICD-9-CM `ENG-PROC-001` · มีหัตถการแต่ไม่ส่งแฟ้ม 6 `ENG-PROC-FILE`
+6. **DRUG** — ยาไม่พบใน Drug Catalogue C562 · ราคาไม่ตรงราคาอ้างอิง C195 (= P124 บน platform ใหม่) · ไม่ระบุจำนวน C303
+7. **CHARGE** — ยอด/รายการเป็นศูนย์-ลบ C301 · ค่าห้อง (BILLGRCS 02) เกินวันนอน **C312** · ยอดรวม≠ผลรวมรายการ `ENG-CHG-SUM` · ไม่ระบุหมวด `ENG-CHG-CAT`
+8. **DRG** — จัดกลุ่มไม่ได้ C210 · วันนอนหลุด trim point (คำเตือน AdjRW) · **เลือกเวอร์ชันตามวันจำหน่ายแล้ว (BR-02)**
+
+รหัสที่ engine ปล่อยได้ทุกตัวมี `fix_guidance_th` (to-do หน้างาน) ติดกลับใน `issues[].guidance`
+เช็คที่พึ่งแคตตาล็อก (C203, ENG-PROC-001) ลดตัวเป็น INFO อัตโนมัติถ้าตาราง ICD ยังว่าง
+
+**ชั้นเสนอแนะ (`claim-suggester.js`)** — แยก `suggestions[]` ไม่กระทบ PASS/FAIL · แสดง RW delta อย่างเดียว (ไม่แสดงบาท ตราบที่ DRG ยัง verified=0) · ข้อเสนอเพิ่ม RW กำกับ "ต้องมีเอกสารรองรับ" เสมอ:
+
+- `SUG-DRG-001` กลุ่มที่จัดได้จาก Pdx ≠ DRG ที่บันทึก (port RUL-IPD-023)
+- `SUG-DRG-002` Pdx+Sdx เข้ากลุ่ม RW สูงกว่าได้ + rw_delta (port RUL-IPD-025 — เตือน downcoding)
+- `SUG-CMP-001` นอน ≥3 วันแต่ไม่มี Sdx เลย → ชวนทบทวนโรคร่วมที่แพทย์บันทึกแต่ยังไม่ลงรหัส
+- `SUG-CMP-002` กองทุน IP มีแต่ยอดสรุป ไม่มีราย item (แฟ้ม 7 CHAD → C304)
+- `SUG-CMP-003` มีวินิจฉัยแต่ยังไม่จัดกลุ่ม DRG
+- `SUG-CMP-004` กลุ่มหัตถการแต่ไม่มีรหัส ICD-9-CM
 
 ตัวอย่างเรียกตรง ๆ:
 
 ```bash
 curl -X POST http://localhost:3200/api/reference/validate \
   -H "Content-Type: application/json" \
-  -d '{"fund_key":"OP","files_present":[1,2,3,4,5,6,7,8]}'
-# → {"summary":{"result":"PASS",...}}
+  -d '{"fund_key":"IP","admission":{"admit_date":"2569-08-01","discharge_date":"2569-08-05","los":5},
+       "diagnosis":{"pdx":"I50.0","sdx":["I21.9"]},"drg":{"code":"05450"}}'
+# → issues [] + suggestions [SUG-DRG-002 rw_delta +1.6668 "ตรวจสอบว่ามีเอกสารรองรับ..."]
 ```
 
 ---
@@ -49,6 +66,14 @@ curl -X POST http://localhost:3200/api/reference/validate \
 - `b465f68` **แคตตาล็อกรหัส C ครบ 100%** — 446 รหัส ทวนซ้ำ ≥2 รอบ 440 รหัส · พิสูจน์ว่าช่วง C218–C299, C394–C420 ไม่มีจริง (เลขข้ามเอง) · แก้บล็อก C201–C217 ที่รอบแรกติดเลขผิด (ตัวจริงคือกลุ่มรหัสวินิจฉัย/DRG grouping)
 - `de8df80` **rule engine ตัวแรก** — `POST /api/reference/validate` ตรวจ 6 ชั้น + กล่อง Pre-validate ในหน้า nhso-import
 
+### 11 ส.ค. 2569 (รอบสอง) — IPD coding check & suggest ครบวงจร
+- `fb04cde` ก้อนเดียวทั้งฟีเจอร์ — รายละเอียดตามหัวข้อย่อย:
+- **แคตตาล็อก ICD** — ตาราง `ref_icd10`/`ref_icd9` + CSV ตัวอย่าง (83+28 รหัส ครอบคลุมเคสเดโมทั้งหมด, verified=0) + `load-icd.js` (batch loader ไฟล์เต็ม, `npm run load:icd`) + API `GET /api/reference/icd10|icd9` (ค้นได้ทั้งรูปมีจุด/ไร้จุดผ่าน `code_key`)
+- **validator 6→8 ชั้น** — รับ `sdx[]`, `procedures[]`, `charges.items[]`, `leave_days` (back-compat 100% — payload เดิมได้ผลเดิมเป๊ะ) · เช็คใหม่: C203, C312, ENG-DX-DUP, ENG-PROC-001/FILE, ENG-CHG-SUM/CAT, ENG-ADM-LOS · แก้บั๊ก BR-02 (เวอร์ชัน DRG ตามวันจำหน่าย) · เติม `fix_guidance_th` 22 รหัส → ติดกลับใน `issues[].guidance`
+- **ชั้นเสนอแนะ** — `claim-suggester.js` 6 กฎ (regroup mismatch / RW สูงกว่าที่รหัสรองรับ / ความครบถ้วน) — RW delta เท่านั้น ไม่แสดงบาท ไม่ auto-apply มีธง `simulated`
+- **ตารางผู้ป่วยในจริง** — `ipd.sql` 4 ตาราง (lifecycle mixin) + `/api/ipd/admissions` CRUD + PUT `/coding` `/charges` (replace-set) + `POST /:id/validate` (เซิร์ฟเวอร์ประกอบ payload จาก DB, fund_key='IP' เสมอ) + `npm run seed:ipd` 7 เคสเดโม · check:policy 36 routes ครบ
+- **UI** — สะพาน `mock-ipddata.js` (merge เข้า mock ด้วย AN, เขียนกลับเมื่อล็อกอิน, ล้มเงียบเมื่อ static) · **ipd-admit**: แท็บ coding/cost แก้ไขได้จริง (autocomplete จากแคตตาล็อก, บันทึกลง DB) · **ipd-audit**: ปุ่ม "ตรวจกับ rule engine จริง" + drawer แสดง issues+guidance+suggestions (ปิดสำหรับเคส PVT) · **nhso-import**: แสดง guidance + บล็อกข้อเสนอแนะ, PRE_SAMPLE ใหม่โชว์ 14 ประเด็น 8 ชั้น
+
 ### ผลการทดสอบที่ผ่านแล้ว
 - `npm run migrate` / `npm run seed:reference` รันซ้ำได้ (idempotent) — row counts นิ่ง
 - `npm run check:policy` — 25 routes มีกฎครบ, 9 เส้น reference เป็น PUBLIC
@@ -64,11 +89,13 @@ curl -X POST http://localhost:3200/api/reference/validate \
 ## 3. วิธีรัน / ตรวจสอบ
 
 ```bash
-npm run migrate          # สร้าง/อัปเดตตาราง (schema.sql + reference.sql)
-npm run seed:reference   # โหลดข้อมูลอ้างอิงจาก data/reference/*.csv
+npm run migrate          # สร้าง/อัปเดตตาราง (schema.sql + reference.sql + ipd.sql)
+npm run seed:reference   # โหลดข้อมูลอ้างอิงจาก data/reference/*.csv (รวม ICD ชุดคัดย่อ)
 npm run seed:tmt         # โหลดตัวอย่าง TMT (ไฟล์จริงดู data/reference/README.md)
+npm run seed:ipd         # เติมเคสผู้ป่วยในเดโม 7 เคส (idempotent — มีแล้วข้าม)
+npm run load:icd         # โหลดแคตตาล็อก ICD ฉบับเต็ม (--system icd10|icd9 --file ...)
 npm run dev              # เปิดเซิร์ฟเวอร์ → http://localhost:3200
-npm run check:policy     # ตรวจว่าทุก route มีกฎสิทธิ์
+npm run check:policy     # ตรวจว่าทุก route มีกฎสิทธิ์ (ปัจจุบัน 36 routes / 5 mounts)
 ```
 
 จุดดูสถานะข้อมูล: `GET /api/reference/meta` — จำนวนแถว · % ที่ทวนแล้ว · ประวัติการโหลด
@@ -79,11 +106,13 @@ npm run check:policy     # ตรวจว่าทุก route มีกฎส�
 
 | # | งาน | หมายเหตุ |
 |---|---|---|
-| 1 | โหลด **Master TMT ฉบับจริง** (สมสท. this.or.th) + **ตาราง Thai DRG จริง** (สกส. chi.or.th) | pipeline พร้อมแล้ว — ตอนนี้ DRG เป็นค่าจำลอง `verified=0` ห้ามใช้คิดเงิน |
-| 2 | **ตัว import 16 แฟ้ม/CSV จริง** (FR-01) แล้วต่อท่อเข้า validate engine | ปิดจุดอ่อน "ไม่มีข้อมูลต้นทาง" — demo end-to-end กับ รพ. นำร่อง |
-| 3 | เติม **fix guidance รายรหัส** (คอลัมน์ `fix_guidance_th` รองรับแล้ว ยังว่าง) | เปลี่ยน error เป็น to-do ที่หน้างานทำตามได้ |
-| 4 | ยกกฎ 27 ข้อใน `mock-rules.js` ให้เก็บใน DB + เงื่อนไขเป็น AST ที่ engine execute ได้ | ปิดช่องว่าง "คลังกฎสวยแต่ไม่ตัดสิน" |
+| 1 | โหลด **แคตตาล็อกจริงให้ครบ**: ICD-10-TM + ICD-9-CM ฉบับเต็ม (`load:icd` พร้อมแล้ว) · Master TMT (this.or.th) · **ตาราง Thai DRG จริง** (สกส. chi.or.th) | ตอนนี้ ICD เป็นชุดคัดย่อ / DRG เป็นค่าจำลอง `verified=0` ห้ามใช้คิดเงิน — suggestion ติดธง "ค่าจำลอง" อยู่แล้ว |
+| 2 | **ตัว import 16 แฟ้ม/CSV จริง** (FR-01) แล้วต่อท่อเข้า `ipd_admissions` + validate engine | ทางเข้าข้อมูลจริงแทน seed — demo end-to-end กับ รพ. นำร่อง |
+| 3 | ~~เติม fix guidance รายรหัส~~ ✅ ทำแล้ว 22 รหัสที่ engine ปล่อยได้ — เหลือเติมทีละหมวดเมื่อ implement กฎเพิ่ม | ข้อความระบบเขียนเอง (ไม่ใช่จากเอกสารทางการ — ดูหมายเหตุใน data/reference/README.md) |
+| 4 | ยกกฎ 27 ข้อใน `mock-rules.js` ให้เก็บใน DB + เงื่อนไขเป็น AST ที่ engine execute ได้ | ปิดช่องว่าง "คลังกฎสวยแต่ไม่ตัดสิน" — กฎ IPD 023/025 ถูก port ไป suggester แล้ว |
 | 5 | รอแคตตาล็อก error ทางการของ NHSO Digital Platform (Go-Live 16 ก.ย. 2569) แล้วแทนที่ 6 รหัส `system=NHSO_DP` | ตอนนี้ติดธง "รอยืนยัน" ถูกต้องแล้ว |
+| 6 | เช็ค dx เชิงลึกเมื่อได้แคตตาล็อกเต็ม: dx↔เพศ (C204 — คอลัมน์ `sex_limit` รอแล้ว) · dx↔อายุ (C205) · คู่รหัส HTN+CHF/ไตวาย (C215/C216) · dx↔หัตถการ (C212/C214/C217) | โครง input รองรับหมดแล้ว เหลือ logic + ข้อมูล |
+| 7 | เก็บ daily note / chart audit / ผลตรวจแฟ้ม ลง DB (ตอนนี้ยังอยู่ใน mock) | จอ ipd-worklist / ipd-admit / ipd-audit merge ข้อมูล admission จริงผ่านสะพาน `mock-ipddata.js` แล้ว |
 
 ## 5. ประเด็นค้าง / ความเสี่ยง
 
