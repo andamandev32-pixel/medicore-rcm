@@ -31,13 +31,18 @@ const RULE_SELECT = `
     (SELECT GROUP_CONCAT(p.payer_key ORDER BY p.payer_key)
        FROM rule_version_payers p WHERE p.rule_version_id = rv.rule_version_id) AS payers,
     (SELECT GROUP_CONCAT(s.service_type ORDER BY s.service_type)
-       FROM rule_version_services s WHERE s.rule_version_id = rv.rule_version_id) AS services`;
+       FROM rule_version_services s WHERE s.rule_version_id = rv.rule_version_id) AS services,
+    k.hit AS kpi_hit, k.true_issue AS kpi_true_issue, k.override_count AS kpi_override,
+    k.false_positive AS kpi_false_positive, k.prevented AS kpi_prevented, k.simulated AS kpi_simulated`;
 
 const RULE_FROM = `
     FROM rule_versions rv
     JOIN rule_definitions rd  ON rd.rule_code = rv.rule_code
     LEFT JOIN ref_doc_sources ds  ON ds.doc_id = rv.blocked_by
-    LEFT JOIN ref_doc_sources doc ON doc.doc_id = rv.doc_id`;
+    LEFT JOIN ref_doc_sources doc ON doc.doc_id = rv.doc_id
+    LEFT JOIN rule_kpi_snapshots k ON k.rule_code = rv.rule_code
+         AND k.as_of = (SELECT MAX(k2.as_of) FROM rule_kpi_snapshots k2
+                        WHERE k2.rule_code = rv.rule_code)`;
 
 /**
  * สถานะการตรวจของกฎ — ต้องตรงกับตรรกะใน rule-runner
@@ -48,12 +53,21 @@ function execState(r) {
     if (!r.check_key) return 'NOT_IMPLEMENTED';
     return 'EXECUTABLE';
 }
-const shape = r => ({
-    ...r,
-    payers:   r.payers   ? r.payers.split(',')   : [],
-    services: r.services ? r.services.split(',') : [],
-    exec_state: execState(r),
-});
+const shape = r => {
+    const { kpi_hit, kpi_true_issue, kpi_override, kpi_false_positive,
+            kpi_prevented, kpi_simulated, ...rest } = r;
+    return {
+        ...rest,
+        payers:   r.payers   ? r.payers.split(',')   : [],
+        services: r.services ? r.services.split(',') : [],
+        exec_state: execState(r),
+        kpi: kpi_hit == null ? null : {
+            hit: kpi_hit, true_issue: kpi_true_issue, override: kpi_override,
+            false_positive: kpi_false_positive, prevented: Number(kpi_prevented),
+            simulated: !!kpi_simulated,
+        },
+    };
+};
 
 // ─────────────────────────────────────────────
 // GET /api/rules?status=&payer=&service=&code=&category=&q=&limit=
@@ -93,7 +107,27 @@ router.get('/', async (req, res) => {
              LIMIT ?`,
             [...params, limit]
         );
-        res.json(rows.map(shape));
+        const out = rows.map(shape);
+
+        /* with_conditions=1: แนบเงื่อนไขมาด้วยในคำขอเดียว
+           (สะพานฝั่ง browser ต้องการครบทั้งชุด — ยิงทีละกฎ 31 ครั้งไม่ไหว) */
+        if (req.query.with_conditions === '1' && out.length) {
+            const [conds] = await pool.query(
+                `SELECT rv.rule_code, rv.version, c.seq, c.join_op, c.field, c.op, c.value
+                 FROM rule_conditions c
+                 JOIN rule_versions rv ON rv.rule_version_id = c.rule_version_id
+                 WHERE rv.rule_code IN (?) ORDER BY rv.rule_code, c.seq`,
+                [out.map(r => r.rule_code)]
+            );
+            const byKey = new Map();
+            for (const c of conds) {
+                const k = `${c.rule_code}/${c.version}`;
+                if (!byKey.has(k)) byKey.set(k, []);
+                byKey.get(k).push({ seq: c.seq, join: c.join_op || '', field: c.field, op: c.op, value: c.value });
+            }
+            out.forEach(r => { r.conditions = byKey.get(`${r.rule_code}/${r.version}`) || []; });
+        }
+        res.json(out);
     } catch (err) {
         console.error('[Rules] GET /', err);
         res.status(500).json({ error: err.message });

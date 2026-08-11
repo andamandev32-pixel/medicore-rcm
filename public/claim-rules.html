@@ -35,6 +35,8 @@
                 <h3><i data-lucide="git-branch" class="mi"></i> คลังกฎ</h3>
                 <span class="ds-pane-count" id="listCount">0 กฎ</span>
             </div>
+            <!-- แถบความครอบคลุม: ตรวจอัตโนมัติได้จริงกี่ข้อ (เติมโดย Rules.renderCoverage) -->
+            <div id="ruleCoverage" style="display:none"></div>
             <div class="ds-pane-tools">
                 <select class="sip-select" id="fFund" onchange="Rules.renderList()">
                     <option value="all">ทุกกองทุน</option>
@@ -97,6 +99,7 @@
     <script src="js/mock/mock-rules.js"></script>
     <script src="js/mock/mock-tasks.js"></script>
     <script src="js/mock/mock-refdata.js"></script>
+    <script src="js/mock/mock-ruledata.js"></script>
 
     <script src="js/claim-rules.js"></script>
 </body>

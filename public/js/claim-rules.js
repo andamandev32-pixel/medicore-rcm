@@ -38,6 +38,52 @@ const Rules = {
             this.renderList();
             if (this.state.id) this.select(this.state.id);
         });
+
+        /* mock-ruledata.js hydrate คลังกฎจากฐานข้อมูลจริงเสร็จ → วาดใหม่ทั้งหน้า */
+        document.addEventListener('ruledata:updated', () => {
+            this.fillFunds();
+            this.renderCoverage();
+            this.renderList();
+            const first = this.visible()[0];
+            this.select(this.state.id || (first ? first.id : null));
+        });
+    },
+
+    /* ══════════ แถบความครอบคลุม ══════════
+       ตัวเลขนี้มาแทนความรู้สึกว่า "มีคลังกฎ = ตรวจครบแล้ว"
+       กฎที่ยังไม่มีตัวตรวจต้องนับแยกให้เห็น ไม่ใช่ซ่อนไว้ */
+    renderCoverage() {
+        const el = document.getElementById('ruleCoverage');
+        const c = window.RULE_COVERAGE;
+        if (!el) return;
+        if (!c || !c.active) { el.style.display = 'none'; return; }
+
+        const a = c.active;
+        el.style.display = '';
+        el.innerHTML = `
+            <div class="ds-note" style="margin:8px 10px">
+                <i data-lucide="shield-check" class="icon-sm"></i>
+                <span><strong>ตรวจอัตโนมัติได้จริง ${a.executable}/${a.total} กฎที่บังคับใช้ (${a.pct}%)</strong>
+                ${a.not_implemented ? ` · ยังไม่มีตัวตรวจ ${a.not_implemented}` : ''}
+                ${a.blocked_by_doc ? ` · รอเอกสาร ${a.blocked_by_doc}` : ''}
+                ${a.missing_checker ? ` · <span style="color:var(--status-danger-strong)">ตัวตรวจหาย ${a.missing_checker}</span>` : ''}
+                </span>
+            </div>`;
+    },
+
+    /** ป้ายบอกว่ากฎข้อนี้ระบบตรวจให้ได้จริงหรือยัง */
+    execChip(r) {
+        const map = {
+            EXECUTABLE:      ['sip-chip-success', 'ตรวจอัตโนมัติ'],
+            NOT_IMPLEMENTED: ['sip-chip-muted',   'ตรวจด้วยคน'],
+            BLOCKED_BY_DOC:  ['sip-chip-amber',   'รอเอกสาร'],
+        };
+        const m = map[r.exec_state];
+        if (!m) return '';
+        const title = r.exec_state === 'EXECUTABLE' ? `ตัวตรวจ: ${r.check_key || ''}`
+                    : r.exec_state === 'BLOCKED_BY_DOC' ? (r.blocker_title || 'รอเอกสารอ้างอิง')
+                    : 'กฎนี้อยู่ในคลังแล้วแต่ยังไม่มีตัวตรวจอัตโนมัติ';
+        return `<span class="sip-chip ${m[0]}" title="${esc(title)}">${esc(m[1])}</span>`;
     },
 
     current() { return this.state.id ? MockRules.byId(this.state.id) : null; },
@@ -91,6 +137,7 @@ const Rules = {
                     <div class="ds-list-card-detail">
                         ${esc(r.category)}${r.maps_to_nhso ? ` · จะดัก ${esc(r.maps_to_nhso)}` : ''}
                     </div>
+                    ${this.execChip(r) ? `<div style="margin-top:4px">${this.execChip(r)}</div>` : ''}
                 </div>`).join('')
             : '<div class="ds-empty">ไม่พบกฎตามเงื่อนไข</div>';
         refreshIcons();
