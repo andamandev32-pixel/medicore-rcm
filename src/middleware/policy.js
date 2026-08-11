@@ -20,11 +20,16 @@ const DOCTOR = 'DOCTOR';
 const NURSE  = 'NURSE';
 const PHARM  = 'PHARMACIST';
 const AIDE   = 'NURSE_AIDE';
+const FIN    = 'FINANCE';
 
-// ผู้ปฏิบัติงานที่เขียนข้อมูลได้
+// ผู้ปฏิบัติงานที่เขียนข้อมูล "คลินิก" ได้
+// ⚠️ ไม่มี FINANCE ในนี้โดยตั้งใจ — เจ้าหน้าที่การเงินไม่ควรแก้การลงรหัส/ค่าใช้จ่ายของเคส
 const STAFF = [DOCTOR, NURSE, PHARM, ADMIN];
-// ทุกคนที่ล็อกอิน (รวมผู้ช่วย — อ่านได้ แต่เขียนไม่ได้)
-const ANY   = [DOCTOR, NURSE, PHARM, AIDE, ADMIN];
+// ทุกคนที่ล็อกอิน (รวมผู้ช่วยและการเงิน — อ่านได้ แต่เขียนไม่ได้)
+// FINANCE ต้องอยู่ในนี้ ไม่งั้นใช้ /auth/me · /auth/logout ไม่ได้เลย = ล็อกอินไม่ได้จริง
+const ANY   = [DOCTOR, NURSE, PHARM, AIDE, ADMIN, FIN];
+// ผู้ที่เขียน/ยืนยัน "เอกสารการเงิน" ได้ — ตั้งหนี้ รับเงิน ตัดยอด ตัดจำหน่าย
+const FIN_STAFF = [FIN, ADMIN];
 
 const POLICY = [
     // ── สาธารณะ (ต้องตรงกับ PUBLIC ใน gateway.js) ──
@@ -68,6 +73,19 @@ const POLICY = [
     { m: 'POST', p: /^\/ipd\/admissions\/[^/]+\/validate$/, roles: ANY },
     { m: 'GET',  p: /^\/ipd(\/|$)/, roles: ANY },
     { m: '*',    p: /^\/ipd(\/|$)/, roles: STAFF },
+
+    // ── การเงิน: บันทึกส่ง–บันทึกรับ + ลูกหนี้รายบุคคล ──
+    //    ไม่มี public เลย — เป็นยอดเงินจริงของโรงพยาบาล ไม่ใช่ข้อมูลอ้างอิงที่ราชการเผยแพร่
+    //    (หน้าต้นแบบที่ไม่ล็อกอินตกกลับไปใช้ mock เงียบ ๆ ผ่าน mock-findata.js)
+    //
+    //    อ่านได้ทุก role ที่ล็อกอิน (การเงินต้องเห็นเคส พยาบาลต้องเห็นว่าเคสตัวเองได้เงินยัง)
+    //    แต่ "เขียน" ทั้งหมดจำกัดที่ FIN_STAFF — ไม่ใช่ STAFF เพราะการตั้งหนี้/รับเงิน
+    //    ไม่ใช่งานของแพทย์หรือพยาบาล และคนที่รับผิดชอบตัวเลขต้องระบุตัวได้ใน audit_log
+    //    กฎเฉพาะต้องมาก่อนกฎกว้าง (match แรกชนะ)
+    { m: 'PUT',    p: /^\/finance\/(batches|receipts)\/[^/]+\/confirm$/, roles: FIN_STAFF },
+    { m: '*',      p: /^\/finance\/adjustments(\/|$)/,                   roles: FIN_STAFF },
+    { m: 'GET',    p: /^\/finance(\/|$)/, roles: ANY },
+    { m: '*',      p: /^\/finance(\/|$)/, roles: FIN_STAFF },
 
     // ── ปิดท้าย: อะไรที่ไม่เข้ากฎไหนเลย = ปฏิเสธ ──
     // check-policy.js จะ fail ถ้ามี route ตกมาถึงบรรทัดนี้

@@ -52,6 +52,11 @@
                 <button class="btn btn-outline" onclick="Fin.openPrint()">
                     <i data-lucide="printer" class="icon-sm"></i> พิมพ์รายงาน
                 </button>
+                <!-- ทางเจาะจากยอดรวมลงไปหาตัวเคส — หน้านี้ตอบได้แค่ว่าคงค้างเท่าไร
+                     ตอบไม่ได้ว่าเคสไหนของใคร ต้องมีทางไปต่อ ไม่ใช่ให้ผู้ใช้ไปหาเมนูเอง -->
+                <button class="btn btn-outline" onclick="location.href='fin-ar.html'">
+                    <i data-lucide="users" class="icon-sm"></i> เจาะดูลูกหนี้รายบุคคล
+                </button>
                 <button class="btn btn-primary" onclick="location.href='nhso-reports.html'">
                     <i data-lucide="file-text" class="icon-sm"></i> ไปที่รายงาน สปสช.
                 </button>
@@ -91,6 +96,18 @@
             </div>
             <div class="table-responsive">
                 <table class="ds-table-grid" id="ucTable"></table>
+            </div>
+            <div class="card-body" style="padding-top:0">
+                <div class="ds-note" style="display:block">
+                    ช่อง <b>คงค้าง</b> ในตารางนี้เป็นยอดรวมของงวด — ดูว่า
+                    <b>เคสไหนของใครยังไม่ได้เงิน ค้างมากี่วัน</b> ได้ที่
+                    <a href="fin-ar.html">ทะเบียนลูกหนี้รายบุคคล</a>
+                    · เงินที่โอนเข้ามาแล้วบันทึกและตัดยอดที่
+                    <a href="fin-receipt.html">บันทึกรับเงินโอน</a>
+                    <br><span class="ds-hint">หมายเหตุ: เงินเหมาจ่ายรายหัวไม่มีลูกหนี้รายบุคคล
+                    (จ่ายตามจำนวนประชากรขึ้นทะเบียน ไม่ผูกกับเคส) ทะเบียนลูกหนี้จึงนับเฉพาะ
+                    กองทุนที่เบิกเป็นรายเคส</span>
+                </div>
             </div>
         </div>
 

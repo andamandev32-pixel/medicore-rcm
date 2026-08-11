@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<!-- =========================================================================
+  ทะเบียนลูกหนี้ค่ารักษาพยาบาลรายบุคคล — ติดตามและตัดยอดรายเคส
+
+  เติมชั้นที่หน้า exec-finance.html ตอบไม่ได้: หน้านั้นสรุประดับ "งวด × กองทุน"
+  หน้านี้ตอบว่า *เคสไหนของใคร* ยังไม่ได้เงิน ค้างมากี่วัน และรับมาแล้วกี่งวด
+  ตรงกับเป้าหมายที่ NHSO_CLEAR_AR (mock-nhso.js) ระบุไว้:
+  "Clear บัญชีลูกหนี้ — เคลียร์ได้เป็นรายบุคคล · 1 เคส รองรับหลายงวด หลายกองทุน และยอดเรียกคืน"
+
+  ⚠️ หน้านี้ทำงานได้ 2 โหมด (ตัวสลับอยู่ใน mock-findata.js):
+     ต่อฐานข้อมูลจริง → /api/finance (ต้องล็อกอิน)  · ไม่มีเซิร์ฟเวอร์ → MockAR
+     ป้ายบอกแหล่งข้อมูลอยู่เหนือการ์ด KPI ต้องแสดงเสมอ ห้ามซ่อน
+     ไม่ gate ด้วย Auth.requireLogin() เพราะโหมดต้นแบบต้องเปิดดูได้โดยไม่ล็อกอิน
+  ========================================================================= -->
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>MediClearing — ทะเบียนลูกหนี้ค่ารักษาพยาบาลรายบุคคล</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+
+    <link rel="stylesheet" href="css/ds-tokens.css">
+    <link rel="stylesheet" href="css/ds-base.css">
+    <link rel="stylesheet" href="css/ds-navbar.css">
+    <link rel="stylesheet" href="css/ds-layout.css">
+    <link rel="stylesheet" href="css/ds-components.css">
+    <link rel="stylesheet" href="css/ds-overlays.css">
+    <link rel="stylesheet" href="css/ds-print.css">
+
+    <script src="js/ds/ds-auth.js"></script>
+</head>
+<body data-page="fin-ar">
+
+    <nav id="appNavbar"></nav>
+
+    <div class="page-container">
+
+        <div id="demoBanner"></div>
+
+        <div class="page-header">
+            <div>
+                <div class="page-title">
+                    <i data-lucide="users" class="mi"></i>
+                    <span>ทะเบียนลูกหนี้ค่ารักษาพยาบาลรายบุคคล</span>
+                </div>
+                <div class="page-subtitle" id="asOf">—</div>
+            </div>
+            <div class="section-actions">
+                <select class="sip-select" id="fPeriod" style="width:170px" onchange="FinAR.reload()"></select>
+                <select class="sip-select" id="fPayer" style="width:170px" onchange="FinAR.reload()"></select>
+                <button class="btn btn-outline" onclick="FinAR.openPrint()">
+                    <i data-lucide="printer" class="icon-sm"></i> พิมพ์ทะเบียน
+                </button>
+                <button class="btn btn-primary" onclick="location.href='fin-receipt.html'">
+                    <i data-lucide="banknote" class="icon-sm"></i> บันทึกรับเงินโอน
+                </button>
+            </div>
+        </div>
+
+        <!-- ป้ายแหล่งข้อมูล — ผู้ใช้ต้องแยกออกเสมอว่ากำลังดูยอดจริงหรือข้อมูลสาธิต -->
+        <div id="sourceNote"></div>
+
+        <div id="kpiWrap"></div>
+
+        <!-- อายุหนี้: กดที่ถังเพื่อกรองตาราง — ตัวเลขบนถังกับตารางจึงเป็นชุดเดียวกันเสมอ -->
+        <div class="section-card">
+            <div class="section-header">
+                <div class="section-title"><i data-lucide="clock" class="mi"></i>
+                    อายุหนี้คงค้าง</div>
+                <div class="ds-hint">นับจากวันที่ส่งเบิก · กดที่ช่วงเพื่อกรองตารางด้านล่าง</div>
+            </div>
+            <div class="card-body">
+                <div id="agingWrap"></div>
+            </div>
+        </div>
+
+        <div class="section-card">
+            <div class="section-header">
+                <div class="section-title"><i data-lucide="list-filter" class="mi"></i>
+                    รายการลูกหนี้</div>
+                <div class="ds-hint" id="rowNote">—</div>
+            </div>
+
+            <div class="card-body" style="padding-bottom:0">
+                <div class="section-actions" id="filterRow" style="align-items:center"></div>
+                <div class="ds-segbar" id="segStatus" style="margin:10px 0 4px"></div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="ds-table-grid" id="arTable"></table>
+            </div>
+        </div>
+
+        <!-- ══════════════════════════════════════════════════════════
+             รายงานสรุป — ยอดเดียวกับตารางด้านบน มองอีกแกนหนึ่ง
+             ══════════════════════════════════════════════════════════ -->
+        <div class="ds-zone-head is-new">
+            <span class="ds-zone-num"><i data-lucide="pie-chart" class="icon-sm"></i></span>
+            <span class="ds-zone-title">สรุปคงค้างรายกองทุน</span>
+            <span class="ds-zone-sub">ยอดชุดเดียวกับตารางด้านบน — บวกกลับขึ้นไปเป็นแถวในหน้าสรุปยอดเงินโอนได้</span>
+        </div>
+
+        <div class="section-card">
+            <div class="table-responsive">
+                <table class="ds-table-grid" id="fundTable"></table>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ไม่ต้องวาง markup ของ drawer ไว้ที่นี่ — ds-drawer.js สร้าง #drawerRoot ให้เอง
+         (ensureRoot()) และผูกกับชื่อคลาสของมันเอง เขียนซ้ำแล้วชื่อคลาสไม่ตรงจะพัง -->
+
+    <div id="toastContainer" class="toast-container"></div>
+
+    <script src="js/ds/ds-icons.js"></script>
+    <script src="js/ds/ds-navbar.js"></script>
+    <script src="js/ds/ds-drawer.js"></script>
+    <script src="js/ds/ds-toast.js"></script>
+    <script src="js/ds/ds-doc-parts.js"></script>
+    <script src="js/ds/ds-doc-print.js"></script>
+
+    <script src="js/mock/mock-core.js"></script>
+    <script src="js/mock/mock-session.js"></script>
+    <!-- mock-ar.js อ่าน MockDB.TODAY จาก mock-core และอิงกองทุนชุดเดียวกับ mock-finance
+         mock-findata.js ต้องอยู่ท้ายสุดของกลุ่ม mock — มันเป็นตัวสลับแหล่งข้อมูล -->
+    <script src="js/mock/mock-nhso.js"></script>
+    <script src="js/mock/mock-finance.js"></script>
+    <script src="js/mock/mock-ar.js"></script>
+    <script src="js/mock/mock-findata.js"></script>
+
+    <script src="js/fin-ar.js"></script>
+</body>
+</html>

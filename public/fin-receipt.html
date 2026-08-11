@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<!-- =========================================================================
+  บันทึกรับเงินโอน และตัดยอดลูกหนี้รายบุคคล
+
+  ขั้นที่ต่อจาก fin-ar.html — เงินเข้าบัญชี 1 ก้อน แล้วต้องกระจายลงว่าเป็นของเคสไหนบ้าง
+  รองรับสิ่งที่ NHSO_CLEAR_AR ระบุว่าทำยากในระบบเดิม:
+  1 เคสรับได้หลายงวด หลายกองทุนย่อย และมียอดเรียกคืนหักกลบมาในงวดเดียวกัน
+
+  กติกาที่ฝัง: ยอดที่ตัดลงเคสต้องเท่ากับยอดตาม Statement ก่อนจึงยืนยันได้
+  (API ปฏิเสธด้วย ALLOCATION_MISMATCH) — ใบที่ตัดไม่ครบคือที่มาของ
+  "เงินเข้าแล้วแต่ลูกหนี้ยังค้าง" ที่ตามไม่เจอทีหลัง
+
+  ⚠️ ทำงาน 2 โหมดเหมือน fin-ar.html — แต่ "บันทึก/ตัดยอด/ยืนยัน" ทำได้เฉพาะ
+     โหมดต่อฐานข้อมูลจริงเท่านั้น โหมดต้นแบบต้องปฏิเสธตรง ๆ ไม่ใช่แกล้งสำเร็จ
+  ========================================================================= -->
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>MediClearing — บันทึกรับเงินโอน และตัดยอดลูกหนี้</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+
+    <link rel="stylesheet" href="css/ds-tokens.css">
+    <link rel="stylesheet" href="css/ds-base.css">
+    <link rel="stylesheet" href="css/ds-navbar.css">
+    <link rel="stylesheet" href="css/ds-layout.css">
+    <link rel="stylesheet" href="css/ds-components.css">
+    <link rel="stylesheet" href="css/ds-overlays.css">
+    <link rel="stylesheet" href="css/ds-print.css">
+
+    <script src="js/ds/ds-auth.js"></script>
+</head>
+<body data-page="fin-receipt">
+
+    <nav id="appNavbar"></nav>
+
+    <div class="page-container">
+
+        <div id="demoBanner"></div>
+
+        <div class="page-header">
+            <div>
+                <div class="page-title">
+                    <i data-lucide="banknote" class="mi"></i>
+                    <span>บันทึกรับเงินโอน และตัดยอดลูกหนี้</span>
+                </div>
+                <div class="page-subtitle" id="asOf">—</div>
+            </div>
+            <div class="section-actions">
+                <select class="sip-select" id="fPeriod" style="width:170px" onchange="FinReceipt.reload()"></select>
+                <select class="sip-select" id="fPayer" style="width:170px" onchange="FinReceipt.reload()"></select>
+                <button class="btn btn-outline" onclick="location.href='fin-ar.html'">
+                    <i data-lucide="users" class="icon-sm"></i> ทะเบียนลูกหนี้
+                </button>
+                <button class="btn btn-primary" id="btnNew" onclick="FinReceipt.openNew()">
+                    <i data-lucide="plus" class="icon-sm"></i> บันทึกรับใหม่
+                </button>
+            </div>
+        </div>
+
+        <div id="sourceNote"></div>
+
+        <div id="kpiWrap"></div>
+
+        <div class="section-card">
+            <div class="section-header">
+                <div class="section-title"><i data-lucide="receipt" class="mi"></i>
+                    ใบบันทึกรับเงินโอน</div>
+                <div class="ds-hint" id="rowNote">—</div>
+            </div>
+            <div class="table-responsive">
+                <table class="ds-table-grid" id="rcTable"></table>
+            </div>
+        </div>
+
+        <!-- ══════════════════════════════════════════════════════════
+             ตัวช่วยหาว่า "เงินก้อนนี้น่าจะเป็นของเคสไหน"
+             ══════════════════════════════════════════════════════════ -->
+        <div class="ds-zone-head is-new">
+            <span class="ds-zone-num"><i data-lucide="search" class="icon-sm"></i></span>
+            <span class="ds-zone-title">เคสที่ยังค้าง — พร้อมให้ตัดยอด</span>
+            <span class="ds-zone-sub">เรียงจากค้างนานที่สุด · ใช้เลือกเคสตอนกระจายยอดในใบบันทึกรับ</span>
+        </div>
+
+        <div class="section-card">
+            <div class="table-responsive">
+                <table class="ds-table-grid" id="openTable"></table>
+            </div>
+        </div>
+
+    </div>
+
+    <div id="toastContainer" class="toast-container"></div>
+
+    <script src="js/ds/ds-icons.js"></script>
+    <script src="js/ds/ds-navbar.js"></script>
+    <script src="js/ds/ds-drawer.js"></script>
+    <script src="js/ds/ds-toast.js"></script>
+
+    <script src="js/mock/mock-core.js"></script>
+    <script src="js/mock/mock-session.js"></script>
+    <script src="js/mock/mock-nhso.js"></script>
+    <script src="js/mock/mock-finance.js"></script>
+    <script src="js/mock/mock-ar.js"></script>
+    <script src="js/mock/mock-findata.js"></script>
+
+    <script src="js/fin-receipt.js"></script>
+</body>
+</html>

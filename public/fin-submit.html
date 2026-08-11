@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<!-- =========================================================================
+  บันทึกส่ง — ตั้งยอดพึงรับรายเคส
+
+  ขั้นแรกของงานการเงิน (ก่อน fin-receipt.html): เลือกเคสที่ส่งเบิกไปแล้ว
+  จัดเป็น "ชุดส่ง" ต่อ งวด × สิทธิ × กองทุน แล้วยืนยันเพื่อตั้งเป็นยอดพึงรับ
+  ยืนยันแล้วเคสจะเข้าทะเบียนลูกหนี้ (fin-ar.html) และเริ่มนับอายุหนี้ทันที
+
+  ⚠️ ยอดพึงรับไม่ได้ให้คนพิมพ์ — มาจากผลรวม ipd_charges ของเคสนั้น
+     ยอดตั้งหนี้จึงตรงกับค่ารักษาที่บันทึกไว้เสมอ แก้ได้ทีหลังผ่าน "ปรับปรุงยอด"
+     ที่มีเหตุผลกำกับ ไม่ใช่แก้ตัวเลขเงียบ ๆ ตอนตั้งหนี้
+
+  ⚠️ หน้านี้ "เขียน" ได้เฉพาะโหมดต่อฐานข้อมูลจริง + สิทธิ์ FINANCE/ADMIN
+     โหมดต้นแบบดูขั้นตอนได้แต่สร้างชุดจริงไม่ได้ (ปฏิเสธตรง ๆ ไม่แกล้งสำเร็จ)
+  ========================================================================= -->
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>MediClearing — บันทึกส่ง ตั้งยอดพึงรับ</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+
+    <link rel="stylesheet" href="css/ds-tokens.css">
+    <link rel="stylesheet" href="css/ds-base.css">
+    <link rel="stylesheet" href="css/ds-navbar.css">
+    <link rel="stylesheet" href="css/ds-layout.css">
+    <link rel="stylesheet" href="css/ds-components.css">
+    <link rel="stylesheet" href="css/ds-overlays.css">
+    <link rel="stylesheet" href="css/ds-print.css">
+
+    <script src="js/ds/ds-auth.js"></script>
+</head>
+<body data-page="fin-submit">
+
+    <nav id="appNavbar"></nav>
+
+    <div class="page-container">
+
+        <div id="demoBanner"></div>
+
+        <div class="page-header">
+            <div>
+                <div class="page-title">
+                    <i data-lucide="file-plus" class="mi"></i>
+                    <span>บันทึกส่ง — ตั้งยอดพึงรับรายเคส</span>
+                </div>
+                <div class="page-subtitle" id="asOf">—</div>
+            </div>
+            <div class="section-actions">
+                <button class="btn btn-outline" onclick="location.href='fin-ar.html'">
+                    <i data-lucide="users" class="icon-sm"></i> ทะเบียนลูกหนี้
+                </button>
+                <button class="btn btn-outline" onclick="location.href='fin-receipt.html'">
+                    <i data-lucide="banknote" class="icon-sm"></i> บันทึกรับเงินโอน
+                </button>
+            </div>
+        </div>
+
+        <div id="sourceNote"></div>
+
+        <!-- ลำดับงาน 3 ขั้น — ผู้ใช้ต้องรู้ว่าตอนนี้อยู่ขั้นไหนและเหลืออะไร -->
+        <div class="section-card">
+            <div class="card-body">
+                <div id="stepBar"></div>
+            </div>
+        </div>
+
+        <div class="section-card">
+            <div class="section-header">
+                <div class="section-title"><i data-lucide="package" class="mi"></i>
+                    ขั้น 1 · ตั้งหัวชุดส่ง</div>
+                <div class="ds-hint">1 ชุด = 1 งวด × 1 สิทธิ × 1 กองทุน</div>
+            </div>
+            <div class="card-body">
+                <div id="headForm"></div>
+            </div>
+        </div>
+
+        <div class="section-card">
+            <div class="section-header">
+                <div class="section-title"><i data-lucide="list-checks" class="mi"></i>
+                    ขั้น 2 · เลือกเคสเข้าชุด</div>
+                <div class="ds-hint" id="pickNote">—</div>
+            </div>
+            <div class="card-body" style="padding-bottom:0">
+                <div class="section-actions" id="pickFilters" style="align-items:center"></div>
+            </div>
+            <div class="table-responsive">
+                <table class="ds-table-grid" id="candTable"></table>
+            </div>
+        </div>
+
+        <div class="section-card">
+            <div class="section-header">
+                <div class="section-title"><i data-lucide="check-circle" class="mi"></i>
+                    ขั้น 3 · ยืนยันตั้งยอดพึงรับ</div>
+            </div>
+            <div class="card-body">
+                <div id="confirmPane"></div>
+            </div>
+        </div>
+
+        <!-- ══════════════════════════════════════════════════════════
+             ชุดส่งที่มีอยู่แล้ว — ดูว่าอะไรตั้งหนี้ไปแล้วและอะไรยังร่างค้าง
+             ══════════════════════════════════════════════════════════ -->
+        <div class="ds-zone-head is-new">
+            <span class="ds-zone-num"><i data-lucide="layers" class="icon-sm"></i></span>
+            <span class="ds-zone-title">ชุดส่งที่บันทึกไว้แล้ว</span>
+            <span class="ds-zone-sub">ชุดที่ยังเป็นร่างยังไม่ถือเป็นหนี้ — ต้องยืนยันก่อนจึงเข้าทะเบียนลูกหนี้</span>
+        </div>
+
+        <div class="section-card">
+            <div class="table-responsive">
+                <table class="ds-table-grid" id="batchTable"></table>
+            </div>
+        </div>
+
+    </div>
+
+    <div id="toastContainer" class="toast-container"></div>
+
+    <script src="js/ds/ds-icons.js"></script>
+    <script src="js/ds/ds-navbar.js"></script>
+    <script src="js/ds/ds-drawer.js"></script>
+    <script src="js/ds/ds-toast.js"></script>
+
+    <script src="js/mock/mock-core.js"></script>
+    <script src="js/mock/mock-session.js"></script>
+    <script src="js/mock/mock-nhso.js"></script>
+    <script src="js/mock/mock-finance.js"></script>
+    <script src="js/mock/mock-ar.js"></script>
+    <script src="js/mock/mock-findata.js"></script>
+
+    <script src="js/fin-submit.js"></script>
+</body>
+</html>

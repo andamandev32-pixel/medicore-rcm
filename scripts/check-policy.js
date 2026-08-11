@@ -21,6 +21,7 @@ const MOUNTS = [
     ['/api/reference', 'reference'],
     ['/api/ipd',       'ipd'],
     ['/api/rules',     'rules'],
+    ['/api/finance',   'finance'],
 ];
 
 const showAll = process.argv.includes('--all');

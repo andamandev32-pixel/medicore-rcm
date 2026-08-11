@@ -18,6 +18,9 @@ const DEFAULT_ROLES = [
     { role_id: 3, role_name: 'NURSE',      description: 'พยาบาล' },
     { role_id: 4, role_name: 'PHARMACIST', description: 'เภสัชกร' },
     { role_id: 5, role_name: 'NURSE_AIDE', description: 'ผู้ช่วยพยาบาล' },
+    // เจ้าหน้าที่การเงิน — ยืนยันเอกสารการเงิน (บันทึกส่ง/บันทึกรับ) และตัดจำหน่ายหนี้ได้
+    // แต่ไม่แตะข้อมูลคลินิก · เดิมงานนี้ต้องใช้ ADMIN ซึ่งไม่ตรงกับผู้ใช้จริง
+    { role_id: 6, role_name: 'FINANCE',    description: 'เจ้าหน้าที่การเงิน' },
 ];
 
 const DEFAULT_USERS = [
@@ -25,6 +28,7 @@ const DEFAULT_USERS = [
     { username: 'doctor01',     password: 'doctor1234',  full_name: 'นพ.ธนวัฒน์ พงษ์ไพร',  license_no: 'ว.12345', roles: ['DOCTOR'] },
     { username: 'nurse01',      password: 'nurse1234',   full_name: 'นางสาววิไล ขยันดี',    license_no: 'พ.12345', roles: ['NURSE'] },
     { username: 'pharmacist01', password: 'pharma1234',  full_name: 'ภก.มานะ เชี่ยวชาญ',   license_no: 'ภ.12345', roles: ['PHARMACIST'] },
+    { username: 'finance01',    password: 'finance1234', full_name: 'นางสาวพรทิพย์ การเงิน', license_no: null,     roles: ['FINANCE'] },
     // ถือหลาย role — ใช้ทดสอบ /auth/switch-role และพิสูจน์ว่าสลับแล้ว "ลดสิทธิ์" ได้จริง
     { username: 'superuser',    password: 'super1234',   full_name: 'ผู้ใช้ทดสอบหลายบทบาท', license_no: null,     roles: ['ADMIN', 'DOCTOR', 'NURSE', 'PHARMACIST'] },
 ];

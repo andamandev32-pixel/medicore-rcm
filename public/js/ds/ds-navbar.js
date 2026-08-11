@@ -210,6 +210,24 @@ const DS_MENU = [
         ],
     },
 
+    /* วางถัดจาก "ส่งเบิก NHSO" เพราะงานชั้นนี้เกิดหลังส่งเบิกเสมอ —
+       ส่งแล้วตั้งเป็นยอดพึงรับ แล้วรอเงินเข้ามาตัดยอด (ลำดับเดียวกับแถบงานการเงิน
+       บนผังหน้าปกใน present-exec-slides.js)
+       ⚠️ ห้ามใส่ roles: ในกลุ่มต้นแบบ — DSNavbar._role() คืน '' ตอนไม่ล็อกอิน
+          แล้วกลุ่มจะหายไปทั้งกลุ่มกลางการสาธิต */
+    {
+        group: 'fin', label: 'การเงิน–ลูกหนี้', icon: 'banknote',
+        items: [
+            // เรียงตามลำดับงานจริง: ตั้งหนี้ → ตามหนี้ → รับเงินตัดยอด
+            { href: 'fin-submit.html',  label: 'บันทึกส่ง · ตั้งยอดพึงรับ', icon: 'fileText',
+              badge: { text: 'New', type: 'new' } },
+            { href: 'fin-ar.html',      label: 'ทะเบียนลูกหนี้รายบุคคล',  icon: 'users',
+              badge: { text: 'New', type: 'new' } },
+            { href: 'fin-receipt.html', label: 'บันทึกรับเงินโอน · ตัดยอด', icon: 'receipt',
+              badge: { text: 'New', type: 'new' } },
+        ],
+    },
+
     {
         group: 'registry', label: 'ทะเบียนรายการ', icon: 'clipboard',
         items: [

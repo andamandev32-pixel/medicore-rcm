@@ -20,6 +20,7 @@ const SQL_FILES = [
     'reference.sql',    // ข้อมูลอ้างอิงมาตรฐานการเบิกจ่าย (รหัสติด C / 15 แฟ้ม / TMT / DRG / ICD / MRA / สิทธิ)
     'ipd.sql',          // ผู้ป่วยใน: admission จริง + การลงรหัส (dx/หัตถการ/ค่าใช้จ่าย) + ผลตรวจ MRA
     'rules.sql',        // คลังกฎ + บันทึกการประมวลผลกฎ (FK ไป ref_doc_sources/ref_payers)
+    'finance.sql',      // การเงิน: บันทึกส่ง–บันทึกรับ + ลูกหนี้รายบุคคล (FK ไป ipd_admissions)
 ];
 
 const DB_NAME = process.env.DB_NAME || 'medicore_rcm';
