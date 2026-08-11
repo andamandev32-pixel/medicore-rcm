@@ -395,7 +395,13 @@ const IpdAudit = {
         const score  = MockIpd.chartScore(s);
         setBadge('chartBadge', score.missing.length);
 
+        /* แผงเกณฑ์ MRA จริงจากฐานข้อมูล — โหลดแบบไม่บล็อกหน้า
+           เคสที่ยังไม่ผูกกับ admission จริง (ไม่มี _db) จะไม่มีแผงนี้ */
+        this._renderMraPanel(s);
+
         document.getElementById('tabChart').innerHTML = `
+            <div id="mraPanel"></div>
+
             <div class="cards-row">
                 <div class="card"><div class="card-title">คะแนนเวชระเบียน</div>
                     <div style="font-size:28px;font-weight:800">${score.pct}<span style="font-size:14px">%</span></div>
@@ -432,6 +438,19 @@ const IpdAudit = {
                     </table>
                 </div>
             </div>`).join('')}`;
+    },
+
+    /**
+     * เติมแผงเกณฑ์ MRA จริงเข้าไปหลัง renderChart วาดโครงเสร็จ
+     * แยกเป็น async เพราะต้องยิง API — หน้าเดิมต้องไม่รอ
+     */
+    async _renderMraPanel(s) {
+        if (!window.MockMraData || !s || !s._db || !s._db.admission_id) return;
+        const data = await MockMraData.fetchAudit(s._db.admission_id);
+        const el = document.getElementById('mraPanel');
+        if (!el || !data) return;
+        el.innerHTML = MockMraData.panelHtml(data);
+        refreshIcons();
     },
 
     /* ══════════ แท็บ 4 — DRG และการเงิน ══════════ */
