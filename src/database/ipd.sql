@@ -97,3 +97,76 @@ CREATE TABLE IF NOT EXISTS ipd_charges (
     INDEX idx_adm (admission_id, seq),
     FOREIGN KEY (admission_id) REFERENCES ipd_admissions(admission_id)
 ) ENGINE=InnoDB;
+
+-- ============================================================
+-- 5. ผลตรวจประเมินเวชระเบียนรายเคส (MRA) + ผลตรวจเอกสารตามสิทธิ
+--
+-- แทน chart_audit / fund_check ที่เดิมฝังอยู่ในเคสตัวอย่างฝั่ง browser
+-- ipd_audits เป็น "เอกสาร" (LIFECYCLE MIXIN + rev) · ตารางลูกเป็น replace-set
+-- ใต้ธุรกรรมของแม่ เหมือน dx/proc/charges
+--
+-- 1 admission มีผลตรวจได้ 1 ชุด (แก้ทับได้ ประวัติดูจาก audit_log)
+-- mra_version บันทึกไว้ทุกครั้ง เพราะเกณฑ์เปลี่ยนตามปี — เคสเก่าต้องอ่านย้อนได้ว่าใช้เกณฑ์ฉบับไหน
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS ipd_audits (
+    audit_id     INT AUTO_INCREMENT PRIMARY KEY,
+    admission_id INT NOT NULL,
+    mra_version  VARCHAR(16) DEFAULT NULL,         -- ฉบับเกณฑ์ที่ใช้ตรวจครั้งนี้
+
+    -- คะแนนเวชระเบียน: got/max นับเฉพาะเกณฑ์ที่ "เข้าเงื่อนไข" (N/A ตัดออกจากตัวหาร)
+    chart_score  DECIMAL(6,2) DEFAULT NULL,
+    chart_max    DECIMAL(6,2) DEFAULT NULL,
+    chart_pct    DECIMAL(5,2) DEFAULT NULL,
+    fund_pct     DECIMAL(5,2) DEFAULT NULL,        -- เอกสารตามสิทธิครบกี่ %
+    file_pct     DECIMAL(5,2) DEFAULT NULL,        -- แฟ้มที่ต้องส่งครบกี่ %
+    total_score  DECIMAL(5,2) DEFAULT NULL,
+    result       ENUM('PASS','WARN','APPROVE','FIX','BLOCK') DEFAULT NULL,
+    note         VARCHAR(512) DEFAULT NULL,
+
+    -- ═══ LIFECYCLE MIXIN (ดูคำอธิบายใน schema.sql) ═══
+    status       ENUM('DRAFT','CONFIRMED') NOT NULL DEFAULT 'DRAFT',
+    confirmed_by INT DEFAULT NULL,
+    confirmed_at DATETIME DEFAULT NULL,
+    is_deleted   TINYINT(1) NOT NULL DEFAULT 0,
+    deleted_by   INT DEFAULT NULL,
+    deleted_at   DATETIME DEFAULT NULL,
+    created_by   INT DEFAULT NULL,
+    created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_by   INT DEFAULT NULL,
+    updated_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    rev          INT NOT NULL DEFAULT 0,
+    -- ═══════════════════════════════════════════════
+
+    UNIQUE KEY uk_audit_adm (admission_id),
+    FOREIGN KEY (admission_id) REFERENCES ipd_admissions(admission_id)
+) ENGINE=InnoDB;
+
+-- ผลรายเกณฑ์ MRA (component_key + criterion_no ชี้ไปที่ ref_mra_criteria)
+-- ไม่ใส่ FK ข้ามไป ref_mra_criteria เพราะเกณฑ์เวอร์ชันเก่าอาจถูกปิด is_active
+-- แต่ผลตรวจเก่าต้องคงอยู่อ่านได้เสมอ
+CREATE TABLE IF NOT EXISTS ipd_chart_audit_items (
+    item_id      INT AUTO_INCREMENT PRIMARY KEY,
+    audit_id     INT NOT NULL,
+    component_key VARCHAR(48) NOT NULL,
+    criterion_no SMALLINT NOT NULL DEFAULT 0,      -- 0 = ประเมินระดับองค์ประกอบ ไม่ลงรายข้อ
+    state        ENUM('OK','MISSING','NA') NOT NULL DEFAULT 'NA',
+    note         VARCHAR(512) DEFAULT NULL,
+    created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    UNIQUE KEY uk_audit_item (audit_id, component_key, criterion_no),
+    FOREIGN KEY (audit_id) REFERENCES ipd_audits(audit_id)
+) ENGINE=InnoDB;
+
+-- ผลตรวจเอกสารที่สิทธินั้นบังคับ (check_key ตรงกับ ref_payer_docs)
+CREATE TABLE IF NOT EXISTS ipd_fund_checks (
+    fund_check_id INT AUTO_INCREMENT PRIMARY KEY,
+    audit_id   INT NOT NULL,
+    check_key  VARCHAR(48) NOT NULL,
+    state      ENUM('OK','MISSING','NA') NOT NULL DEFAULT 'NA',
+    note       VARCHAR(512) DEFAULT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    UNIQUE KEY uk_audit_fund (audit_id, check_key),
+    FOREIGN KEY (audit_id) REFERENCES ipd_audits(audit_id)
+) ENGINE=InnoDB;

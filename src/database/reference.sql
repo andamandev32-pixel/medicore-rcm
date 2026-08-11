@@ -291,3 +291,268 @@ CREATE TABLE IF NOT EXISTS ref_icd9 (
     UNIQUE KEY uk_icd9_key (code_key),
     INDEX idx_icd9_code (code)
 ) ENGINE=InnoDB;
+
+-- ============================================================
+-- 7. เอกสารอ้างอิง / แหล่งที่มา
+--    ยก IPD_SOURCES (D2–D8) + MOCK_DOCS จากชั้น mock ขึ้นมาเป็นตารางจริง
+--
+-- ⭐ status คือหัวใจ: กฎที่อ้างเอกสารซึ่งยัง MISSING ต้องถูกกันไม่ให้ "ผ่าน"
+--    rule-runner จะคืนผล BLOCKED_BY_DOC แทน PASS (ดู rules.sql)
+--    เอกสารมาเมื่อไหร่ค่อยปลดล็อก — ไม่ใช่เดาค่าแล้วตรวจไปก่อน
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS ref_doc_sources (
+    doc_id      VARCHAR(32) PRIMARY KEY,           -- 'D4' หรือ 'DOC-NHSO-2569-012'
+    kind        ENUM('ANNOUNCE','MANUAL','AUDIT','INTERNAL','DATASET') NOT NULL DEFAULT 'ANNOUNCE',
+    status      ENUM('PRESENT','PARTIAL','MISSING') NOT NULL DEFAULT 'MISSING',
+    title       VARCHAR(512) NOT NULL,
+    issuer      VARCHAR(128) DEFAULT NULL,         -- สปสช. / สกส. / กรมบัญชีกลาง / สปส. / สพฉ.
+    doc_no      VARCHAR(64)  DEFAULT NULL,
+    published      DATE DEFAULT NULL,
+    effective_from DATE DEFAULT NULL,
+    effective_to   DATE DEFAULT NULL,
+    version     INT DEFAULT 0,                     -- 0 = ยังไม่มีตัวเอกสาร
+    certified_by VARCHAR(16) DEFAULT NULL,         -- ผู้รับรองภายใน (รหัสผู้ใช้ในชั้น mock)
+    file_path   VARCHAR(255) DEFAULT NULL,         -- ที่เก็บไฟล์ในโปรเจค (ถ้ามี)
+    page_unit   VARCHAR(8) DEFAULT NULL,           -- 'น.' หรือ 'สไลด์'
+    -- สิ่งที่เอกสารนี้ให้ได้ คั่นด้วย , เช่น 'drgTable,trimPoint,adjRwFormula'
+    -- ใช้ตอบว่า "ค่าที่ระบบใช้อยู่มาจากเอกสารฉบับไหน"
+    provides    VARCHAR(255) DEFAULT NULL,
+    note        VARCHAR(512) DEFAULT NULL,
+
+    source_doc  VARCHAR(255) DEFAULT NULL,
+    source_ref  VARCHAR(64)  DEFAULT NULL,
+    source_date DATE         DEFAULT NULL,
+    verified    TINYINT(1)   NOT NULL DEFAULT 0,
+    is_active   TINYINT(1)   NOT NULL DEFAULT 1,
+    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    INDEX idx_doc_status (status, kind)
+) ENGINE=InnoDB;
+
+-- ============================================================
+-- 8. สิทธิผู้ป่วย (payer) และเงื่อนไขรายสิทธิ
+--
+-- payer ไม่ใช่ fund_key — คนละแกนกัน อย่าผูกสลับ
+--    payer    = สิทธิของผู้ป่วย: UC/OFC/SSS/LGO/EMS/PVT (ตาราง ref_payers นี้)
+--    fund_key = กองทุนค่าใช้จ่ายของ สปสช.: OP/PP/IP/... (ตาราง ref_funds)
+--    เคสผู้ป่วยในใช้ fund_key='IP' เสมอ แต่ payer ต่างกันได้ทุกเคส
+--    กฎในคลังกฎกำหนดขอบเขตด้วย payer (ฟิลด์ funds[] ของชั้น mock คือ payer)
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS ref_payers (
+    payer_key  VARCHAR(8) PRIMARY KEY,             -- UC/OFC/SSS/LGO/EMS/PVT
+    label_th   VARCHAR(255) NOT NULL,
+    sort_order SMALLINT NOT NULL DEFAULT 0,
+    -- 0 = ไม่ได้จ่ายตามระบบ DRG (เช่น PVT จ่ายตามจริงใต้เพดานกรมธรรม์)
+    drg_based  TINYINT(1) NOT NULL DEFAULT 1,
+    note       VARCHAR(512) DEFAULT NULL,
+
+    source_doc  VARCHAR(255) DEFAULT NULL,
+    source_ref  VARCHAR(64)  DEFAULT NULL,
+    source_date DATE         DEFAULT NULL,
+    verified    TINYINT(1)   NOT NULL DEFAULT 0,
+    is_active   TINYINT(1)   NOT NULL DEFAULT 1,
+    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
+-- เงื่อนไขเชิงตัวเลขรายสิทธิ (เพดานค่าห้อง/กรอบวันส่งเบิก/ชั่วโมง UCEP)
+-- แยกเป็นแถวแทน hardcode ในโค้ด เพราะประกาศใหม่ทุกปี — เพิ่มแถวแล้วปิด effective_to ของเดิม
+CREATE TABLE IF NOT EXISTS ref_payer_rules (
+    payer_rule_id INT AUTO_INCREMENT PRIMARY KEY,
+    payer_key   VARCHAR(8) NOT NULL,
+    rule_key    VARCHAR(32) NOT NULL,              -- 'room_cap' | 'submit_days' | 'ucep_hours'
+    num_value   DECIMAL(12,2) DEFAULT NULL,
+    text_value  VARCHAR(255) DEFAULT NULL,
+    label_th    VARCHAR(255) DEFAULT NULL,
+    effective_from DATE DEFAULT NULL,
+    effective_to   DATE DEFAULT NULL,
+
+    source_doc  VARCHAR(255) DEFAULT NULL,
+    source_ref  VARCHAR(64)  DEFAULT NULL,
+    source_date DATE         DEFAULT NULL,
+    verified    TINYINT(1)   NOT NULL DEFAULT 0,
+    is_active   TINYINT(1)   NOT NULL DEFAULT 1,
+    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    UNIQUE KEY uk_payer_rule (payer_key, rule_key, effective_from),
+    FOREIGN KEY (payer_key) REFERENCES ref_payers(payer_key)
+) ENGINE=InnoDB;
+
+-- เอกสารที่แต่ละสิทธิบังคับให้มีก่อนส่งเบิก (แทน fund_check ในชั้น mock)
+CREATE TABLE IF NOT EXISTS ref_payer_docs (
+    payer_doc_id INT AUTO_INCREMENT PRIMARY KEY,
+    payer_key  VARCHAR(8) NOT NULL,
+    check_key  VARCHAR(48) NOT NULL,               -- 'approve_code','sss_card','claim_form','policy_doc','consent'
+    label_th   VARCHAR(255) NOT NULL,
+    required   TINYINT(1) NOT NULL DEFAULT 1,
+    seq        SMALLINT NOT NULL DEFAULT 0,
+
+    source_doc  VARCHAR(255) DEFAULT NULL,
+    source_ref  VARCHAR(64)  DEFAULT NULL,
+    source_date DATE         DEFAULT NULL,
+    verified    TINYINT(1)   NOT NULL DEFAULT 0,
+    is_active   TINYINT(1)   NOT NULL DEFAULT 1,
+    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    UNIQUE KEY uk_payer_doc (payer_key, check_key),
+    FOREIGN KEY (payer_key) REFERENCES ref_payers(payer_key)
+) ENGINE=InnoDB;
+
+-- อัตราจ่ายต่อ 1 RW (บาท) รายสิทธิ — ยกจาก IPD_FUND_RATES
+-- rate_per_rw NULL = สิทธิที่ไม่ได้จ่ายตาม DRG (PVT)
+CREATE TABLE IF NOT EXISTS ref_fund_rates (
+    fund_rate_id INT AUTO_INCREMENT PRIMARY KEY,
+    payer_key   VARCHAR(8) NOT NULL,
+    rate_per_rw DECIMAL(12,2) DEFAULT NULL,
+    effective_from DATE DEFAULT NULL,
+    effective_to   DATE DEFAULT NULL,
+    note        VARCHAR(512) DEFAULT NULL,
+
+    source_doc  VARCHAR(255) DEFAULT NULL,
+    source_ref  VARCHAR(64)  DEFAULT NULL,
+    source_date DATE         DEFAULT NULL,
+    verified    TINYINT(1)   NOT NULL DEFAULT 0,
+    is_active   TINYINT(1)   NOT NULL DEFAULT 1,
+    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    UNIQUE KEY uk_fund_rate (payer_key, effective_from),
+    FOREIGN KEY (payer_key) REFERENCES ref_payers(payer_key)
+) ENGINE=InnoDB;
+
+-- ============================================================
+-- 9. ค่าประกอบการคำนวณ AdjRW ตามคู่มือ Thai DRG
+--
+-- เป็น "ตารางพี่น้อง" ของ ref_drg ไม่ใช่การ ALTER ของเดิม
+--    เพราะ migrate.js รันไฟล์ SQL ทั้งไฟล์เป็นคำสั่งเดียว — ALTER ที่รันซ้ำไม่ได้
+--    จะทำให้ทั้งไฟล์ถูกข้าม ตารางแยกจึงปลอดภัยและ idempotent จริง
+--
+-- สูตรจริง (src/services/drg-adjrw.js):
+--   OT = 3 x WtLOS
+--   LOS ปกติ         : AdjRW = RW
+--   LOS < WtLOS/3    : AdjRW = RW0d + LOS x (RW - RW0d) / CEILING(WtLOS/3)
+--   OT < LOS <= 2OT  : AdjRW = RW + OF x b12 x (LOS - OT)
+--   2OT < LOS <= 3OT : AdjRW = RW + OF x b12 x OT + OF x b23 x (LOS - 2OT)
+--   LOS > 3OT        : AdjRW = RW + OF x OT x (b12 + b23)
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS ref_drg_outlier (
+    drg_outlier_id INT AUTO_INCREMENT PRIMARY KEY,
+    version_code VARCHAR(16) NOT NULL,
+    drg_code     VARCHAR(8)  NOT NULL,
+    rw0d      DECIMAL(9,4) DEFAULT NULL,           -- RW กรณีนอนไม่ถึง 24 ชม.
+    wtlos     DECIMAL(6,2) DEFAULT NULL,           -- วันนอนมาตรฐานของกลุ่ม
+    ot        DECIMAL(6,2) DEFAULT NULL,           -- จุดตัดวันนอนนานเกินเกณฑ์ (ปกติ = 3 x wtlos)
+    of_factor DECIMAL(9,4) DEFAULT NULL,           -- OF - ตัวปรับเฉพาะกลุ่ม
+    drg_kind  ENUM('SURGICAL','MEDICAL') DEFAULT NULL,  -- ใช้เลือกชุดสัมประสิทธิ์ b12/b23
+
+    source_doc  VARCHAR(255) DEFAULT NULL,
+    source_ref  VARCHAR(64)  DEFAULT NULL,
+    source_date DATE         DEFAULT NULL,
+    verified    TINYINT(1)   NOT NULL DEFAULT 0,
+    is_active   TINYINT(1)   NOT NULL DEFAULT 1,
+    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    UNIQUE KEY uk_drg_outlier (version_code, drg_code),
+    FOREIGN KEY (version_code) REFERENCES ref_drg_versions(version_code)
+) ENGINE=InnoDB;
+
+-- สัมประสิทธิ์ b12/b23 แยกตามประเภทกลุ่มและช่วง RW ตามคู่มือ
+CREATE TABLE IF NOT EXISTS ref_drg_outlier_coeff (
+    coeff_id  INT AUTO_INCREMENT PRIMARY KEY,
+    version_code VARCHAR(16) NOT NULL,
+    drg_kind  ENUM('SURGICAL','MEDICAL') NOT NULL,
+    rw_min    DECIMAL(9,4) NOT NULL DEFAULT 0,
+    rw_max    DECIMAL(9,4) DEFAULT NULL,           -- NULL = ไม่จำกัดปลายบน
+    b12       DECIMAL(10,6) NOT NULL,
+    b23       DECIMAL(10,6) NOT NULL,
+
+    source_doc  VARCHAR(255) DEFAULT NULL,
+    source_ref  VARCHAR(64)  DEFAULT NULL,
+    source_date DATE         DEFAULT NULL,
+    verified    TINYINT(1)   NOT NULL DEFAULT 0,
+    is_active   TINYINT(1)   NOT NULL DEFAULT 1,
+    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    UNIQUE KEY uk_drg_coeff (version_code, drg_kind, rw_min),
+    FOREIGN KEY (version_code) REFERENCES ref_drg_versions(version_code)
+) ENGINE=InnoDB;
+
+-- ============================================================
+-- 10. เกณฑ์ตรวจประเมินคุณภาพการบันทึกเวชระเบียน (MRA - สปสช.)
+--     ที่มา: คู่มือการตรวจประเมินคุณภาพการบันทึกเวชระเบียนผู้ป่วยใน ฉบับ 2563
+--
+-- แทน IPD_CHART_SECTIONS 24 หัวข้อที่ต้นแบบคิดขึ้นเอง - ของจริงคือ
+--    12 องค์ประกอบ (7 บังคับทุกเคส + 5 เฉพาะบางเคส) เกณฑ์ย่อยข้อละ 1 คะแนน
+--
+-- การให้คะแนน: เกณฑ์ข้อละ 1 คะแนน · องค์ประกอบที่เคสไม่เข้าเงื่อนไข = N/A
+-- และต้อง "ตัดออกจากตัวหาร" ไม่ใช่ให้ 0 (ดู src/services/mra-audit.js)
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS ref_mra_versions (
+    version_code VARCHAR(16) PRIMARY KEY,          -- 'MRA-2563'
+    label       VARCHAR(255) NOT NULL,
+    effective_from DATE DEFAULT NULL,
+    effective_to   DATE DEFAULT NULL,
+
+    source_doc  VARCHAR(255) DEFAULT NULL,
+    source_ref  VARCHAR(64)  DEFAULT NULL,
+    source_date DATE         DEFAULT NULL,
+    verified    TINYINT(1)   NOT NULL DEFAULT 0,
+    is_active   TINYINT(1)   NOT NULL DEFAULT 1,
+    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS ref_mra_components (
+    component_id INT AUTO_INCREMENT PRIMARY KEY,
+    version_code  VARCHAR(16) NOT NULL,
+    component_key VARCHAR(48) NOT NULL,            -- 'discharge_summary_dxop','history',...
+    seq          SMALLINT NOT NULL DEFAULT 0,
+    name_th      VARCHAR(255) NOT NULL,
+    name_en      VARCHAR(128) DEFAULT NULL,
+    -- 1 = ต้องบันทึกทุกเคส (7 องค์ประกอบ) · 0 = เฉพาะเคสที่เข้าเงื่อนไข (5 องค์ประกอบ)
+    always_required TINYINT(1) NOT NULL DEFAULT 1,
+    -- เงื่อนไขที่ทำให้องค์ประกอบนี้ถูกนำมาคิด: 'proc','consult','anesthesia','labour','rehab'
+    needs        VARCHAR(32) DEFAULT NULL,
+    max_score    SMALLINT NOT NULL DEFAULT 0,      -- = จำนวนเกณฑ์ย่อย
+
+    source_doc  VARCHAR(255) DEFAULT NULL,
+    source_ref  VARCHAR(64)  DEFAULT NULL,
+    source_date DATE         DEFAULT NULL,
+    verified    TINYINT(1)   NOT NULL DEFAULT 0,
+    is_active   TINYINT(1)   NOT NULL DEFAULT 1,
+    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    UNIQUE KEY uk_mra_component (version_code, component_key),
+    FOREIGN KEY (version_code) REFERENCES ref_mra_versions(version_code)
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS ref_mra_criteria (
+    criterion_id INT AUTO_INCREMENT PRIMARY KEY,
+    version_code  VARCHAR(16) NOT NULL,
+    component_key VARCHAR(48) NOT NULL,
+    criterion_no  SMALLINT NOT NULL,               -- 'ข้อ 1', 'ข้อ 2', ...
+    text_th      VARCHAR(512) NOT NULL,
+    score        SMALLINT NOT NULL DEFAULT 1,      -- เกณฑ์ละ 1 คะแนนตามคู่มือ
+
+    source_doc  VARCHAR(255) DEFAULT NULL,
+    source_ref  VARCHAR(64)  DEFAULT NULL,
+    source_date DATE         DEFAULT NULL,
+    verified    TINYINT(1)   NOT NULL DEFAULT 0,
+    is_active   TINYINT(1)   NOT NULL DEFAULT 1,
+    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    UNIQUE KEY uk_mra_criterion (version_code, component_key, criterion_no),
+    FOREIGN KEY (version_code, component_key)
+        REFERENCES ref_mra_components(version_code, component_key)
+) ENGINE=InnoDB;
