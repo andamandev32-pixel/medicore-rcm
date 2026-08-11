@@ -10,6 +10,7 @@ const settingsRoutes  = require('./routes/settings');
 const registryRoutes  = require('./routes/registry');
 const referenceRoutes = require('./routes/reference');
 const ipdRoutes       = require('./routes/ipd');
+const rulesRoutes     = require('./routes/rules');
 
 const app = express();
 
@@ -49,6 +50,7 @@ app.use('/api/settings',  settingsRoutes);
 app.use('/api/registry',  registryRoutes);
 app.use('/api/reference', referenceRoutes);
 app.use('/api/ipd',       ipdRoutes);
+app.use('/api/rules',     rulesRoutes);
 
 // ไม่มี SPA route — express.static เสิร์ฟ public/*.html ให้อยู่แล้ว
 // วางไฟล์ .html ใน public/ ได้เลย ไม่ต้อง register

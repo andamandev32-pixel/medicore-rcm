@@ -18,7 +18,8 @@
     "seed:tmt": "node src/database/load-tmt.js",
     "seed:ipd": "node src/database/seed-ipd-demo.js",
     "load:icd": "node src/database/load-icd.js",
-    "check:policy": "node scripts/check-policy.js"
+    "check:policy": "node scripts/check-policy.js",
+    "check:rules": "node scripts/check-rules.js"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

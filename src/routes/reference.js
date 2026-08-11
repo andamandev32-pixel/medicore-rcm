@@ -315,6 +315,106 @@ router.get('/meta', async (req, res) => {
 });
 
 // ─────────────────────────────────────────────
+// GET /api/reference/mra?version= — เกณฑ์ตรวจเวชระเบียน (องค์ประกอบ + เกณฑ์ย่อย)
+// ไม่ระบุ version = ฉบับที่บังคับใช้ล่าสุด
+// ─────────────────────────────────────────────
+router.get('/mra', async (req, res) => {
+    try {
+        let version = req.query.version;
+        if (!version) {
+            const [[v]] = await pool.query(
+                `SELECT version_code FROM ref_mra_versions WHERE is_active = 1
+                 ORDER BY effective_from DESC LIMIT 1`
+            );
+            version = v ? v.version_code : null;
+        }
+        if (!version) return res.json({ version: null, components: [] });
+
+        const [[meta]] = await pool.query(
+            `SELECT version_code, label, ${D('effective_from')}, ${D('effective_to')}, ${PROV}
+             FROM ref_mra_versions WHERE version_code = ?`, [version]
+        );
+        const [components] = await pool.query(
+            `SELECT component_key, seq, name_th, name_en, always_required, needs, max_score, ${PROV}
+             FROM ref_mra_components WHERE version_code = ? AND is_active = 1 ORDER BY seq`,
+            [version]
+        );
+        const [criteria] = await pool.query(
+            `SELECT component_key, criterion_no, text_th, score, ${PROV}
+             FROM ref_mra_criteria WHERE version_code = ? AND is_active = 1
+             ORDER BY component_key, criterion_no`,
+            [version]
+        );
+        const byComp = new Map();
+        for (const c of criteria) {
+            if (!byComp.has(c.component_key)) byComp.set(c.component_key, []);
+            byComp.get(c.component_key).push(c);
+        }
+        res.json({
+            version: meta || { version_code: version },
+            components: components.map(c => {
+                const rows = byComp.get(c.component_key) || [];
+                /* criteria_pending = ยังไม่ได้ถอดเกณฑ์ย่อยจากคู่มือ — หน้าจอต้องบอกผู้ใช้ */
+                return { ...c, criteria: rows, criteria_pending: rows.length === 0 };
+            }),
+        });
+    } catch (err) {
+        console.error('[Reference] GET /mra', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ─────────────────────────────────────────────
+// GET /api/reference/payers — สิทธิผู้ป่วย + เอกสารบังคับ + เงื่อนไขเชิงตัวเลข
+// ⚠️ คนละแกนกับ /fund-files (นั่นคือกองทุนค่าใช้จ่ายของ สปสช.)
+// ─────────────────────────────────────────────
+router.get('/payers', async (req, res) => {
+    try {
+        const [payers] = await pool.query(
+            `SELECT payer_key, label_th, sort_order, drg_based, note, ${PROV}
+             FROM ref_payers WHERE is_active = 1 ORDER BY sort_order`
+        );
+        const [docs] = await pool.query(
+            `SELECT payer_key, check_key, label_th, required, seq
+             FROM ref_payer_docs WHERE is_active = 1 ORDER BY payer_key, seq`
+        );
+        const [rules] = await pool.query(
+            `SELECT payer_key, rule_key, num_value, text_value, label_th,
+                    ${D('effective_from')}, ${D('effective_to')}, verified
+             FROM ref_payer_rules WHERE is_active = 1 ORDER BY payer_key, rule_key`
+        );
+        res.json(payers.map(p => ({
+            ...p,
+            docs:  docs.filter(d => d.payer_key === p.payer_key),
+            rules: rules.filter(r => r.payer_key === p.payer_key),
+        })));
+    } catch (err) {
+        console.error('[Reference] GET /payers', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ─────────────────────────────────────────────
+// GET /api/reference/fund-rates?payer= — อัตราจ่ายต่อ RW
+// ─────────────────────────────────────────────
+router.get('/fund-rates', async (req, res) => {
+    try {
+        const params = [];
+        let where = 'is_active = 1';
+        if (req.query.payer) { where += ' AND payer_key = ?'; params.push(req.query.payer); }
+        const [rows] = await pool.query(
+            `SELECT payer_key, rate_per_rw, ${D('effective_from')}, ${D('effective_to')}, note, ${PROV}
+             FROM ref_fund_rates WHERE ${where} ORDER BY payer_key, effective_from DESC`,
+            params
+        );
+        res.json(rows);
+    } catch (err) {
+        console.error('[Reference] GET /fund-rates', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ─────────────────────────────────────────────
 // POST /api/reference/validate — ตรวจเคลม 1 เคสกับกฎมาตรฐาน (stateless, ไม่บันทึกอะไร)
 //
 // body: {

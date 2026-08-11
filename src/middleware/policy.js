@@ -49,10 +49,18 @@ const POLICY = [
     // ── ข้อมูลอ้างอิงมาตรฐาน: อ่านสาธารณะ (ต้องตรงกับ PUBLIC ใน gateway.js) ──
     //    เป็นมาตรฐานที่ราชการเผยแพร่อยู่แล้ว + หน้าต้นแบบที่ดึงไป hydrate ไม่ล็อกอิน
     //    กฎ '*' ปิดท้ายกันอนาคต: endpoint เขียน (โหลด/แก้ข้อมูลอ้างอิง) ต้องเป็น ADMIN
-    { m: 'GET',  p: /^\/reference\/(error-codes|files|file-fields|fund-files|drg|drg-versions|tmt|icd10|icd9|meta)$/, public: true },
+    { m: 'GET',  p: /^\/reference\/(error-codes|files|file-fields|fund-files|drg|drg-versions|tmt|icd10|icd9|mra|payers|fund-rates|meta)$/, public: true },
     // validate เป็น POST แต่ stateless (คำนวณอย่างเดียว ไม่เขียน DB) — สาธารณะเช่นกัน
     { m: 'POST', p: /^\/reference\/validate$/, public: true },
     { m: '*',    p: /^\/reference(\/|$)/, roles: [ADMIN] },
+
+    // ── คลังกฎ: อ่านสาธารณะ (ต้องตรงกับ PUBLIC ใน gateway.js) ──
+    //    หน้าคลังกฎเป็นหน้าต้นแบบที่ไม่ล็อกอิน · /run เป็น POST แต่ stateless
+    //    กฎ '*' ปิดท้ายกันอนาคต: การสร้าง/แก้/อนุมัติกฎต้องเป็น ADMIN
+    { m: 'GET',  p: /^\/rules\/(versions|conditions|templates|coverage)$/, public: true },
+    { m: 'GET',  p: /^\/rules$/,      public: true },
+    { m: 'POST', p: /^\/rules\/run$/, public: true },
+    { m: '*',    p: /^\/rules(\/|$)/, roles: [ADMIN] },
 
     // ── ผู้ป่วยใน (admission จริง + การลงรหัส) ──
     //    validate เป็น POST อ่านอย่างเดียวเชิงคำนวณ — เปิดให้ทุก role ที่ล็อกอิน

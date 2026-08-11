@@ -26,8 +26,18 @@ const PUBLIC = [
     { method: 'GET',  path: '/reference/icd10' },
     { method: 'GET',  path: '/reference/icd9' },
     { method: 'GET',  path: '/reference/meta' },
+    { method: 'GET',  path: '/reference/mra' },
+    { method: 'GET',  path: '/reference/payers' },
+    { method: 'GET',  path: '/reference/fund-rates' },
     // ตรวจเคลมกับกฎมาตรฐาน — stateless ไม่เขียน DB (ดูเหตุผลใน routes/reference.js)
     { method: 'POST', path: '/reference/validate' },
+    // คลังกฎ — อ่านอย่างเดียว + รันกฎแบบ stateless (ดู routes/rules.js)
+    { method: 'GET',  path: '/rules' },
+    { method: 'GET',  path: '/rules/versions' },
+    { method: 'GET',  path: '/rules/conditions' },
+    { method: 'GET',  path: '/rules/templates' },
+    { method: 'GET',  path: '/rules/coverage' },
+    { method: 'POST', path: '/rules/run' },
 ];
 
 // log  = บันทึกว่าจะบล็อกอะไร แต่ปล่อยผ่าน (ใช้ตอน rollout ดูว่ามี caller ไหนตกหล่น)
