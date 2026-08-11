@@ -11,7 +11,7 @@
 
 | ไฟล์ | เนื้อหา | ที่มา | สถานะ |
 |---|---|---|---|
-| `error-codes.csv` | รหัสติด C ระบบ e-Claim (C101–C652) 441 รหัส + รหัสตอบกลับ NHSO DP 6 รหัส (P124, L205, C305, P061, P208, C112) | รวบรวมจาก [รายละเอียดการผิดพลาดของข้อมูล (รหัสติด C) — UC@KKPHO](https://www.uckkpho.com/uc/1313/) ต้นทางคือระบบ e-Claim สปสช. (eclaim.nhso.go.th) · เก็บข้อมูล 11 ส.ค. 2569 | ทวนแล้ว C101–C199, C300–C393, C421–C652 (verified=1) · **ช่วง C200–C217 ทวนซ้ำยังไม่ได้ (verified=0)** · ช่วง C218–C233, C404–C420 ยังไม่ได้เก็บ · แถว NHSO_DP มาจาก OCR ภาพสไลด์ (verified=0) รอ สปสช. เผยแพร่แคตตาล็อกทางการ |
+| `error-codes.csv` | รหัสติด C ระบบ e-Claim 440 รหัส + รหัสตอบกลับ NHSO DP 6 รหัส (P124, L205, C305, P061, P208, C112) | รวบรวมจาก [รายละเอียดการผิดพลาดของข้อมูล (รหัสติด C) — UC@KKPHO](https://www.uckkpho.com/uc/1313/) ต้นทางคือระบบ e-Claim สปสช. (eclaim.nhso.go.th) · เก็บข้อมูล 11 ส.ค. 2569 ทวนซ้ำทุกช่วง ≥2 รอบ | ครอบคลุมแคตตาล็อกทั้งหมด: C101–C217, C300–C393, C421–C652 (verified=1) — **ช่วง C218–C299, C394–C420 ไม่มีอยู่จริง เลขแคตตาล็อกข้ามเอง** · แถว NHSO_DP มาจาก OCR ภาพสไลด์ (verified=0) รอ สปสช. เผยแพร่แคตตาล็อกทางการ |
 | `claim-files.csv` | โครงสร้าง 15 แฟ้ม NHSO Digital Platform (จำนวนฟิลด์ req/cond/opt รวม 160 data points, แฟ้มเงื่อนไข) | doc/2. NHSO.Digital.Platform.Overview.23.06.2569.pdf น.9–13 | ทวนแล้ว (verified=1) · คอลัมน์ `mapping_status` เป็นสถานะฝั่ง รพ. ไม่ใช่ข้อมูลทางการ |
 | `funds.csv` + `fund-file-matrix.csv` | 12 กองทุน × แฟ้มที่ต้องส่ง (กฎ RUL-FIL-001) | เอกสารเดียวกัน น.14–16 | ทวนแล้ว (verified=1) |
 | `drg-versions.csv` `mdc.csv` `drg.csv` | Thai DRG: RW / ALOS / trim points | **ค่าจำลองจากต้นแบบ** — ของจริงต้องใช้คู่มือ Thai DRG + ตารางอัตราจาก สกส. ([chi.or.th](https://www.chi.or.th)) | verified=0 ทั้งหมด — ห้ามใช้คิดเงินจริง |
