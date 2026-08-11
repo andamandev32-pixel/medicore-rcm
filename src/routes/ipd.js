@@ -6,6 +6,8 @@ const { auditLog, readAuditLog, assertRev, activeOnly } = require('../services/a
 const { validateClaim, normCode } = require('../services/claim-validator');
 const { suggestForClaim } = require('../services/claim-suggester');
 const { buildIpdCases } = require('../services/nhso-16files');
+const { runRules } = require('../services/rule-runner');
+const { loadCriteria, scoreAudit, contextFromAdmission } = require('../services/mra-audit');
 
 // ============================================================
 // /api/ipd — ผู้ป่วยในจริง (แทน MockDB('ipd_stays') ฝั่ง browser)
@@ -405,6 +407,21 @@ function buildClaimFromAdmission(adm) {
     };
 }
 
+/** ผลตรวจเวชระเบียน/เอกสารของ admission (ถ้าเคยบันทึกไว้) — ใช้ป้อนให้ rule-runner */
+async function loadAuditRows(id) {
+    const [[audit]] = await pool.query(
+        `SELECT audit_id, mra_version, rev FROM ipd_audits
+         WHERE admission_id = ? AND is_deleted = 0`, [id]);
+    if (!audit) return { audit: null, chartItems: [], fundChecks: [] };
+    const [chartItems] = await pool.query(
+        `SELECT component_key, criterion_no, state, note FROM ipd_chart_audit_items
+         WHERE audit_id = ? ORDER BY component_key, criterion_no`, [audit.audit_id]);
+    const [fundChecks] = await pool.query(
+        `SELECT check_key, state, note FROM ipd_fund_checks
+         WHERE audit_id = ? ORDER BY check_key`, [audit.audit_id]);
+    return { audit, chartItems, fundChecks };
+}
+
 async function validateAdmission(id) {
     const adm = await loadAdmission(pool, id);
     if (!adm) return null;
@@ -413,6 +430,23 @@ async function validateAdmission(id) {
     result.suggestions = await suggestForClaim(pool, claim, result.fund);
     result.summary.suggestions = result.suggestions.length;
     result.claim = claim;   // ให้หน้าจอ/ผู้ตรวจเห็นว่า engine ตรวจจากข้อมูลชุดไหน
+
+    /* ── รันคลังกฎของโรงพยาบาลต่อจากกฎมาตรฐาน ──
+       ป้อนผลตรวจเวชระเบียน/เอกสารที่บันทึกไว้เข้าไปด้วย ไม่งั้น checker
+       ที่ต้องใช้ข้อมูลพวกนี้จะได้ SKIPPED ตลอด (ตามสัญญาใน rule-runner) */
+    const { chartItems, fundChecks } = await loadAuditRows(id);
+    result.rules = await runRules(pool, {
+        claim,
+        validation: result,
+        suggestions: result.suggestions,
+        as_of: claim.admission.discharge_date || claim.admission.admit_date || null,
+        payer_key: adm.payer || null,
+        service_type: 'IPD',
+        mraItems: chartItems.length ? chartItems : null,
+        fundChecks: fundChecks.length ? fundChecks : null,
+    });
+    result.summary.rule_hits = result.rules.summary.hits;
+    result.summary.rule_coverage_pct = result.rules.summary.coverage_pct;
     return result;
 }
 
@@ -425,6 +459,159 @@ router.post('/admissions/:id/validate', async (req, res) => {
         if (err.status === 400) return res.status(400).json({ error: err.message });
         console.error('[IPD] POST /admissions/:id/validate', err);
         res.status(500).json({ error: err.message });
+    }
+});
+
+// ─────────────────────────────────────────────
+// GET /api/ipd/admissions/:id/audit
+// ผลตรวจเวชระเบียนตามเกณฑ์ MRA + เอกสารตามสิทธิ พร้อมตัวเกณฑ์ที่บังคับใช้
+// เคสที่ยังไม่เคยตรวจก็คืนโครงเกณฑ์ให้ (ผู้ใช้จะได้เห็นว่าต้องตรวจอะไรบ้าง)
+// ─────────────────────────────────────────────
+router.get('/admissions/:id/audit', async (req, res) => {
+    try {
+        const adm = await loadAdmission(pool, req.params.id);
+        if (!adm) return res.status(404).json({ error: 'ไม่พบ admission นี้' });
+
+        const { audit, chartItems, fundChecks } = await loadAuditRows(req.params.id);
+        const { version, components, criteria } = await loadCriteria(pool, audit && audit.mra_version);
+        const context = contextFromAdmission({
+            procedures: adm.procedures, leave_days: adm.leave_days,
+            payer: adm.payer, flags: adm.file_ctx || {},
+        });
+        const score = scoreAudit({ components, criteria, items: chartItems, context });
+
+        /* เอกสารที่สิทธินี้บังคับ + สถานะที่บันทึกไว้ */
+        const [payerDocs] = await pool.query(
+            `SELECT check_key, label_th, required, seq FROM ref_payer_docs
+             WHERE payer_key = ? AND is_active = 1 ORDER BY seq`, [adm.payer || '']);
+        const fundState = new Map(fundChecks.map(f => [f.check_key, f]));
+
+        res.json({
+            admission_id: Number(req.params.id), an: adm.an, payer: adm.payer,
+            audit: audit ? { audit_id: audit.audit_id, mra_version: audit.mra_version, rev: audit.rev } : null,
+            mra_version: version,
+            context,
+            score,
+            components: components.map(c => ({
+                ...c,
+                applicable: c.always_required ? true : !!context[c.needs],
+                criteria: criteria.filter(x => x.component_key === c.component_key),
+                criteria_pending: !criteria.some(x => x.component_key === c.component_key),
+                items: chartItems.filter(i => i.component_key === c.component_key),
+            })),
+            fund_checks: payerDocs.map(d => ({
+                ...d,
+                state: (fundState.get(d.check_key) || {}).state || 'MISSING',
+                note: (fundState.get(d.check_key) || {}).note || null,
+            })),
+        });
+    } catch (err) {
+        console.error('[IPD] GET /admissions/:id/audit', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ─────────────────────────────────────────────
+// PUT /api/ipd/admissions/:id/audit  (STAFF)
+// body: { rev?, mra_version?, chart_items:[{component_key, criterion_no?, state, note?}],
+//         fund_checks:[{check_key, state, note?}] }
+//
+// replace-set ทั้งชุดใต้ธุรกรรมเดียว — แบบเดียวกับ /coding และ /charges
+// คะแนนคำนวณจากเกณฑ์ในฐานข้อมูล ไม่รับคะแนนจาก client (กันตัวเลขปลอม)
+// ─────────────────────────────────────────────
+router.put('/admissions/:id/audit', requireRole('DOCTOR', 'NURSE', 'PHARMACIST', 'ADMIN'), async (req, res) => {
+    const conn = await pool.getConnection();
+    try {
+        await conn.beginTransaction();
+
+        const [[adm]] = await conn.query(
+            `SELECT admission_id, an, payer, leave_days, file_ctx FROM ipd_admissions
+             WHERE admission_id = ? AND is_deleted = 0 FOR UPDATE`, [req.params.id]);
+        if (!adm) { await conn.rollback(); return res.status(404).json({ error: 'ไม่พบ admission นี้' }); }
+
+        const [[existing]] = await conn.query(
+            `SELECT audit_id, rev FROM ipd_audits WHERE admission_id = ? AND is_deleted = 0 FOR UPDATE`,
+            [req.params.id]);
+        if (existing) assertRev(existing, req.body.rev);
+
+        const { version, components, criteria } = await loadCriteria(conn, req.body.mra_version);
+        const [procs] = await conn.query(
+            'SELECT seq FROM ipd_procedures WHERE admission_id = ?', [req.params.id]);
+        const context = contextFromAdmission({
+            procedures: procs, leave_days: adm.leave_days,
+            payer: adm.payer, flags: parseJson(adm.file_ctx, {}),
+        });
+
+        const chartItems = Array.isArray(req.body.chart_items) ? req.body.chart_items : [];
+        const fundItems  = Array.isArray(req.body.fund_checks) ? req.body.fund_checks : [];
+        const STATES = ['OK', 'MISSING', 'NA'];
+        const clean = s => (STATES.includes(String(s || '').toUpperCase()) ? String(s).toUpperCase() : 'MISSING');
+
+        const score = scoreAudit({ components, criteria, items: chartItems.map(i => ({
+            component_key: i.component_key, criterion_no: i.criterion_no || 0, state: clean(i.state),
+        })), context });
+
+        const fundApplicable = fundItems.filter(f => clean(f.state) !== 'NA');
+        const fundPct = fundApplicable.length
+            ? Math.round((fundApplicable.filter(f => clean(f.state) === 'OK').length / fundApplicable.length) * 10000) / 100
+            : null;
+
+        let auditId;
+        if (existing) {
+            auditId = existing.audit_id;
+            await conn.query(
+                `UPDATE ipd_audits SET mra_version = ?, chart_score = ?, chart_max = ?, chart_pct = ?,
+                     fund_pct = ?, note = ?, updated_by = ?, rev = rev + 1
+                 WHERE audit_id = ?`,
+                [version, score.got, score.max, score.pct, fundPct, req.body.note || null,
+                 req.user.user_id, auditId]);
+            await conn.query('DELETE FROM ipd_chart_audit_items WHERE audit_id = ?', [auditId]);
+            await conn.query('DELETE FROM ipd_fund_checks       WHERE audit_id = ?', [auditId]);
+        } else {
+            const [ins] = await conn.query(
+                `INSERT INTO ipd_audits (admission_id, mra_version, chart_score, chart_max, chart_pct,
+                     fund_pct, note, created_by, updated_by, rev)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)`,
+                [req.params.id, version, score.got, score.max, score.pct, fundPct,
+                 req.body.note || null, req.user.user_id, req.user.user_id]);
+            auditId = ins.insertId;
+        }
+
+        for (const i of chartItems) {
+            if (!i.component_key) continue;
+            await conn.query(
+                `INSERT INTO ipd_chart_audit_items (audit_id, component_key, criterion_no, state, note)
+                 VALUES (?, ?, ?, ?, ?)
+                 ON DUPLICATE KEY UPDATE state = VALUES(state), note = VALUES(note)`,
+                [auditId, i.component_key, i.criterion_no || 0, clean(i.state), i.note || null]);
+        }
+        for (const f of fundItems) {
+            if (!f.check_key) continue;
+            await conn.query(
+                `INSERT INTO ipd_fund_checks (audit_id, check_key, state, note)
+                 VALUES (?, ?, ?, ?)
+                 ON DUPLICATE KEY UPDATE state = VALUES(state), note = VALUES(note)`,
+                [auditId, f.check_key, clean(f.state), f.note || null]);
+        }
+
+        await auditLog(conn, {
+            entity: 'ipd_admission', entity_id: req.params.id, action: 'AUDIT',
+            actor: req.user,
+            after: { mra_version: version, chart_pct: score.pct, fund_pct: fundPct,
+                     items: chartItems.length, fund_checks: fundItems.length },
+            note: `ตรวจเวชระเบียนตามเกณฑ์ ${version || '-'}`,
+        });
+
+        await conn.commit();
+        res.json({ success: true, audit_id: auditId,
+                   rev: existing ? Number(existing.rev) + 1 : 0, score, fund_pct: fundPct });
+    } catch (err) {
+        await conn.rollback();
+        if (err.code === 'STALE_REV') return res.status(409).json({ error: err.message, code: 'STALE_REV' });
+        console.error('[IPD] PUT /admissions/:id/audit', err);
+        res.status(500).json({ error: err.message });
+    } finally {
+        conn.release();
     }
 });
 
