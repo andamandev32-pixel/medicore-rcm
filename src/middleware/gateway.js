@@ -24,6 +24,8 @@ const PUBLIC = [
     { method: 'GET',  path: '/reference/drg-versions' },
     { method: 'GET',  path: '/reference/tmt' },
     { method: 'GET',  path: '/reference/meta' },
+    // ตรวจเคลมกับกฎมาตรฐาน — stateless ไม่เขียน DB (ดูเหตุผลใน routes/reference.js)
+    { method: 'POST', path: '/reference/validate' },
 ];
 
 // log  = บันทึกว่าจะบล็อกอะไร แต่ปล่อยผ่าน (ใช้ตอน rollout ดูว่ามี caller ไหนตกหล่น)

@@ -1,6 +1,7 @@
 const express  = require('express');
 const router   = express.Router();
 const { pool } = require('../database/connection');
+const { validateClaim } = require('../services/claim-validator');
 
 // ============================================================
 // /api/reference — ข้อมูลอ้างอิงมาตรฐานการเบิกจ่าย (อ่านอย่างเดียว)
@@ -260,6 +261,37 @@ router.get('/meta', async (req, res) => {
         res.json({ counts, tmt_releases: releases, recent_loads: loads });
     } catch (err) {
         console.error('[Reference] GET /meta', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ─────────────────────────────────────────────
+// POST /api/reference/validate — ตรวจเคลม 1 เคสกับกฎมาตรฐาน (stateless, ไม่บันทึกอะไร)
+//
+// body: {
+//   fund_key: 'IP',                          // บังคับ — ดูรายการที่ /fund-files
+//   flags: { emergency, prenatal, newborn, psych, disability, leaveDay },
+//   files_present: [1,2,3,...],              // เลขแฟ้มที่มีในชุดข้อมูล
+//   patient: { name, birth_date, sex, cid, hn, an },
+//   admission: { admit_date, discharge_date, los },
+//   diagnosis: { pdx },                      // string หรือ array
+//   drugs: [{ tmt_id, price, qty }],
+//   charges: { total },
+//   drg: { code, version? },
+// }
+// ทุก section ยกเว้น fund_key เป็น optional — ตรวจเท่าที่ส่งมา
+// เป็น public เพราะอ่านอย่างเดียวเชิงคำนวณ ไม่แตะข้อมูลเคส ไม่เขียนอะไรลง DB
+// ─────────────────────────────────────────────
+router.post('/validate', async (req, res) => {
+    try {
+        if (!req.body || typeof req.body !== 'object') {
+            return res.status(400).json({ error: 'ต้องส่ง JSON body' });
+        }
+        const result = await validateClaim(pool, req.body);
+        res.json(result);
+    } catch (err) {
+        if (err.status === 400) return res.status(400).json({ error: err.message });
+        console.error('[Reference] POST /validate', err);
         res.status(500).json({ error: err.message });
     }
 });

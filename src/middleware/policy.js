@@ -49,8 +49,10 @@ const POLICY = [
     // ── ข้อมูลอ้างอิงมาตรฐาน: อ่านสาธารณะ (ต้องตรงกับ PUBLIC ใน gateway.js) ──
     //    เป็นมาตรฐานที่ราชการเผยแพร่อยู่แล้ว + หน้าต้นแบบที่ดึงไป hydrate ไม่ล็อกอิน
     //    กฎ '*' ปิดท้ายกันอนาคต: endpoint เขียน (โหลด/แก้ข้อมูลอ้างอิง) ต้องเป็น ADMIN
-    { m: 'GET', p: /^\/reference\/(error-codes|files|file-fields|fund-files|drg|drg-versions|tmt|meta)$/, public: true },
-    { m: '*',   p: /^\/reference(\/|$)/, roles: [ADMIN] },
+    { m: 'GET',  p: /^\/reference\/(error-codes|files|file-fields|fund-files|drg|drg-versions|tmt|meta)$/, public: true },
+    // validate เป็น POST แต่ stateless (คำนวณอย่างเดียว ไม่เขียน DB) — สาธารณะเช่นกัน
+    { m: 'POST', p: /^\/reference\/validate$/, public: true },
+    { m: '*',    p: /^\/reference(\/|$)/, roles: [ADMIN] },
 
     // ── ปิดท้าย: อะไรที่ไม่เข้ากฎไหนเลย = ปฏิเสธ ──
     // check-policy.js จะ fail ถ้ามี route ตกมาถึงบรรทัดนี้

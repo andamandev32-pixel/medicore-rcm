@@ -53,6 +53,7 @@ const NhsoImport = {
         }[this.state.tab];
         document.getElementById('tabContent').innerHTML = fn ? fn() : '';
         if (this.state.tab === 'dataset') this.renderMappingChart();
+        if (this.state.tab === 'upload') this.preFillSample();
         refreshIcons();
     },
 
@@ -204,7 +205,107 @@ const NhsoImport = {
                     ถ้าปิดตัวเลือก "ตรวจด้วยกฎก่อนส่ง" ระบบจะส่งไฟล์ตรงไปยัง สปสช.
                     เหมือนวิธีเดิม — และประเด็นจะกลับมาเป็น Error ให้แก้ทีหลัง</div>
             </div>
+        </div>
+
+        <div class="section-card" style="margin-top:16px">
+            <div class="section-header">
+                <div class="section-title"><i data-lucide="shield-check" class="mi"></i>
+                    ทดลองตรวจด้วยกฎมาตรฐานจริง (Pre-validate Engine)</div>
+                <div class="section-actions">
+                    <span class="status-badge active">เชื่อมแคตตาล็อกรหัสติด C จริง</span>
+                </div>
+            </div>
+            <p style="font-size:13px;color:var(--text-secondary);margin:0 0 10px">
+                วางข้อมูลเคลม (JSON) แล้วกดตรวจ — ระบบเทียบกับตารางอ้างอิงมาตรฐานใน MySQL
+                (เมทริกซ์กองทุน×แฟ้ม · เลขบัตร ปชช. · การวินิจฉัย · ราคายาเทียบ Drug Catalogue ·
+                DRG trim point) แล้วบอกว่า "ถ้าส่งตอนนี้จะติดรหัสอะไร"</p>
+            <textarea id="preClaim" class="sip-input" spellcheck="false"
+                style="width:100%;min-height:190px;font-family:ui-monospace,Consolas,monospace;font-size:12.5px;line-height:1.6"></textarea>
+            <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+                <button class="btn btn-primary" onclick="NhsoImport.preValidate()">
+                    <i data-lucide="shield-check" class="icon-sm"></i> ตรวจกับกฎมาตรฐาน</button>
+                <button class="btn btn-outline" onclick="NhsoImport.preFillSample()">
+                    <i data-lucide="rotate-ccw" class="icon-sm"></i> ตัวอย่างเคสมีปัญหา</button>
+            </div>
+            <div id="preResult" style="margin-top:12px"></div>
         </div>`;
+    },
+
+    /* ══════════ Pre-validate — เรียก rule engine จริงที่ /api/reference/validate ══════════ */
+
+    PRE_SAMPLE: {
+        fund_key: 'IP',
+        flags: { leaveDay: true },
+        files_present: [1, 2, 3, 4, 5, 7, 8],
+        patient: { name: 'ทดสอบ ระบบ', birth_date: '2500-05-10', sex: 'M', cid: '1101700230705', hn: 'HN00123' },
+        admission: { admit_date: '2569-07-20', discharge_date: '2569-08-02', los: 20 },
+        diagnosis: { pdx: 'Z13.1' },
+        drugs: [{ tmt_id: '100001', price: 5.0, qty: 10 }],
+        charges: { total: 15800 },
+        drg: { code: '04530' },
+    },
+
+    preFillSample() {
+        const el = document.getElementById('preClaim');
+        if (el) el.value = JSON.stringify(this.PRE_SAMPLE, null, 2);
+    },
+
+    async preValidate() {
+        const out = document.getElementById('preResult');
+        let body;
+        try {
+            body = JSON.parse(document.getElementById('preClaim').value);
+        } catch (e) {
+            out.innerHTML = `<div class="ds-warn"><i data-lucide="alert-triangle" class="icon-sm"></i>
+                JSON ไม่ถูกต้อง — ${esc(e.message)}</div>`;
+            refreshIcons();
+            return;
+        }
+        out.innerHTML = '<span style="font-size:13px;color:var(--text-secondary)">กำลังตรวจ…</span>';
+        try {
+            /* dsOptional: ถ้าไม่มีเซิร์ฟเวอร์ให้แจ้งในกล่องนี้เอง ไม่ต้องขึ้นป้าย static ทั้งหน้า */
+            const res = await fetch('/api/reference/validate', {
+                method: 'POST', dsOptional: true,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body),
+            });
+            const r = await res.json();
+            if (!res.ok) throw new Error(r.error || ('HTTP ' + res.status));
+            out.innerHTML = this.preResultHtml(r);
+        } catch (e) {
+            out.innerHTML = `<div class="ds-warn"><i data-lucide="wifi-off" class="icon-sm"></i>
+                เรียก rule engine ไม่ได้ (${esc(e.message)}) —
+                หน้านี้ต้องรันกับเซิร์ฟเวอร์ (<code>npm run dev</code>) จึงจะตรวจกับฐานข้อมูลจริงได้</div>`;
+        }
+        refreshIcons();
+    },
+
+    preResultHtml(r) {
+        const s = r.summary;
+        const tone = { ERROR: 'rejected', WARNING: 'waiting', INFO: 'active' };
+        const pass = s.result === 'PASS';
+        const rows = r.issues.map(i => `
+            <tr>
+                <td><span class="status-badge ${tone[i.severity] || 'active'}">${esc(i.severity)}</span></td>
+                <td>${i.code ? `<code>${esc(i.code)}</code>` : `<span style="color:var(--text-secondary)">${esc(i.rule || '—')}</span>`}
+                    ${i.verified === true ? '' : i.code ? ' <span class="sip-chip sip-chip-amber" style="font-size:10px">รอยืนยัน</span>' : ''}</td>
+                <td class="l">${esc(i.message)}${i.detail && i.detail !== i.message
+                    ? `<div style="font-size:12px;color:var(--text-secondary)">${esc(i.detail)}</div>` : ''}</td>
+                <td class="l" style="font-size:12px;color:var(--text-secondary)">${esc(i.layer)}</td>
+            </tr>`).join('');
+
+        return `
+        <div class="${pass ? 'ds-note' : 'ds-warn'}" style="margin-bottom:10px">
+            <i data-lucide="${pass ? 'check-circle-2' : 'alert-octagon'}" class="icon-sm"></i>
+            <strong>${pass ? 'ผ่านทุกกฎที่ตรวจ' : 'พบประเด็นก่อนส่ง'}</strong>
+            — กองทุน ${esc(r.fund.fund_key)} · Error ${s.errors} · Warning ${s.warnings} · Info ${s.info}
+            · ชั้นที่ตรวจ: ${s.layers_checked.map(esc).join(', ')}
+        </div>
+        ${r.issues.length ? `
+        <div class="table-responsive"><table class="data-table compact">
+            <thead><tr><th>ระดับ</th><th>รหัส</th><th class="l">รายละเอียด (ข้อความจากแคตตาล็อกจริง)</th><th class="l">ชั้น</th></tr></thead>
+            <tbody>${rows}</tbody>
+        </table></div>` : ''}`;
     },
 
     /* ══════════ ประวัติการนำเข้า ══════════ */
