@@ -74,6 +74,14 @@ curl -X POST http://localhost:3200/api/reference/validate \
 - **ตารางผู้ป่วยในจริง** — `ipd.sql` 4 ตาราง (lifecycle mixin) + `/api/ipd/admissions` CRUD + PUT `/coding` `/charges` (replace-set) + `POST /:id/validate` (เซิร์ฟเวอร์ประกอบ payload จาก DB, fund_key='IP' เสมอ) + `npm run seed:ipd` 7 เคสเดโม · check:policy 36 routes ครบ
 - **UI** — สะพาน `mock-ipddata.js` (merge เข้า mock ด้วย AN, เขียนกลับเมื่อล็อกอิน, ล้มเงียบเมื่อ static) · **ipd-admit**: แท็บ coding/cost แก้ไขได้จริง (autocomplete จากแคตตาล็อก, บันทึกลง DB) · **ipd-audit**: ปุ่ม "ตรวจกับ rule engine จริง" + drawer แสดง issues+guidance+suggestions (ปิดสำหรับเคส PVT) · **nhso-import**: แสดง guidance + บล็อกข้อเสนอแนะ, PRE_SAMPLE ใหม่โชว์ 14 ประเด็น 8 ชั้น
 
+### 11 ส.ค. 2569 (รอบสาม) — ตัวนำเข้า 16 แฟ้มจริง (FR-01 ส่วนผู้ป่วยใน)
+- `9efb074` ทั้งฟีเจอร์ — รายละเอียด:
+- **parser** `src/services/nhso-16files.js` — อ่านแฟ้ม IPD (บังคับ) + PAT/INS/IDX/IOP/CHA · คั่น |/,/tab ก็ได้ · วันที่ พ.ศ./ค.ศ. · DXTYPE 1=Pdx อื่น=Sdx · CHRGITEM 19 หมวดพร้อมชื่อไทย · INSCL→สิทธิ (UCS→UC ฯลฯ)
+- **`POST /api/ipd/import`** (STAFF) — upsert ด้วย AN (นำเข้าซ้ำ = อัปเดต ไม่สร้างซ้ำ) + `dry_run` ดูผลก่อนเขียนจริง + **ทุกเคสถูกส่งเข้า validate engine + suggester ทันที** ผลตรวจติดไปเป็นรายเคส · refactor: `buildClaimFromAdmission`/`validateAdmission` ใช้ร่วมกับ route validate เดิม
+- **C312 ฉลาดขึ้น** — จับ "ค่าห้อง" จากชื่อรายการด้วย (BILLGRCS ใช้ 02 แต่ CHRGITEM 16 แฟ้มใช้ 01)
+- **UI nhso-import → แท็บอัปโหลด** — กล่อง "นำเข้า 16 แฟ้มจริง": เลือกไฟล์ 6 ช่อง (FileReader ไม่ต้องพึ่ง multipart — โปรเจค freeze dependencies) + ปุ่ม dry run/นำเข้าจริง/ไฟล์ตัวอย่าง 2 เคส + ผลรายเคสพร้อมลิงก์เปิดในจอตรวจแฟ้ม
+- ทดสอบผ่าน: ไม่ล็อกอิน→401 · dry run ไม่เขียน DB · เคสตัวอย่างจับ C203/C312/C301 + SUG-DRG-001/002 · นำเข้าซ้ำ = updated 2 created 0 · INS map สิทธิถูก (UCS→UC)
+
 ### ผลการทดสอบที่ผ่านแล้ว
 - `npm run migrate` / `npm run seed:reference` รันซ้ำได้ (idempotent) — row counts นิ่ง
 - `npm run check:policy` — 25 routes มีกฎครบ, 9 เส้น reference เป็น PUBLIC
@@ -107,7 +115,7 @@ npm run check:policy     # ตรวจว่าทุก route มีกฎส�
 | # | งาน | หมายเหตุ |
 |---|---|---|
 | 1 | โหลด **แคตตาล็อกจริงให้ครบ**: ICD-10-TM + ICD-9-CM ฉบับเต็ม (`load:icd` พร้อมแล้ว) · Master TMT (this.or.th) · **ตาราง Thai DRG จริง** (สกส. chi.or.th) | ตอนนี้ ICD เป็นชุดคัดย่อ / DRG เป็นค่าจำลอง `verified=0` ห้ามใช้คิดเงิน — suggestion ติดธง "ค่าจำลอง" อยู่แล้ว |
-| 2 | **ตัว import 16 แฟ้ม/CSV จริง** (FR-01) แล้วต่อท่อเข้า `ipd_admissions` + validate engine | ทางเข้าข้อมูลจริงแทน seed — demo end-to-end กับ รพ. นำร่อง |
+| 2 | ~~ตัว import 16 แฟ้มจริง (FR-01)~~ ✅ ส่วนผู้ป่วยใน (IPD/PAT/INS/IDX/IOP/CHA) ทำแล้ว — เหลือฝั่ง **OPD** (OPD/ORF/ODX/OOP/OCH) + แฟ้ม AER/ADP | นำเข้า → upsert `ipd_admissions` → validate ทันที · UI ในหน้า nhso-import แท็บอัปโหลด |
 | 3 | ~~เติม fix guidance รายรหัส~~ ✅ ทำแล้ว 22 รหัสที่ engine ปล่อยได้ — เหลือเติมทีละหมวดเมื่อ implement กฎเพิ่ม | ข้อความระบบเขียนเอง (ไม่ใช่จากเอกสารทางการ — ดูหมายเหตุใน data/reference/README.md) |
 | 4 | ยกกฎ 27 ข้อใน `mock-rules.js` ให้เก็บใน DB + เงื่อนไขเป็น AST ที่ engine execute ได้ | ปิดช่องว่าง "คลังกฎสวยแต่ไม่ตัดสิน" — กฎ IPD 023/025 ถูก port ไป suggester แล้ว |
 | 5 | รอแคตตาล็อก error ทางการของ NHSO Digital Platform (Go-Live 16 ก.ย. 2569) แล้วแทนที่ 6 รหัส `system=NHSO_DP` | ตอนนี้ติดธง "รอยืนยัน" ถูกต้องแล้ว |
