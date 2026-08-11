@@ -16,6 +16,8 @@
 | `funds.csv` + `fund-file-matrix.csv` | 12 กองทุน × แฟ้มที่ต้องส่ง (กฎ RUL-FIL-001) | เอกสารเดียวกัน น.14–16 | ทวนแล้ว (verified=1) |
 | `drg-versions.csv` `mdc.csv` `drg.csv` | Thai DRG: RW / ALOS / trim points | **ค่าจำลองจากต้นแบบ** — ของจริงต้องใช้คู่มือ Thai DRG + ตารางอัตราจาก สกส. ([chi.or.th](https://www.chi.or.th)) | verified=0 ทั้งหมด — ห้ามใช้คิดเงินจริง |
 | `tmt-sample.csv` | ตัวอย่างโครงไฟล์รหัสยา TMT 5 แถว | **ไม่ใช่รหัส TMT จริง** — ใช้ทดสอบ pipeline เท่านั้น | ของจริงดาวน์โหลด Master TMT จาก สมสท. ([this.or.th](https://this.or.th/)) ดูขั้นตอนด้านล่าง |
+| `icd10-sample.csv` | รหัสวินิจฉัย ICD-10 ชุดคัดย่อ ~85 รหัส (ครอบคลุมรหัสที่ใช้ในเคสเดโม + `drg.csv`) | โครงตาม ICD-10-TM (สนย. สธ.) — **ชุดคัดย่อเพื่อเดโม ไม่ใช่แคตตาล็อกเต็ม** | verified=0 · แคตตาล็อกเต็มโหลดด้วย `load-icd.js` ดูขั้นตอนด้านล่าง |
+| `icd9-sample.csv` | รหัสหัตถการ ICD-9-CM ชุดคัดย่อ ~28 รหัส + ธง `operative` (หัตถการห้องผ่าตัด) | โครงตาม ICD-9-CM ฉบับที่ใช้จัดกลุ่ม Thai DRG — **ชุดคัดย่อเพื่อเดโม** | verified=0 · แคตตาล็อกเต็มโหลดด้วย `load-icd.js` |
 
 ## วิธีโหลด Master TMT ฉบับจริง
 
@@ -29,6 +31,24 @@
    ```
    node src/database/load-tmt.js --file data/reference/tmt/TMTRF20250701.csv --release TMTRF20250701 --date 2025-07-01
    ```
+
+## วิธีโหลดแคตตาล็อก ICD-10-TM / ICD-9-CM ฉบับเต็ม
+
+1. แหล่งทางการ: ICD-10-TM จากกองยุทธศาสตร์และแผนงาน (สนย.) สธ. — หนังสือ/ไฟล์เผยแพร่ที่
+   [สำนักนโยบายและยุทธศาสตร์](https://spd.moph.go.th/) หรือชุดข้อมูลบน [data.go.th](https://data.go.th/)
+   · ICD-9-CM ใช้ฉบับเดียวกับที่คู่มือ Thai DRG (สกส.) อ้างอิง
+2. แปลงเป็น CSV (UTF-8) ให้มีหัวคอลัมน์อย่างน้อย `code,term_en` (คอลัมน์เต็มดู `icd10-sample.csv` / `icd9-sample.csv`
+   — `term_th`, `sex_limit`, `operative` เว้นว่างได้)
+3. วางไว้ที่ `data/reference/icd/` (อยู่ใน .gitignore — ไฟล์เต็มไม่ commit ลง repo สาธารณะ)
+4. รันจากเครื่อง dev (DB อยู่ remote — loader batch 500 แถว/คำสั่ง):
+   ```
+   node src/database/load-icd.js --system icd10 --file data/reference/icd/icd10tm-2024.csv --source "ICD-10-TM 2024 (สนย. สธ.)" --date 2024-01-01
+   node src/database/load-icd.js --system icd9  --file data/reference/icd/icd9cm.csv --source "ICD-9-CM (คู่มือ Thai DRG)" --date 2024-01-01
+   ```
+   แถวที่โหลดจากไฟล์จริงจะติด `verified=1` ทับแถวตัวอย่างที่รหัสซ้ำกันโดยอัตโนมัติ
+
+หมายเหตุ: คอลัมน์ `fix_guidance_th` ใน `error-codes.csv` เป็นข้อความแนวทางแก้ไขที่ระบบเขียนเอง
+(ไม่ใช่ข้อความจากเอกสารทางการ) — ธง `verified` ของแถวหมายถึง `description_th` เท่านั้น
 
 ## แหล่งมาตรฐานอื่นที่เกี่ยวข้อง (ยังไม่ได้โหลดเข้าระบบ)
 

@@ -23,6 +23,8 @@ const PUBLIC = [
     { method: 'GET',  path: '/reference/drg' },
     { method: 'GET',  path: '/reference/drg-versions' },
     { method: 'GET',  path: '/reference/tmt' },
+    { method: 'GET',  path: '/reference/icd10' },
+    { method: 'GET',  path: '/reference/icd9' },
     { method: 'GET',  path: '/reference/meta' },
     // ตรวจเคลมกับกฎมาตรฐาน — stateless ไม่เขียน DB (ดูเหตุผลใน routes/reference.js)
     { method: 'POST', path: '/reference/validate' },

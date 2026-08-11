@@ -35,6 +35,14 @@ const IpdAdmit = {
         const hit = an ? MockIpd.byAn(an) : null;
         const first = this.visible()[0];
         this.select(hit ? hit.id : (first ? first.id : null));
+
+        /* ข้อมูล admission จริง merge เสร็จ (mock-ipddata.js) → วาดใหม่ด้วยข้อมูล DB */
+        document.addEventListener('refdata:updated', e => {
+            if (!e.detail || !e.detail.ipdStays) return;
+            if (this.codingEdit || this.chargesEdit) return;   /* กำลังแก้อยู่ ไม่ทับร่าง */
+            this.renderPills();
+            this.select(this.state.id);
+        });
     },
 
     reload() { this.select(this.state.id); showToast('ยกเลิกการแก้ไขแล้ว', 'info'); },
@@ -116,6 +124,8 @@ const IpdAdmit = {
     /* ══════════ เลือกเคส ══════════ */
 
     select(id) {
+        /* สลับเคส = ทิ้ง draft ที่ค้าง (กันร่างของเคสหนึ่งไปทับอีกเคส) */
+        if (this.state.id !== id) { this.codingEdit = null; this.chargesEdit = null; }
         this.state.id = id;
         const s = this.current();
 
@@ -338,6 +348,7 @@ const IpdAdmit = {
     /* ══════════ แท็บ 3 — วินิจฉัย / หัตถการ ══════════ */
 
     renderCoding(s) {
+        if (this.codingEdit) { this.renderCodingEdit(s); return; }
         const drg = MockIpd.drgOf(s);
         const arw = MockIpd.adjRw(s);
 
@@ -346,7 +357,14 @@ const IpdAdmit = {
                 <i data-lucide="alert-circle" class="icon-sm"></i>
                 <strong>ยังไม่ได้ระบุการวินิจฉัยหลัก (PDx)</strong> — ผู้ป่วยในจ่ายตามกลุ่มวินิจฉัยโรคร่วม
                 ถ้าไม่มี PDx จะคำนวณค่าชดเชยไม่ได้และส่งเบิกไม่ได้ (RUL-IPD-017)
+                <button class="btn btn-sm btn-danger" style="margin-left:10px" onclick="IpdAdmit.editCoding()">ลงรหัสเลย</button>
               </div>` : ''}
+
+            <div style="display:flex;justify-content:flex-end;margin-bottom:8px;gap:8px;align-items:center">
+                ${s._db ? '<span class="sip-chip sip-chip-active" style="font-size:11px">ข้อมูลจริงจากฐานข้อมูล</span>' : ''}
+                <button class="btn btn-outline btn-sm" onclick="IpdAdmit.editCoding()">
+                    <i data-lucide="pencil" class="icon-sm"></i> แก้ไขการลงรหัส</button>
+            </div>
 
             <div class="cards-row">
                 <div class="clinical-card">
@@ -403,9 +421,168 @@ const IpdAdmit = {
             </div>`;
     },
 
+    /* ── โหมดแก้ไขการลงรหัส ──
+       แก้ใน MockDB เสมอ (จอเดโมอัปเดตทันที) — เคสที่มาจาก DB (_db) และล็อกอินอยู่
+       เขียนกลับ /api/ipd ด้วย ผ่าน MockIpdData.saveCoding */
+
+    codingEdit: null,
+    _codeNames: {},          /* cache code → ชื่อ จากผล autocomplete/lookup */
+
+    editCoding() {
+        const s = this.current(); if (!s) return;
+        this.codingEdit = {
+            pdx: s.pdx ? { code: s.pdx, name: s.pdx_name || '' } : null,
+            sdx: (s.sdx || []).map(d => ({ ...d })),
+            proc: (s.proc || []).map(p => ({ ...p })),
+        };
+        this.renderCoding(s);
+    },
+
+    cancelCoding() { this.codingEdit = null; this.renderCoding(this.current()); },
+
+    renderCodingEdit(s) {
+        const e = this.codingEdit;
+        const canDb = window.MockIpdData && MockIpdData.canWrite(s);
+        document.getElementById('tabCoding').innerHTML = `
+            <datalist id="dlIcd10"></datalist>
+            <datalist id="dlIcd9"></datalist>
+
+            <div class="sip-banner sip-banner-info">
+                <i data-lucide="pencil" class="icon-sm"></i>
+                กำลังแก้ไขการลงรหัส — พิมพ์รหัสหรือชื่อโรคอย่างน้อย 2 ตัวอักษรเพื่อค้นจากแคตตาล็อก ICD จริง
+                ${canDb ? '· บันทึกแล้วลง<strong>ฐานข้อมูลจริง</strong>'
+                        : '· ยังไม่ได้ล็อกอิน/ไม่มี backend — บันทึกเฉพาะหน้าจอ (หายเมื่อรีเฟรช)'}
+            </div>
+
+            <div class="cards-row">
+                <div class="clinical-card">
+                    <div class="card-title"><i data-lucide="clipboard-list" class="mi"></i> การวินิจฉัย (ICD-10)</div>
+
+                    <div class="ds-section-label">การวินิจฉัยหลัก (PDx)</div>
+                    ${e.pdx ? `<div style="font-size:12px;padding:2px 0;display:flex;align-items:center;gap:6px">
+                        <span class="sip-chip sip-chip-active">${esc(e.pdx.code)}</span>
+                        <span style="flex:1">${esc(e.pdx.name || '')}</span>
+                        <button class="btn btn-outline btn-sm" onclick="IpdAdmit.clearPdx()">×</button></div>`
+                      : `<div style="display:flex;gap:6px">
+                        <input class="sip-input" id="cPdxCode" list="dlIcd10" placeholder="เช่น J18.9 หรือ pneumonia"
+                               style="flex:1" oninput="IpdAdmit.codeSearch('icd10', this.value)">
+                        <button class="btn btn-primary btn-sm" onclick="IpdAdmit.setPdx()">ตั้งเป็น PDx</button></div>`}
+
+                    <div class="ds-section-label" style="margin-top:12px">การวินิจฉัยร่วม / โรคแทรก (SDx)</div>
+                    ${e.sdx.map((d, i) => `<div style="font-size:12px;padding:2px 0;display:flex;align-items:center;gap:6px">
+                        <span class="sip-chip sip-chip-muted">${esc(d.code)}</span>
+                        <span style="flex:1">${esc(d.name || '')}</span>
+                        <button class="btn btn-outline btn-sm" onclick="IpdAdmit.removeSdx(${i})">×</button></div>`).join('')
+                      || '<div class="ds-empty-sm">ยังไม่มี</div>'}
+                    <div style="display:flex;gap:6px;margin-top:6px">
+                        <input class="sip-input" id="cSdxCode" list="dlIcd10" placeholder="เพิ่ม SDx เช่น E11.9"
+                               style="flex:1" oninput="IpdAdmit.codeSearch('icd10', this.value)">
+                        <button class="btn btn-outline btn-sm" onclick="IpdAdmit.addSdx()">เพิ่ม</button>
+                    </div>
+                </div>
+
+                <div class="clinical-card">
+                    <div class="card-title"><i data-lucide="syringe" class="mi"></i> หัตถการ (ICD-9-CM)</div>
+                    ${e.proc.map((p, i) => `<div style="font-size:12px;padding:3px 0;display:flex;align-items:center;gap:6px">
+                        <span class="sip-chip sip-chip-muted">${esc(p.code)}</span>
+                        <span style="flex:1">${esc(p.name || '')}
+                            ${p.date ? `<span class="td-sub"> · ${esc(MockFmt.dateTH(p.date))}</span>` : ''}</span>
+                        <button class="btn btn-outline btn-sm" onclick="IpdAdmit.removeProc(${i})">×</button></div>`).join('')
+                      || '<div class="ds-empty-sm">ยังไม่มี</div>'}
+                    <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
+                        <input class="sip-input" id="cProcCode" list="dlIcd9" placeholder="เช่น 79.35"
+                               style="flex:2;min-width:130px" oninput="IpdAdmit.codeSearch('icd9', this.value)">
+                        <input class="sip-input" id="cProcDate" type="date" style="flex:1;min-width:130px">
+                        <button class="btn btn-outline btn-sm" onclick="IpdAdmit.addProc()">เพิ่ม</button>
+                    </div>
+                    <div class="card-footer">มีหัตถการ = ต้องส่งแฟ้ม 6 (NHSO Procedure) ด้วย</div>
+                </div>
+            </div>
+
+            <div style="display:flex;gap:8px;margin-top:12px">
+                <button class="btn btn-primary" onclick="IpdAdmit.saveCoding()">
+                    <i data-lucide="save" class="icon-sm"></i> บันทึกการลงรหัส</button>
+                <button class="btn btn-outline" onclick="IpdAdmit.cancelCoding()">ยกเลิก</button>
+            </div>`;
+        refreshIcons();
+    },
+
+    /* เติม datalist จากแคตตาล็อกจริง (ผ่าน endpoint สาธารณะ /api/reference/icd10|icd9) */
+    async codeSearch(system, q) {
+        if (!window.MockIpdData) return;
+        const rows = await MockIpdData.searchCodes(system, q);
+        const dl = document.getElementById(system === 'icd9' ? 'dlIcd9' : 'dlIcd10');
+        if (!dl) return;
+        dl.innerHTML = rows.map(r => {
+            this._codeNames[r.code.toUpperCase()] = r.term_en;
+            return `<option value="${esc(r.code)}">${esc(r.term_en)}${r.term_th ? ' — ' + esc(r.term_th) : ''}</option>`;
+        }).join('');
+    },
+
+    async _resolveName(system, code) {
+        const hit = this._codeNames[code.toUpperCase()];
+        if (hit) return hit;
+        if (!window.MockIpdData) return '';
+        const row = await MockIpdData.lookupCode(system, code);
+        return row ? row.term_en : '';
+    },
+
+    async setPdx() {
+        const code = (document.getElementById('cPdxCode')?.value || '').trim();
+        if (!code) return;
+        this.codingEdit.pdx = { code, name: await this._resolveName('icd10', code) };
+        this.renderCoding(this.current());
+    },
+    clearPdx() { this.codingEdit.pdx = null; this.renderCoding(this.current()); },
+
+    async addSdx() {
+        const code = (document.getElementById('cSdxCode')?.value || '').trim();
+        if (!code) return;
+        this.codingEdit.sdx.push({ code, name: await this._resolveName('icd10', code) });
+        this.renderCoding(this.current());
+    },
+    removeSdx(i) { this.codingEdit.sdx.splice(i, 1); this.renderCoding(this.current()); },
+
+    async addProc() {
+        const code = (document.getElementById('cProcCode')?.value || '').trim();
+        if (!code) return;
+        const raw = document.getElementById('cProcDate')?.value || '';
+        /* input[type=date] เป็น ค.ศ. — เก็บใน mock เป็น พ.ศ. */
+        const date = raw ? `${(+raw.slice(0, 4)) + 543}${raw.slice(4)}` : null;
+        this.codingEdit.proc.push({ code, name: await this._resolveName('icd9', code), date });
+        this.renderCoding(this.current());
+    },
+    removeProc(i) { this.codingEdit.proc.splice(i, 1); this.renderCoding(this.current()); },
+
+    async saveCoding() {
+        const s = this.current(); if (!s || !this.codingEdit) return;
+        const e = this.codingEdit;
+
+        if (window.MockIpdData && MockIpdData.canWrite(s)) {
+            try {
+                await MockIpdData.saveCoding(s, e);
+            } catch (err) {
+                showToast('บันทึกลงฐานข้อมูลไม่สำเร็จ — ' + err.message, 'danger');
+                return;                       /* rev ชน/สิทธิ์ไม่พอ: ไม่ทับ mock ให้เข้าใจผิด */
+            }
+            showToast('บันทึกการลงรหัสลงฐานข้อมูลแล้ว');
+        } else {
+            showToast('บันทึกเฉพาะหน้าจอ (mock) — ล็อกอินเพื่อบันทึกลงฐานข้อมูลจริง', 'warning');
+        }
+
+        MockDB.patch('ipd_stays', s.id, {
+            pdx: e.pdx ? e.pdx.code : null,
+            pdx_name: e.pdx ? e.pdx.name : '',
+            sdx: e.sdx, proc: e.proc,
+        });
+        this.codingEdit = null;
+        this.select(s.id);
+    },
+
     /* ══════════ แท็บ 4 — ค่าใช้จ่าย vs ประมาณการ ══════════ */
 
     renderCost(s) {
+        if (this.chargesEdit) { this.renderCostEdit(s); return; }
         const est   = MockIpd.estimate(s);
         const cost  = MockIpd.cost(s);
         const varc  = MockIpd.variance(s);
@@ -451,6 +628,10 @@ const IpdAdmit = {
             <div class="section-card">
                 <div class="section-header">
                     <div class="section-title"><i data-lucide="wallet" class="mi"></i> ค่าใช้จ่ายแยกหมวด (BILLGRCS)</div>
+                    <div class="section-actions">
+                        <button class="btn btn-outline btn-sm" onclick="IpdAdmit.editCharges()">
+                            <i data-lucide="pencil" class="icon-sm"></i> แก้ไขรายการ</button>
+                    </div>
                 </div>
                 <div class="table-responsive">
                     <table class="data-table compact">
@@ -463,6 +644,96 @@ const IpdAdmit = {
             </div>`;
 
         this.drawCostChart(s);
+    },
+
+    /* ── โหมดแก้ไขรายการค่าใช้จ่าย (BILLGRCS ราย item — แฟ้ม 7 CHAD) ── */
+
+    chargesEdit: null,
+
+    editCharges() {
+        const s = this.current(); if (!s) return;
+        this.chargesEdit = (s.charges || []).map(c => ({ ...c }));
+        this.renderCost(s);
+    },
+    cancelCharges() { this.chargesEdit = null; this.renderCost(this.current()); },
+
+    chargeInput(i, field, value) {
+        if (!this.chargesEdit || !this.chargesEdit[i]) return;
+        this.chargesEdit[i][field] = value;
+    },
+    addCharge() {
+        this.chargesEdit.push({ billgrcs: '', name: '', amount: 0, qty: undefined });
+        this.renderCost(this.current());
+    },
+    removeCharge(i) { this.chargesEdit.splice(i, 1); this.renderCost(this.current()); },
+
+    renderCostEdit(s) {
+        const e = this.chargesEdit;
+        const canDb = window.MockIpdData && MockIpdData.canWrite(s);
+        document.getElementById('tabCost').innerHTML = `
+            <div class="sip-banner sip-banner-info">
+                <i data-lucide="pencil" class="icon-sm"></i>
+                กำลังแก้ไขรายการค่าใช้จ่ายราย item — แฟ้ม 7 (CHAD) ต้องส่งราย item ตามหมวด BILLGRCS
+                (ค่าห้อง/ค่าอาหาร = หมวด 02 ระบุจำนวนวันในช่อง "จำนวน")
+                ${canDb ? '· บันทึกแล้วลง<strong>ฐานข้อมูลจริง</strong>'
+                        : '· ยังไม่ได้ล็อกอิน/ไม่มี backend — บันทึกเฉพาะหน้าจอ'}
+            </div>
+            <div class="section-card">
+                <div class="table-responsive">
+                    <table class="data-table compact">
+                        <thead><tr><th style="width:90px">หมวด</th><th>รายการ</th>
+                            <th style="width:130px">จำนวนเงิน (บาท)</th>
+                            <th style="width:90px">จำนวน</th><th style="width:1%"></th></tr></thead>
+                        <tbody>
+                            ${e.map((c, i) => `<tr>
+                                <td><input class="sip-input" value="${esc(c.billgrcs || '')}" placeholder="02"
+                                     oninput="IpdAdmit.chargeInput(${i},'billgrcs',this.value)"></td>
+                                <td><input class="sip-input" value="${esc(c.name || '')}" placeholder="ชื่อรายการ"
+                                     oninput="IpdAdmit.chargeInput(${i},'name',this.value)"></td>
+                                <td><input class="sip-input" type="number" step="0.01" value="${esc(String(c.amount ?? ''))}"
+                                     oninput="IpdAdmit.chargeInput(${i},'amount',this.value)" style="text-align:right"></td>
+                                <td><input class="sip-input" type="number" value="${c.qty != null ? esc(String(c.qty)) : ''}"
+                                     oninput="IpdAdmit.chargeInput(${i},'qty',this.value)" style="text-align:right"></td>
+                                <td><button class="btn btn-outline btn-sm" onclick="IpdAdmit.removeCharge(${i})">×</button></td>
+                            </tr>`).join('') || '<tr><td colspan="5" class="ds-empty">ยังไม่มีรายการ</td></tr>'}
+                        </tbody>
+                    </table>
+                </div>
+                <div style="display:flex;gap:8px;margin-top:10px">
+                    <button class="btn btn-outline btn-sm" onclick="IpdAdmit.addCharge()">
+                        <i data-lucide="plus" class="icon-sm"></i> เพิ่มรายการ</button>
+                    <span style="flex:1"></span>
+                    <button class="btn btn-primary" onclick="IpdAdmit.saveCharges()">
+                        <i data-lucide="save" class="icon-sm"></i> บันทึกค่าใช้จ่าย</button>
+                    <button class="btn btn-outline" onclick="IpdAdmit.cancelCharges()">ยกเลิก</button>
+                </div>
+            </div>`;
+        refreshIcons();
+    },
+
+    async saveCharges() {
+        const s = this.current(); if (!s || !this.chargesEdit) return;
+        const items = this.chargesEdit
+            .map(c => ({ billgrcs: String(c.billgrcs || '').trim(), name: String(c.name || '').trim(),
+                         amount: Number(c.amount) || 0,
+                         qty: c.qty !== '' && c.qty != null ? Number(c.qty) : undefined }))
+            .filter(c => c.name || c.amount);
+
+        if (window.MockIpdData && MockIpdData.canWrite(s)) {
+            try {
+                await MockIpdData.saveCharges(s, items);
+            } catch (err) {
+                showToast('บันทึกลงฐานข้อมูลไม่สำเร็จ — ' + err.message, 'danger');
+                return;
+            }
+            showToast('บันทึกค่าใช้จ่ายลงฐานข้อมูลแล้ว');
+        } else {
+            showToast('บันทึกเฉพาะหน้าจอ (mock) — ล็อกอินเพื่อบันทึกลงฐานข้อมูลจริง', 'warning');
+        }
+
+        MockDB.patch('ipd_stays', s.id, { charges: items });
+        this.chargesEdit = null;
+        this.select(s.id);
     },
 
     drawCostChart(s) {

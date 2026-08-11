@@ -9,12 +9,17 @@
  * (ผู้เรียกจึงใช้ตรวจบางมิติได้ เช่น ตรวจเฉพาะราคายา)
  *
  * ชั้นที่ตรวจ (ดูรายงานวิเคราะห์ประกอบ):
- *   FILES    แฟ้มครบตามกองทุน (เมทริกซ์ ref_fund_file_matrix — กฎ RUL-FIL-001)
- *   PATIENT  ข้อมูลผู้ป่วยพื้นฐาน + เลขบัตร ปชช. checksum (C101–C121)
- *   DX       การวินิจฉัย (C201, C202, C206)
- *   DRUG     ยาเทียบ TMT/Drug Catalogue (C562, C195, C303)
- *   CHARGE   ค่าใช้จ่าย (C301)
- *   DRG      จัดกลุ่ม/trim point (C210 + คำเตือน outlier)
+ *   FILES     แฟ้มครบตามกองทุน (เมทริกซ์ ref_fund_file_matrix — กฎ RUL-FIL-001)
+ *   PATIENT   ข้อมูลผู้ป่วยพื้นฐาน + เลขบัตร ปชช. checksum (C101–C121)
+ *   ADMISSION วันเวลา + วันนอน (C107, C120, C121, ENG-ADM-LOS)
+ *   DX        การวินิจฉัย Pdx+Sdx เทียบแคตตาล็อก ICD-10 (C201, C202, C203, C206, ENG-DX-DUP)
+ *   PROC      หัตถการเทียบแคตตาล็อก ICD-9-CM (ENG-PROC-001, ENG-PROC-FILE)
+ *   DRUG      ยาเทียบ TMT/Drug Catalogue (C562, C195, C303)
+ *   CHARGE    ค่าใช้จ่ายรวม + ราย item (C301, C312, ENG-CHG-SUM, ENG-CHG-CAT)
+ *   DRG       จัดกลุ่ม/trim point (C210 + คำเตือน outlier) — เลือกเวอร์ชันตามวันจำหน่าย (BR-02)
+ *
+ * เช็คที่พึ่งแคตตาล็อก (C203, ENG-PROC-001) จะลดตัวเป็น INFO ถ้าตารางยังว่าง
+ * — migrate โดยไม่ seed ต้องไม่ทำให้ทุกเคส FAIL
  */
 
 /** ตรวจเลขบัตรประชาชนไทย 13 หลัก (mod 11) */
@@ -41,6 +46,39 @@ function toTime(v) {
 function pdxNotForIpd(pdx) {
     const p = String(pdx || '').toUpperCase();
     return /^Z13/.test(p) || p === 'Z76.3' || /^[VWXY]/.test(p);
+}
+
+/** คีย์เทียบรหัส ICD: ตัวใหญ่ ไร้จุด ('J18.9' → 'J189')
+ *  ต้อง normalize สองฝั่งทุกการเทียบ — หน้างาน/mock ใช้รูปมีจุด แต่ไฟล์ทางการ/แฟ้มส่งออกไร้จุด */
+function normCode(v) {
+    return String(v || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+}
+
+/** รับรายการรหัสได้ทั้ง ['I10', ...] และ [{code:'I10'}, ...] — คืน array ของ string ที่ trim แล้ว */
+function codeList(arr) {
+    return (Array.isArray(arr) ? arr : [])
+        .map(x => (x && typeof x === 'object') ? x.code : x)
+        .map(x => String(x || '').trim());
+}
+
+/** เลือกเวอร์ชัน DRG ตามกฎ BR-02: เวอร์ชันที่บังคับใช้ ณ วันจำหน่าย
+ *  (ระบุ version มาตรง ๆ ชนะเสมอ · ไม่มีวันจำหน่าย/ไม่เข้าช่วงไหน → เวอร์ชัน active ล่าสุด) */
+async function resolveDrgVersion(pool, claim) {
+    if (claim.drg?.version) return claim.drg.version;
+    const t = toTime(claim.admission?.discharge_date);
+    if (t != null) {
+        const onDate = new Date(t).toISOString().slice(0, 10);
+        const [[row]] = await pool.query(
+            `SELECT version_code FROM ref_drg_versions WHERE is_active = 1
+               AND (effective_from IS NULL OR effective_from <= ?)
+               AND (effective_to   IS NULL OR effective_to   >= ?)
+             ORDER BY effective_from DESC LIMIT 1`, [onDate, onDate]);
+        if (row) return row.version_code;
+    }
+    const [[latest]] = await pool.query(
+        `SELECT version_code FROM ref_drg_versions WHERE is_active = 1
+         ORDER BY effective_from DESC LIMIT 1`);
+    return latest?.version_code;
 }
 
 /**
@@ -111,7 +149,7 @@ async function validateClaim(pool, claim) {
                                                      add('PATIENT', 'ERROR', 'C106');
     }
 
-    /* ── ADMISSION (วันเวลา) ── */
+    /* ── ADMISSION (วันเวลา + วันนอน) ── */
     if (claim.admission && typeof claim.admission === 'object') {
         layers.push('ADMISSION');
         const a = claim.admission;
@@ -120,17 +158,96 @@ async function validateClaim(pool, claim) {
         if (a.admit_date && admit == null)  add('ADMISSION', 'ERROR', 'C107', null, `admit_date="${a.admit_date}"`);
         if (admit != null && disch != null && admit > disch) add('ADMISSION', 'ERROR', 'C121');
         if (admit != null && birth != null && admit < birth) add('ADMISSION', 'ERROR', 'C120');
+
+        // วันนอนที่แจ้งต้องตรงสูตร (จำหน่าย − รับ + 1) − วันลากลับบ้าน
+        // ไม่มี C-code ตรงในแคตตาล็อก e-Claim — platform ใหม่คือ C112 (system NHSO_DP)
+        const los = Number(a.los);
+        if (admit != null && disch != null && isFinite(los)) {
+            const leave = isFinite(Number(a.leave_days)) ? Number(a.leave_days) : 0;
+            const expected = Math.round((disch - admit) / 86400000) + 1 - leave;
+            if (los !== expected) {
+                add('ADMISSION', 'WARNING', null, 'ENG-ADM-LOS',
+                    `วันนอน ${los} ไม่ตรงกับที่คำนวณ ${expected} วัน (จำหน่าย−รับ+1` +
+                    (leave ? `−ลากลับบ้าน ${leave}` : '') +
+                    `) — บน NHSO Digital Platform จะติดรหัส C112`);
+            }
+        }
     }
 
-    /* ── DX — การวินิจฉัย ── */
+    /* ── DX — การวินิจฉัย (Pdx + Sdx) ── */
     if (claim.diagnosis && typeof claim.diagnosis === 'object') {
         layers.push('DX');
         const d = claim.diagnosis;
         const pdxList = Array.isArray(d.pdx) ? d.pdx : (d.pdx ? [d.pdx] : []);
+        const sdxList = codeList(d.sdx).filter(Boolean);
         if (!pdxList.length)     add('DX', 'ERROR', 'C201');
         if (pdxList.length > 1)  add('DX', 'ERROR', 'C202', null, `pdx ${pdxList.length} รหัส: ${pdxList.join(', ')}`);
         if (pdxList.length === 1 && fund.fund_key === 'IP' && pdxNotForIpd(pdxList[0]))
                                  add('DX', 'ERROR', 'C206', null, `Pdx=${pdxList[0]}`);
+
+        // รหัสมีจริงในแคตตาล็อก ICD-10 หรือไม่ (C203 = รหัสไม่สอดคล้อง/ถูกยกเลิก)
+        const keys = [...new Set([...pdxList, ...sdxList].map(normCode).filter(Boolean))];
+        if (keys.length) {
+            const [[cat]] = await pool.query(`SELECT COUNT(*) AS n FROM ref_icd10 WHERE is_active = 1`);
+            if (!cat.n) {
+                add('DX', 'INFO', null, 'ENG-DX-SRC',
+                    'ยังไม่ได้โหลดแคตตาล็อก ICD-10 — ข้ามการตรวจว่ารหัสวินิจฉัยมีจริง');
+            } else {
+                const [rows] = await pool.query(
+                    `SELECT code_key FROM ref_icd10 WHERE code_key IN (?) AND is_active = 1`, [keys]);
+                const found = new Set(rows.map(r => r.code_key));
+                pdxList.forEach(p => {
+                    if (normCode(p) && !found.has(normCode(p)))
+                        add('DX', 'ERROR', 'C203', null, `Pdx=${p} ไม่พบในแคตตาล็อก ICD-10`);
+                });
+                sdxList.forEach((s, i) => {
+                    if (!found.has(normCode(s)))
+                        add('DX', 'ERROR', 'C203', null, `Sdx #${i + 1}=${s} ไม่พบในแคตตาล็อก ICD-10`);
+                });
+            }
+        }
+
+        // รหัสซ้ำ — Sdx ซ้ำ Pdx หรือ Sdx ซ้ำกันเอง
+        const pdxKey = pdxList.length === 1 ? normCode(pdxList[0]) : null;
+        const seen = new Set();
+        sdxList.forEach((s, i) => {
+            const k = normCode(s);
+            if (pdxKey && k === pdxKey)
+                add('DX', 'WARNING', null, 'ENG-DX-DUP', `Sdx #${i + 1}=${s} ซ้ำกับ Pdx`);
+            else if (seen.has(k))
+                add('DX', 'WARNING', null, 'ENG-DX-DUP', `Sdx #${i + 1}=${s} ซ้ำกับ Sdx ก่อนหน้า`);
+            seen.add(k);
+        });
+    }
+
+    /* ── PROC — หัตถการ ICD-9-CM ── */
+    if (Array.isArray(claim.procedures) && claim.procedures.length) {
+        layers.push('PROC');
+        const codes = codeList(claim.procedures);
+        const keys = [...new Set(codes.map(normCode).filter(Boolean))];
+        const [[cat]] = await pool.query(`SELECT COUNT(*) AS n FROM ref_icd9 WHERE is_active = 1`);
+        if (!cat.n) {
+            add('PROC', 'INFO', null, 'ENG-PROC-SRC',
+                'ยังไม่ได้โหลดแคตตาล็อก ICD-9-CM — ข้ามการตรวจว่ารหัสหัตถการมีจริง');
+        } else {
+            const found = new Set();
+            if (keys.length) {
+                const [rows] = await pool.query(
+                    `SELECT code_key FROM ref_icd9 WHERE code_key IN (?) AND is_active = 1`, [keys]);
+                rows.forEach(r => found.add(r.code_key));
+            }
+            codes.forEach((c, i) => {
+                if (!c) add('PROC', 'ERROR', null, 'ENG-PROC-001', `หัตถการ #${i + 1} — ไม่ระบุรหัส`);
+                else if (!found.has(normCode(c)))
+                    add('PROC', 'ERROR', null, 'ENG-PROC-001',
+                        `หัตถการ #${i + 1} (${c}) ไม่พบในแคตตาล็อก ICD-9-CM`);
+            });
+        }
+        // มีหัตถการ = ต้องส่งแฟ้ม 6 (Procedure ICD-9-CM) ด้วย
+        if (Array.isArray(claim.files_present) && !claim.files_present.map(Number).includes(6)) {
+            add('PROC', 'WARNING', null, 'ENG-PROC-FILE',
+                'มีรหัสหัตถการแต่ชุดข้อมูลไม่มีแฟ้ม 6 (Procedure ICD-9-CM)');
+        }
     }
 
     /* ── DRUG — เทียบ TMT / Drug Catalogue ── */
@@ -160,19 +277,40 @@ async function validateClaim(pool, claim) {
         });
     }
 
-    /* ── CHARGE ── */
-    if (claim.charges && typeof claim.charges === 'object' && claim.charges.total != null) {
+    /* ── CHARGE — ยอดรวม + รายการราย item ── */
+    if (claim.charges && typeof claim.charges === 'object'
+        && (claim.charges.total != null || Array.isArray(claim.charges.items))) {
         layers.push('CHARGE');
-        if (!(Number(claim.charges.total) > 0)) add('CHARGE', 'ERROR', 'C301', null, `total=${claim.charges.total}`);
+        const c = claim.charges;
+        if (c.total != null && !(Number(c.total) > 0))
+            add('CHARGE', 'ERROR', 'C301', null, `total=${c.total}`);
+
+        if (Array.isArray(c.items) && c.items.length) {
+            let sum = 0;
+            const los = Number(claim.admission?.los);
+            c.items.forEach((it, i) => {
+                const label = `รายการ #${i + 1}` + (it?.name ? ` (${it.name})` : '');
+                const amt = Number(it?.amount);
+                if (!isFinite(amt) || amt <= 0)
+                    add('CHARGE', 'ERROR', 'C301', null, `${label} — จำนวนเงิน ${it?.amount}`);
+                else sum += amt;
+                if (!String(it?.billgrcs || '').trim())
+                    add('CHARGE', 'WARNING', null, 'ENG-CHG-CAT', `${label} — ไม่ระบุหมวด BILLGRCS`);
+                // ค่าห้อง/ค่าอาหาร (BILLGRCS 02) เบิกเกินจำนวนวันนอน = C312
+                const qty = Number(it?.qty);
+                if (String(it?.billgrcs || '').trim() === '02' && isFinite(qty) && isFinite(los) && qty > los)
+                    add('CHARGE', 'ERROR', 'C312', null, `${label} — เบิกค่าห้อง ${qty} วัน > วันนอน ${los} วัน`);
+            });
+            if (c.total != null && Number(c.total) > 0 && Math.abs(Number(c.total) - sum) > 0.01)
+                add('CHARGE', 'WARNING', null, 'ENG-CHG-SUM',
+                    `ยอดรวม ${Number(c.total).toFixed(2)} ไม่เท่าผลรวมรายการ ${sum.toFixed(2)}`);
+        }
     }
 
     /* ── DRG — จัดกลุ่ม + trim point ── */
     if (claim.drg && typeof claim.drg === 'object' && claim.drg.code) {
         layers.push('DRG');
-        const version = claim.drg.version
-            || (await pool.query(
-                   `SELECT version_code FROM ref_drg_versions WHERE is_active = 1
-                    ORDER BY effective_from DESC LIMIT 1`))[0][0]?.version_code;
+        const version = await resolveDrgVersion(pool, claim);
         const [[row]] = await pool.query(
             `SELECT drg_code, description_th, rw, alos, trim_low, trim_high, verified
              FROM ref_drg WHERE version_code = ? AND drg_code = ? AND is_active = 1`,
@@ -202,7 +340,7 @@ async function validateClaim(pool, claim) {
     const codeMap = new Map();
     if (codes.length) {
         const [rows] = await pool.query(
-            `SELECT code, description_th, category, verified, source_doc
+            `SELECT code, description_th, fix_guidance_th, category, verified, source_doc
              FROM ref_error_codes WHERE system = 'ECLAIM' AND code IN (?)`, [codes]
         );
         rows.forEach(r => codeMap.set(r.code, r));
@@ -214,6 +352,7 @@ async function validateClaim(pool, claim) {
         it.category = ref ? ref.category : null;
         it.verified = ref ? !!ref.verified : null;
         it.source   = ref ? ref.source_doc : null;
+        it.guidance = ref ? (ref.fix_guidance_th || null) : null;
     }
 
     const count = sev => issues.filter(i => i.severity === sev).length;
@@ -228,4 +367,4 @@ async function validateClaim(pool, claim) {
     };
 }
 
-module.exports = { validateClaim, validThaiCid };
+module.exports = { validateClaim, validThaiCid, normCode, codeList, toTime, resolveDrgVersion };

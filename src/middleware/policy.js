@@ -49,10 +49,17 @@ const POLICY = [
     // ── ข้อมูลอ้างอิงมาตรฐาน: อ่านสาธารณะ (ต้องตรงกับ PUBLIC ใน gateway.js) ──
     //    เป็นมาตรฐานที่ราชการเผยแพร่อยู่แล้ว + หน้าต้นแบบที่ดึงไป hydrate ไม่ล็อกอิน
     //    กฎ '*' ปิดท้ายกันอนาคต: endpoint เขียน (โหลด/แก้ข้อมูลอ้างอิง) ต้องเป็น ADMIN
-    { m: 'GET',  p: /^\/reference\/(error-codes|files|file-fields|fund-files|drg|drg-versions|tmt|meta)$/, public: true },
+    { m: 'GET',  p: /^\/reference\/(error-codes|files|file-fields|fund-files|drg|drg-versions|tmt|icd10|icd9|meta)$/, public: true },
     // validate เป็น POST แต่ stateless (คำนวณอย่างเดียว ไม่เขียน DB) — สาธารณะเช่นกัน
     { m: 'POST', p: /^\/reference\/validate$/, public: true },
     { m: '*',    p: /^\/reference(\/|$)/, roles: [ADMIN] },
+
+    // ── ผู้ป่วยใน (admission จริง + การลงรหัส) ──
+    //    validate เป็น POST อ่านอย่างเดียวเชิงคำนวณ — เปิดให้ทุก role ที่ล็อกอิน
+    //    ต้องอยู่ก่อนกฎ '*' (match แรกชนะ) · การเขียน (ลงรหัส/แก้/ลบ) เป็น STAFF
+    { m: 'POST', p: /^\/ipd\/admissions\/[^/]+\/validate$/, roles: ANY },
+    { m: 'GET',  p: /^\/ipd(\/|$)/, roles: ANY },
+    { m: '*',    p: /^\/ipd(\/|$)/, roles: STAFF },
 
     // ── ปิดท้าย: อะไรที่ไม่เข้ากฎไหนเลย = ปฏิเสธ ──
     // check-policy.js จะ fail ถ้ามี route ตกมาถึงบรรทัดนี้

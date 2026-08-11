@@ -19,6 +19,7 @@ const MOUNTS = [
     ['/api/settings',  'settings'],
     ['/api/registry',  'registry'],
     ['/api/reference', 'reference'],
+    ['/api/ipd',       'ipd'],
 ];
 
 const showAll = process.argv.includes('--all');

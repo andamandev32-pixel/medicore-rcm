@@ -240,3 +240,54 @@ CREATE TABLE IF NOT EXISTS ref_drg (
     UNIQUE KEY uk_ver_drg (version_code, drg_code),
     FOREIGN KEY (version_code) REFERENCES ref_drg_versions(version_code)
 ) ENGINE=InnoDB;
+
+-- ============================================================
+-- 6. รหัสวินิจฉัย ICD-10 / รหัสหัตถการ ICD-9-CM
+--    ที่มา: ICD-10-TM (สนย. สธ.) · ICD-9-CM ฉบับที่ สปสช. ใช้จัดกลุ่ม DRG
+--
+-- ตัวอย่างใน repo เป็นชุดคัดย่อ (verified=0) โหลดผ่าน seed-reference
+-- แคตตาล็อกเต็มโหลดด้วย load-icd.js (ไฟล์จริงไม่ commit — ดู data/reference/README.md)
+--
+-- code     เก็บรูปมีจุด ('J18.9') ตามที่หน้างานคุ้นตา
+-- code_key เก็บรูปไร้จุดตัวใหญ่ ('J189') เป็นคีย์เทียบ — แฟ้มส่งออก/ไฟล์ทางการมักไร้จุด
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS ref_icd10 (
+    icd10_id   INT AUTO_INCREMENT PRIMARY KEY,
+    code       VARCHAR(10) NOT NULL,               -- 'J18.9'
+    code_key   VARCHAR(8)  NOT NULL,               -- 'J189'
+    term_en    VARCHAR(255) NOT NULL,
+    term_th    VARCHAR(255) DEFAULT NULL,
+    sex_limit  ENUM('M','F') DEFAULT NULL,         -- รหัสจำกัดเพศ (รองรับกฎ C204 ในอนาคต)
+
+    source_doc  VARCHAR(255) DEFAULT NULL,
+    source_ref  VARCHAR(64)  DEFAULT NULL,
+    source_date DATE         DEFAULT NULL,
+    verified    TINYINT(1)   NOT NULL DEFAULT 0,
+    is_active   TINYINT(1)   NOT NULL DEFAULT 1,
+    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    UNIQUE KEY uk_icd10_key (code_key),
+    INDEX idx_icd10_code (code)
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS ref_icd9 (
+    icd9_id    INT AUTO_INCREMENT PRIMARY KEY,
+    code       VARCHAR(8) NOT NULL,                -- '79.35'
+    code_key   VARCHAR(6) NOT NULL,                -- '7935'
+    term_en    VARCHAR(255) NOT NULL,
+    term_th    VARCHAR(255) DEFAULT NULL,
+    operative  TINYINT(1) DEFAULT NULL,            -- 1 = หัตถการห้องผ่าตัด (OR) · NULL = ยังไม่ระบุ
+
+    source_doc  VARCHAR(255) DEFAULT NULL,
+    source_ref  VARCHAR(64)  DEFAULT NULL,
+    source_date DATE         DEFAULT NULL,
+    verified    TINYINT(1)   NOT NULL DEFAULT 0,
+    is_active   TINYINT(1)   NOT NULL DEFAULT 1,
+    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    UNIQUE KEY uk_icd9_key (code_key),
+    INDEX idx_icd9_code (code)
+) ENGINE=InnoDB;

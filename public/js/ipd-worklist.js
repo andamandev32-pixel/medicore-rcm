@@ -34,6 +34,13 @@ const IpdWorklist = {
         this.fillFilters();
         this.renderSeg();
         this.render();
+
+        /* ข้อมูล admission จริง merge เสร็จ (mock-ipddata.js) → วาดใหม่ด้วยข้อมูล DB */
+        document.addEventListener('refdata:updated', e => {
+            if (!e.detail || !e.detail.ipdStays) return;
+            this.renderSeg();
+            this.render();
+        });
     },
 
     reload() { this.render(); showToast('รีเฟรชข้อมูลแล้ว'); },

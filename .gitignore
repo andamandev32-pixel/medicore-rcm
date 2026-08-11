@@ -5,3 +5,6 @@ node_modules/
 
 # Master TMT release เต็ม (หลักหมื่นแถว) — โหลดเองตาม data/reference/README.md
 data/reference/tmt/
+
+# แคตตาล็อก ICD-10-TM / ICD-9-CM ฉบับเต็ม — โหลดเองตาม data/reference/README.md
+data/reference/icd/

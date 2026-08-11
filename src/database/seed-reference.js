@@ -25,6 +25,9 @@ const BOOL = v => (String(v).trim() === '1' ? 1 : 0);
 /* provenance 4 คอลัมน์ท้ายที่ทุกไฟล์มีเหมือนกัน */
 const prov = r => [S(r.source_doc), S(r.source_ref), toCEDate(r.source_date), BOOL(r.verified)];
 
+/* คีย์เทียบรหัส ICD: ตัวใหญ่ ไร้จุด ('J18.9' → 'J189') — ไฟล์ทางการ/แฟ้มส่งออกมักไร้จุด */
+const codeKey = v => String(v || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+
 /**
  * นิยามชุดข้อมูล — ลำดับสำคัญ (FK: matrix ต้องมาหลัง funds+files · drg หลัง versions+mdc)
  * แต่ละชุด: ไฟล์ · SQL upsert · ฟังก์ชันแปลงแถว CSV → params (คืน null = ข้ามแถวพร้อมเหตุผล)
@@ -129,6 +132,39 @@ const DATASETS = [
             if (rw == null || rw <= 0) { errs.push(`RW ไม่ใช่ตัวเลขบวก ("${r.rw}")`); return null; }
             return [S(r.version_code), S(r.drg_code), S(r.mdc), S(r.description_th), rw, N(r.alos),
                     N(r.trim_low), N(r.trim_high), S(r.pdx_codes), ...prov(r)];
+        },
+    },
+    {
+        name: 'icd10', file: 'icd10-sample.csv',
+        sql: `INSERT INTO ref_icd10 (code, code_key, term_en, term_th, sex_limit,
+                  source_doc, source_ref, source_date, verified)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+              ON DUPLICATE KEY UPDATE code=VALUES(code), term_en=VALUES(term_en),
+                  term_th=VALUES(term_th), sex_limit=VALUES(sex_limit),
+                  source_doc=VALUES(source_doc), source_ref=VALUES(source_ref),
+                  source_date=VALUES(source_date), verified=VALUES(verified)`,
+        map(r, errs) {
+            const key = codeKey(r.code);
+            if (!key || !S(r.term_en)) { errs.push('code/term_en ว่าง'); return null; }
+            const sex = String(r.sex_limit || '').toUpperCase();
+            return [S(r.code), key, S(r.term_en), S(r.term_th),
+                    (sex === 'M' || sex === 'F') ? sex : null, ...prov(r)];
+        },
+    },
+    {
+        name: 'icd9', file: 'icd9-sample.csv',
+        sql: `INSERT INTO ref_icd9 (code, code_key, term_en, term_th, operative,
+                  source_doc, source_ref, source_date, verified)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+              ON DUPLICATE KEY UPDATE code=VALUES(code), term_en=VALUES(term_en),
+                  term_th=VALUES(term_th), operative=VALUES(operative),
+                  source_doc=VALUES(source_doc), source_ref=VALUES(source_ref),
+                  source_date=VALUES(source_date), verified=VALUES(verified)`,
+        map(r, errs) {
+            const key = codeKey(r.code);
+            if (!key || !S(r.term_en)) { errs.push('code/term_en ว่าง'); return null; }
+            return [S(r.code), key, S(r.term_en), S(r.term_th),
+                    S(r.operative) == null ? null : BOOL(r.operative), ...prov(r)];
         },
     },
 ];

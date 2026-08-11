@@ -239,9 +239,13 @@ const NhsoImport = {
         files_present: [1, 2, 3, 4, 5, 7, 8],
         patient: { name: 'ทดสอบ ระบบ', birth_date: '2500-05-10', sex: 'M', cid: '1101700230705', hn: 'HN00123' },
         admission: { admit_date: '2569-07-20', discharge_date: '2569-08-02', los: 20 },
-        diagnosis: { pdx: 'Z13.1' },
+        diagnosis: { pdx: 'Z13.1', sdx: ['E11.9', 'XX0.0'] },
+        procedures: [{ code: '38.93', date: '2569-07-21' }],
         drugs: [{ tmt_id: '100001', price: 5.0, qty: 10 }],
-        charges: { total: 15800 },
+        charges: { total: 15800, items: [
+            { billgrcs: '02', name: 'ค่าห้อง/ค่าอาหาร', amount: 16800, qty: 14 },
+            { billgrcs: '03', name: 'ยาในบัญชี', amount: -1000 },
+        ] },
         drg: { code: '04530' },
     },
 
@@ -290,22 +294,48 @@ const NhsoImport = {
                 <td>${i.code ? `<code>${esc(i.code)}</code>` : `<span style="color:var(--text-secondary)">${esc(i.rule || '—')}</span>`}
                     ${i.verified === true ? '' : i.code ? ' <span class="sip-chip sip-chip-amber" style="font-size:10px">รอยืนยัน</span>' : ''}</td>
                 <td class="l">${esc(i.message)}${i.detail && i.detail !== i.message
-                    ? `<div style="font-size:12px;color:var(--text-secondary)">${esc(i.detail)}</div>` : ''}</td>
+                    ? `<div style="font-size:12px;color:var(--text-secondary)">${esc(i.detail)}</div>` : ''}
+                    ${i.guidance ? `<div style="font-size:12px;color:var(--success,#0a7f4f);margin-top:2px">
+                        <i data-lucide="wrench" class="icon-sm" style="width:12px;height:12px"></i> ${esc(i.guidance)}</div>` : ''}</td>
                 <td class="l" style="font-size:12px;color:var(--text-secondary)">${esc(i.layer)}</td>
             </tr>`).join('');
+
+        const sugs = (r.suggestions || []).map(g => `
+            <div style="display:flex;gap:8px;align-items:flex-start;padding:8px 10px;border-top:1px solid var(--border-color)">
+                <i data-lucide="${g.kind === 'DRG_REVIEW' ? 'trending-up' : 'list-checks'}" class="icon-sm" style="margin-top:2px;flex:none"></i>
+                <div style="font-size:13px">
+                    <code style="font-size:11px">${esc(g.id)}</code>
+                    ${g.simulated ? '<span class="sip-chip sip-chip-amber" style="font-size:10px">ค่าจำลอง</span>' : ''}
+                    ${esc(g.message)}
+                    ${g.detail ? `<div style="font-size:12px;color:var(--text-secondary)">${esc(g.detail)}</div>` : ''}
+                    ${g.evidence && g.evidence.rw_delta != null
+                        ? `<div style="font-size:12px;color:var(--text-secondary)">RW ${Number(g.evidence.current_rw).toFixed(4)}
+                           → ${Number(g.evidence.best_rw).toFixed(4)} (+${Number(g.evidence.rw_delta).toFixed(4)})</div>` : ''}
+                </div>
+            </div>`).join('');
 
         return `
         <div class="${pass ? 'ds-note' : 'ds-warn'}" style="margin-bottom:10px">
             <i data-lucide="${pass ? 'check-circle-2' : 'alert-octagon'}" class="icon-sm"></i>
             <strong>${pass ? 'ผ่านทุกกฎที่ตรวจ' : 'พบประเด็นก่อนส่ง'}</strong>
             — กองทุน ${esc(r.fund.fund_key)} · Error ${s.errors} · Warning ${s.warnings} · Info ${s.info}
+            ${s.suggestions ? ` · ข้อเสนอแนะ ${s.suggestions}` : ''}
             · ชั้นที่ตรวจ: ${s.layers_checked.map(esc).join(', ')}
         </div>
         ${r.issues.length ? `
         <div class="table-responsive"><table class="data-table compact">
             <thead><tr><th>ระดับ</th><th>รหัส</th><th class="l">รายละเอียด (ข้อความจากแคตตาล็อกจริง)</th><th class="l">ชั้น</th></tr></thead>
             <tbody>${rows}</tbody>
-        </table></div>` : ''}`;
+        </table></div>` : ''}
+        ${sugs ? `
+        <div class="section-card" style="margin-top:10px;border-left:3px solid var(--warning,#b7791f)">
+            <div style="padding:8px 10px;font-size:13px;font-weight:600">
+                <i data-lucide="lightbulb" class="icon-sm"></i> ข้อเสนอแนะให้ลงรหัสสมบูรณ์
+                <span style="font-weight:400;color:var(--text-secondary)">
+                    — ชวนทบทวนเท่านั้น ไม่มีผลต่อ PASS/FAIL · ข้อเสนอที่เพิ่ม RW ต้องมีเอกสารรองรับก่อนปรับ</span>
+            </div>
+            ${sugs}
+        </div>` : ''}`;
     },
 
     /* ══════════ ประวัติการนำเข้า ══════════ */

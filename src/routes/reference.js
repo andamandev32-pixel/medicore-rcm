@@ -2,6 +2,7 @@ const express  = require('express');
 const router   = express.Router();
 const { pool } = require('../database/connection');
 const { validateClaim } = require('../services/claim-validator');
+const { suggestForClaim } = require('../services/claim-suggester');
 
 // ============================================================
 // /api/reference — ข้อมูลอ้างอิงมาตรฐานการเบิกจ่าย (อ่านอย่างเดียว)
@@ -228,6 +229,52 @@ router.get('/tmt', async (req, res) => {
 });
 
 // ─────────────────────────────────────────────
+// GET /api/reference/icd10?code= | q= (อย่างน้อย 2 ตัวอักษร) &limit=
+// GET /api/reference/icd9?code=  | q= (อย่างน้อย 2 ตัวอักษร) &limit=
+// ใช้ตรวจว่ารหัสมีจริง + autocomplete ช่องลงรหัสหน้า IPD
+// code เทียบผ่าน code_key (ตัดจุด) — พิมพ์ 'J18.9' หรือ 'J189' ได้เหมือนกัน
+// เพดานต่ำเหมือน /tmt — ตารางเต็มมีหลักหมื่นแถวและเป็น endpoint สาธารณะ
+// ─────────────────────────────────────────────
+const icdKey = v => String(v || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+
+function icdHandler(table, extraCols) {
+    return async (req, res) => {
+        try {
+            const { code, q } = req.query;
+            if (!code && (!q || String(q).trim().length < 2)) {
+                return res.status(400).json({ error: 'ต้องระบุ code หรือ q อย่างน้อย 2 ตัวอักษร' });
+            }
+
+            const conditions = ['is_active = 1'];
+            const params = [];
+            if (code) { conditions.push('code_key = ?'); params.push(icdKey(code)); }
+            else {
+                const term = String(q).trim();
+                conditions.push('(code_key LIKE ? OR term_en LIKE ? OR term_th LIKE ?)');
+                params.push(`${icdKey(term)}%`, `%${term}%`, `%${term}%`);
+            }
+
+            const limit = Math.min(parseInt(req.query.limit) || 50, 100);
+            const [rows] = await pool.query(
+                `SELECT code, code_key, term_en, term_th, ${extraCols}, ${PROV}
+                 FROM ${table}
+                 WHERE ${conditions.join(' AND ')}
+                 ORDER BY code
+                 LIMIT ?`,
+                [...params, limit]
+            );
+            res.json(rows);
+        } catch (err) {
+            console.error(`[Reference] GET /${table.replace('ref_', '')}`, err);
+            res.status(500).json({ error: err.message });
+        }
+    };
+}
+
+router.get('/icd10', icdHandler('ref_icd10', 'sex_limit'));
+router.get('/icd9',  icdHandler('ref_icd9',  'operative'));
+
+// ─────────────────────────────────────────────
 // GET /api/reference/meta — จำนวนแถว + % ที่ทวนแล้ว + ประวัติการโหลดล่าสุด
 // ใช้ขึ้นแดชบอร์ดความครอบคลุมของข้อมูลอ้างอิง (แคตตาล็อก 652 รหัสโหลดถึงไหนแล้ว)
 // ─────────────────────────────────────────────
@@ -240,6 +287,8 @@ router.get('/meta', async (req, res) => {
             fund_file_matrix: 'ref_fund_file_matrix',
             drg: 'ref_drg',
             tmt: 'ref_tmt_drugs',
+            icd10: 'ref_icd10',
+            icd9: 'ref_icd9',
         };
         for (const [key, table] of Object.entries(TABLES)) {
             const [[r]] = await pool.query(
@@ -273,13 +322,15 @@ router.get('/meta', async (req, res) => {
 //   flags: { emergency, prenatal, newborn, psych, disability, leaveDay },
 //   files_present: [1,2,3,...],              // เลขแฟ้มที่มีในชุดข้อมูล
 //   patient: { name, birth_date, sex, cid, hn, an },
-//   admission: { admit_date, discharge_date, los },
-//   diagnosis: { pdx },                      // string หรือ array
+//   admission: { admit_date, discharge_date, los, leave_days? },
+//   diagnosis: { pdx, sdx? },                // pdx: string หรือ array · sdx: ['I10'] หรือ [{code}]
+//   procedures: [{ code, date? }],           // หัตถการ ICD-9-CM (รับ string ตรง ๆ ก็ได้)
 //   drugs: [{ tmt_id, price, qty }],
-//   charges: { total },
-//   drg: { code, version? },
+//   charges: { total?, items?: [{ billgrcs, name?, amount, qty? }] },
+//   drg: { code, version? },                 // ไม่ระบุ version = เลือกตามวันจำหน่าย (BR-02)
 // }
 // ทุก section ยกเว้น fund_key เป็น optional — ตรวจเท่าที่ส่งมา
+// ผลลัพธ์: { fund, summary, issues[], suggestions[] } — suggestions ไม่กระทบ PASS/FAIL
 // เป็น public เพราะอ่านอย่างเดียวเชิงคำนวณ ไม่แตะข้อมูลเคส ไม่เขียนอะไรลง DB
 // ─────────────────────────────────────────────
 router.post('/validate', async (req, res) => {
@@ -288,6 +339,9 @@ router.post('/validate', async (req, res) => {
             return res.status(400).json({ error: 'ต้องส่ง JSON body' });
         }
         const result = await validateClaim(pool, req.body);
+        // ชั้นเสนอแนะ — แยก array ไม่ปนกับ issues และไม่มีผลต่อ PASS/FAIL
+        result.suggestions = await suggestForClaim(pool, req.body, result.fund);
+        result.summary.suggestions = result.suggestions.length;
         res.json(result);
     } catch (err) {
         if (err.status === 400) return res.status(400).json({ error: err.message });

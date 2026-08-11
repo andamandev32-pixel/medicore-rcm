@@ -51,6 +51,14 @@ const IpdAudit = {
         }
         const first = this.visible()[0];
         this.select(hit ? hit.id : (first ? first.id : null));
+
+        /* ข้อมูล admission จริง merge เสร็จ (mock-ipddata.js) → วาดใหม่ด้วยข้อมูล DB */
+        document.addEventListener('refdata:updated', e => {
+            if (!e.detail || !e.detail.ipdStays) return;
+            this.renderPills();
+            this.renderList();
+            this.select(this.state.id);
+        });
     },
 
     current() { return this.state.id ? MockIpd.byId(this.state.id) : null; },
@@ -684,9 +692,87 @@ const IpdAudit = {
                 ${a.reasons.length > 8 ? `<li class="td-sub">และอีก ${a.reasons.length - 8} รายการ</li>` : ''}
             </ul>` : ''}
 
+            <button class="btn btn-primary btn-block" style="margin-bottom:8px"
+                    onclick="IpdAudit.engineCheck()" ${s.fund === 'PVT' ? 'disabled title="เคสประกันเอกชนไม่ผ่านชุดกฎ NHSO"' : ''}>
+                <i data-lucide="shield-check" class="icon-sm"></i> ตรวจกับ rule engine จริง
+            </button>
+            ${s.fund === 'PVT' ? '<div class="td-sub" style="margin-bottom:8px">เคส PVT ไม่ส่ง NHSO — ชุดกฎแฟ้ม/กองทุนใช้กับเคสนี้ไม่ได้</div>' : ''}
+
             <button class="btn btn-outline btn-block" onclick="IpdAudit.openPrint()">
                 <i data-lucide="printer" class="icon-sm"></i> พิมพ์ใบตรวจสอบแฟ้มผู้ป่วยใน
             </button>`;
+        refreshIcons();
+    },
+
+    /* ── ตรวจเคสนี้กับ rule engine จริง (claim-validator + claim-suggester ฝั่งเซิร์ฟเวอร์) ──
+       เคสที่อยู่ใน DB และล็อกอิน: เซิร์ฟเวอร์ประกอบ payload จากข้อมูลจริง
+       เคส mock: สะพาน mock-ipddata.js ประกอบ payload แล้วยิง endpoint สาธารณะ */
+
+    async engineCheck() {
+        const s = this.current(); if (!s) { showToast('ยังไม่ได้เลือกเคส', 'warning'); return; }
+        if (!window.MockIpdData) { showToast('ไม่พบสะพานข้อมูล (mock-ipddata.js)', 'danger'); return; }
+
+        showToast('กำลังตรวจกับ rule engine…', 'info');
+        let r;
+        try {
+            r = await MockIpdData.validate(s);
+        } catch (err) {
+            showToast('เรียก rule engine ไม่ได้ — ต้องรันกับเซิร์ฟเวอร์ (npm run dev)', 'danger');
+            return;
+        }
+
+        const tone = { ERROR: 'rejected', WARNING: 'waiting', INFO: 'active' };
+        const pass = r.summary.result === 'PASS';
+        const issueRows = r.issues.map(i => `
+            <tr>
+                <td><span class="status-badge ${tone[i.severity] || 'active'}">${esc(i.severity)}</span></td>
+                <td>${i.code ? `<code>${esc(i.code)}</code>` : `<span class="td-sub">${esc(i.rule || '—')}</span>`}</td>
+                <td class="l">${esc(i.message)}${i.detail && i.detail !== i.message
+                    ? `<div class="td-sub">${esc(i.detail)}</div>` : ''}
+                    ${i.guidance ? `<div style="font-size:12px;color:var(--status-success);margin-top:2px">→ ${esc(i.guidance)}</div>` : ''}</td>
+                <td class="l td-sub">${esc(i.layer)}</td>
+            </tr>`).join('');
+
+        const sugs = (r.suggestions || []).map(g => `
+            <div style="display:flex;gap:8px;align-items:flex-start;padding:8px 2px;border-top:1px solid var(--border-color)">
+                <i data-lucide="${g.kind === 'DRG_REVIEW' ? 'trending-up' : 'list-checks'}" class="icon-sm" style="margin-top:2px;flex:none"></i>
+                <div style="font-size:13px">
+                    <code style="font-size:11px">${esc(g.id)}</code>
+                    ${g.simulated ? '<span class="sip-chip sip-chip-amber" style="font-size:10px">ค่าจำลอง</span>' : ''}
+                    ${esc(g.message)}
+                    ${g.evidence && g.evidence.rw_delta != null
+                        ? `<div class="td-sub">RW ${Number(g.evidence.current_rw).toFixed(4)}
+                           → ${Number(g.evidence.best_rw).toFixed(4)} (+${Number(g.evidence.rw_delta).toFixed(4)})</div>` : ''}
+                </div>
+            </div>`).join('');
+
+        Drawer.open({
+            title: `ผลตรวจ rule engine — AN ${s.an}`,
+            width: '640px',
+            contentHtml: `
+                <div class="${pass ? 'ds-note' : 'ds-warn'}" style="margin-bottom:12px">
+                    <i data-lucide="${pass ? 'check-circle-2' : 'alert-octagon'}" class="icon-sm"></i>
+                    <strong>${pass ? 'ผ่านทุกกฎที่ตรวจ' : 'พบประเด็นก่อนส่ง'}</strong>
+                    — Error ${r.summary.errors} · Warning ${r.summary.warnings} · Info ${r.summary.info}
+                    ${r.summary.suggestions ? ` · ข้อเสนอแนะ ${r.summary.suggestions}` : ''}<br>
+                    <span class="td-sub">ชั้นที่ตรวจ: ${r.summary.layers_checked.map(esc).join(', ')}
+                    · ข้อความ error จากแคตตาล็อกรหัสติด C จริง</span>
+                </div>
+                ${r.issues.length ? `
+                <div class="table-responsive"><table class="data-table compact">
+                    <thead><tr><th>ระดับ</th><th>รหัส</th><th class="l">รายละเอียด</th><th class="l">ชั้น</th></tr></thead>
+                    <tbody>${issueRows}</tbody>
+                </table></div>` : ''}
+                ${sugs ? `
+                <div style="margin-top:14px;border-left:3px solid var(--status-warning);padding-left:10px">
+                    <div style="font-size:13px;font-weight:700;margin-bottom:2px">
+                        <i data-lucide="lightbulb" class="icon-sm"></i> ข้อเสนอแนะให้ลงรหัสสมบูรณ์</div>
+                    <div class="td-sub" style="margin-bottom:4px">ชวนทบทวนเท่านั้น ไม่มีผลต่อ PASS/FAIL
+                        — ข้อเสนอที่เพิ่ม RW ต้องมีเอกสารรองรับในเวชระเบียนก่อนปรับรหัส</div>
+                    ${sugs}
+                </div>` : ''}`,
+            footerHtml: `<button class="btn btn-outline" onclick="Drawer.close()">ปิด</button>`,
+        });
         refreshIcons();
     },
 
