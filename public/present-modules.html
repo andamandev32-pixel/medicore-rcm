@@ -59,10 +59,12 @@
 </div>
 
 <!-- ⚠️ ลำดับสำคัญ: present-modules-slides.js เรียกฟังก์ชันวาดผังตอนสร้างอาร์เรย์ทันที
-     present-flows.js ต้องมาก่อน (ให้ PRF และ prfBox/prfArrow/prfMarkers/prfText/prfSvg)
-     แล้วตามด้วย present-flows-modules.js ที่ใช้ตัวช่วยชุดนั้น -->
+     present-flows.js ต้องมาก่อน (ให้ PRF และ prfBox/prfArrow/prfMarkers/prfText/prfBadge/prfSvg)
+     แล้วตามด้วย present-flows-modules.js ที่ใช้ตัวช่วยชุดนั้น (ให้ pmBand/pmEdgeLabel/pmFile)
+     แล้วจึง present-flows-audit.js ซึ่งใช้ตัวช่วยของทั้งสองไฟล์ข้างบน -->
 <script src="js/present-flows.js"></script>
 <script src="js/present-flows-modules.js"></script>
+<script src="js/present-flows-audit.js"></script>
 <script src="js/present-modules-slides.js"></script>
 <script src="js/present.js"></script>
 </body>
