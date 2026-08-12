@@ -1,0 +1,821 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>สรุปความต้องการลูกค้า - Claim Intelligence</title>
+  <style>
+    :root {
+      --navy: #0f172a;
+      --navy-2: #1e293b;
+      --navy-3: #334155;
+      --amber: #fbbf24;
+      --amber-2: #f59e0b;
+      --paper: #f8fafc;
+      --white: #ffffff;
+      --line: #cbd5e1;
+      --muted: #64748b;
+      --danger: #dc2626;
+      --danger-soft: #fee2e2;
+      --blue: #2563eb;
+      --blue-soft: #dbeafe;
+      --green: #059669;
+      --green-soft: #d1fae5;
+      --violet: #7c3aed;
+      --violet-soft: #ede9fe;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      background: #020617;
+      color: var(--navy);
+      font-family: Tahoma, "Leelawadee UI", sans-serif;
+      letter-spacing: 0;
+    }
+
+    body { overflow: hidden; }
+
+    .deck {
+      width: 100vw;
+      height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 18px;
+    }
+
+    .slide {
+      display: none;
+      position: relative;
+      width: min(calc(100vw - 36px), calc((100vh - 36px) * 16 / 9));
+      aspect-ratio: 16 / 9;
+      overflow: hidden;
+      background: var(--paper);
+      box-shadow: 0 24px 80px rgba(0, 0, 0, .35);
+    }
+
+    .slide.active { display: block; }
+
+    .inner {
+      position: absolute;
+      inset: 0;
+      padding: 4.2% 5.2% 4.4%;
+    }
+
+    .dark { background: var(--navy); color: var(--white); }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: inherit;
+      font-size: clamp(11px, 1.05vw, 18px);
+      font-weight: 700;
+    }
+
+    .brand img {
+      width: clamp(28px, 2.45vw, 44px);
+      height: clamp(28px, 2.45vw, 44px);
+    }
+
+    .brand span { color: var(--amber); }
+
+    .eyebrow {
+      margin: 0 0 1.2%;
+      color: var(--amber-2);
+      font-size: clamp(11px, 1.05vw, 18px);
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    h1, h2, h3, p { margin-top: 0; }
+    h1, h2, h3 { line-height: 1.22; }
+
+    h1 {
+      margin-bottom: 1.7%;
+      font-size: clamp(34px, 4.3vw, 72px);
+      max-width: 1120px;
+    }
+
+    h2 {
+      margin-bottom: 2.3%;
+      font-size: clamp(28px, 3.25vw, 54px);
+      max-width: 1280px;
+    }
+
+    h3 { font-size: clamp(16px, 1.65vw, 28px); }
+
+    p, li {
+      font-size: clamp(13px, 1.25vw, 22px);
+      line-height: 1.5;
+    }
+
+    .muted { color: var(--muted); }
+    .on-dark-muted { color: #cbd5e1; }
+    .accent { color: var(--amber); }
+
+    .topline {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 3.5%;
+    }
+
+    .section-no {
+      color: var(--muted);
+      font-size: clamp(11px, .95vw, 16px);
+      font-weight: 700;
+    }
+
+    .footer {
+      position: absolute;
+      left: 5.2%;
+      right: 5.2%;
+      bottom: 2.2%;
+      display: flex;
+      justify-content: space-between;
+      color: var(--muted);
+      font-size: clamp(9px, .78vw, 13px);
+    }
+
+    .dark .footer { color: #94a3b8; }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1.2fr .8fr;
+      gap: 5.5%;
+      align-items: end;
+      height: 74%;
+    }
+
+    .hero-copy p {
+      max-width: 850px;
+      margin-bottom: 0;
+      font-size: clamp(16px, 1.55vw, 27px);
+    }
+
+    .signal {
+      position: relative;
+      min-height: 70%;
+      border-left: 2px solid var(--navy-3);
+      padding-left: 8%;
+    }
+
+    .signal::before {
+      content: "";
+      position: absolute;
+      left: -7px;
+      top: 3%;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--amber);
+      box-shadow: 0 0 0 7px rgba(251, 191, 36, .14);
+    }
+
+    .signal-item { margin-bottom: 8%; }
+    .signal-item strong {
+      display: block;
+      margin-bottom: 1.5%;
+      color: var(--white);
+      font-size: clamp(16px, 1.7vw, 29px);
+    }
+    .signal-item span {
+      color: #cbd5e1;
+      font-size: clamp(12px, 1.1vw, 19px);
+    }
+
+    .claim-strip {
+      margin-top: 2.5%;
+      padding: 1.5% 0 0;
+      border-top: 1px solid var(--navy-3);
+      color: var(--amber);
+      font-size: clamp(14px, 1.45vw, 25px);
+      font-weight: 700;
+    }
+
+    .journey {
+      position: relative;
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 1.35%;
+      margin-top: 3.2%;
+    }
+
+    .journey::before {
+      content: "";
+      position: absolute;
+      left: 6%;
+      right: 6%;
+      top: 25%;
+      height: 4px;
+      background: var(--line);
+    }
+
+    .journey-item { position: relative; z-index: 1; text-align: center; }
+    .journey-no {
+      display: grid;
+      place-items: center;
+      width: clamp(42px, 4.4vw, 72px);
+      aspect-ratio: 1;
+      margin: 0 auto 12%;
+      border: 5px solid var(--paper);
+      border-radius: 50%;
+      background: var(--navy);
+      color: var(--amber);
+      font-size: clamp(17px, 1.65vw, 28px);
+      font-weight: 700;
+    }
+
+    .journey-item h3 { margin-bottom: 6%; }
+    .journey-item p { margin: 0; color: var(--muted); font-size: clamp(11px, 1vw, 17px); }
+
+    .impact-bar {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2%;
+      margin-top: 4.5%;
+      padding-top: 2.2%;
+      border-top: 1px solid var(--line);
+    }
+
+    .impact-bar div {
+      display: flex;
+      gap: 4%;
+      align-items: baseline;
+      color: var(--muted);
+      font-size: clamp(12px, 1.05vw, 18px);
+    }
+
+    .impact-bar b { color: var(--danger); font-size: clamp(20px, 2.2vw, 36px); }
+
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 5.5%;
+      align-items: stretch;
+    }
+
+    .problem-block {
+      border-left: 8px solid var(--danger);
+      padding: 4.5% 5%;
+      background: var(--white);
+    }
+
+    .problem-block h3 { color: var(--danger); }
+
+    .need-block {
+      border-left: 8px solid var(--green);
+      padding: 4.5% 5%;
+      background: var(--white);
+    }
+
+    .need-block h3 { color: var(--green); }
+
+    .clean-list { margin: 0; padding-left: 1.2em; }
+    .clean-list li { margin-bottom: .55em; }
+
+    .age-line {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1.3%;
+      margin-top: 3.4%;
+    }
+
+    .age {
+      padding: 2.1% 2.4%;
+      color: var(--white);
+      background: var(--navy-3);
+      text-align: center;
+    }
+    .age:nth-child(2) { background: #9a6700; }
+    .age:nth-child(3) { background: #c2410c; }
+    .age:nth-child(4) { background: var(--danger); }
+    .age b { display: block; font-size: clamp(17px, 1.75vw, 30px); }
+    .age span { font-size: clamp(10px, .95vw, 16px); }
+
+    .loop {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      align-items: center;
+      margin: 4% 0 3%;
+    }
+
+    .loop-step {
+      position: relative;
+      padding: 9% 10%;
+      min-height: 145px;
+      border-top: 6px solid var(--blue);
+      background: var(--white);
+    }
+
+    .loop-step:not(:last-child)::after {
+      content: "›";
+      position: absolute;
+      z-index: 2;
+      right: -9%;
+      top: 25%;
+      color: var(--amber-2);
+      font-size: clamp(36px, 4vw, 68px);
+      font-weight: 700;
+    }
+
+    .loop-step b { display: block; margin-bottom: 4%; font-size: clamp(16px, 1.55vw, 27px); }
+    .loop-step span { color: var(--muted); font-size: clamp(11px, 1vw, 17px); }
+
+    .question-line {
+      display: flex;
+      justify-content: space-between;
+      gap: 2%;
+      padding: 2.4% 3%;
+      background: var(--navy);
+      color: var(--white);
+    }
+
+    .question-line span { font-size: clamp(12px, 1.18vw, 20px); }
+    .question-line b { color: var(--amber); }
+
+    .case-flow {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 1.4%;
+      margin: 3.5% 0;
+    }
+
+    .case-step {
+      position: relative;
+      min-height: 180px;
+      padding: 9% 8%;
+      border-top: 7px solid var(--navy);
+      background: var(--white);
+    }
+
+    .case-step::before {
+      content: attr(data-no);
+      display: block;
+      color: var(--amber-2);
+      font-size: clamp(14px, 1.35vw, 23px);
+      font-weight: 700;
+      margin-bottom: 8%;
+    }
+    .case-step b { font-size: clamp(15px, 1.42vw, 24px); }
+    .case-step p { margin-top: 8%; margin-bottom: 0; color: var(--muted); font-size: clamp(11px, .95vw, 16px); }
+
+    .warning-band {
+      padding: 2.1% 3%;
+      border-left: 8px solid var(--danger);
+      background: var(--danger-soft);
+      color: #7f1d1d;
+      font-size: clamp(13px, 1.2vw, 20px);
+      font-weight: 700;
+    }
+
+    .reconcile {
+      display: grid;
+      grid-template-columns: .88fr .32fr 1.12fr;
+      gap: 3.5%;
+      align-items: center;
+      margin-top: 2.2%;
+    }
+
+    .funds { display: grid; gap: 10px; }
+    .fund {
+      padding: 3.2% 4%;
+      border-left: 7px solid var(--blue);
+      background: var(--white);
+      font-size: clamp(13px, 1.2vw, 20px);
+      font-weight: 700;
+    }
+    .fund:nth-child(2) { border-left-color: var(--violet); }
+    .fund:nth-child(3) { border-left-color: var(--green); }
+    .fund:nth-child(4) { border-left-color: var(--amber-2); }
+
+    .bank {
+      display: grid;
+      place-items: center;
+      aspect-ratio: 1;
+      border-radius: 50%;
+      background: var(--navy);
+      color: var(--white);
+      text-align: center;
+      font-size: clamp(13px, 1.3vw, 22px);
+      font-weight: 700;
+      box-shadow: 0 0 0 12px #e2e8f0;
+    }
+
+    .match-board { background: var(--white); padding: 5%; }
+    .match-board h3 { margin-bottom: 5%; }
+    .match-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 3%;
+      padding: 3.2% 0;
+      border-bottom: 1px solid var(--line);
+      font-size: clamp(12px, 1.05vw, 18px);
+    }
+    .match-row b { color: var(--green); }
+    .match-row.unmatched b { color: var(--danger); }
+
+    .ledger {
+      display: grid;
+      grid-template-columns: 1fr .22fr 1fr .55fr;
+      gap: 2.5%;
+      align-items: center;
+      margin-top: 3%;
+    }
+
+    .cost-column { background: var(--white); padding: 5%; min-height: 270px; }
+    .cost-column h3 { margin-bottom: 7%; }
+    .cost-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 4% 0;
+      border-bottom: 1px solid var(--line);
+      color: var(--muted);
+      font-size: clamp(12px, 1.05vw, 18px);
+    }
+    .cost-row b { color: var(--navy); }
+    .plus { color: var(--amber-2); text-align: center; font-size: clamp(40px, 5vw, 82px); font-weight: 700; }
+
+    .total {
+      display: grid;
+      place-items: center;
+      min-height: 270px;
+      padding: 10%;
+      background: var(--navy);
+      color: var(--white);
+      text-align: center;
+    }
+    .total b { display: block; color: var(--amber); font-size: clamp(22px, 2.35vw, 40px); }
+    .total span { font-size: clamp(12px, 1.1vw, 19px); }
+
+    .outcomes {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 1.4%;
+      margin-top: 3%;
+    }
+
+    .outcome {
+      min-height: 260px;
+      padding: 11% 8%;
+      border-top: 8px solid var(--amber);
+      background: var(--white);
+    }
+    .outcome b {
+      display: block;
+      margin-bottom: 9%;
+      color: var(--navy);
+      font-size: clamp(16px, 1.55vw, 27px);
+    }
+    .outcome span { color: var(--muted); font-size: clamp(11px, 1.02vw, 17px); line-height: 1.55; }
+
+    .closing {
+      margin-top: 3.5%;
+      padding-top: 2.4%;
+      border-top: 1px solid var(--navy-3);
+      color: var(--white);
+      font-size: clamp(17px, 1.8vw, 31px);
+      font-weight: 700;
+      text-align: center;
+    }
+    .closing span { color: var(--amber); }
+
+    .scope-map {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4.5%;
+      margin-top: 2.5%;
+    }
+
+    .scope-column {
+      padding-top: 2.5%;
+      border-top: 7px solid var(--green);
+    }
+
+    .scope-column.next { border-top-color: var(--amber-2); }
+    .scope-column h3 { margin-bottom: 4%; }
+
+    .scope-row {
+      display: grid;
+      grid-template-columns: 1.15fr 1.55fr;
+      gap: 5%;
+      padding: 3.1% 0;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .scope-row b { font-size: clamp(13px, 1.22vw, 21px); }
+    .scope-row span { color: var(--muted); font-size: clamp(11px, 1vw, 17px); line-height: 1.5; }
+
+    .scope-note {
+      margin-top: 2.7%;
+      padding: 1.8% 2.5%;
+      background: var(--blue-soft);
+      color: #1e3a8a;
+      font-size: clamp(12px, 1.08vw, 18px);
+      font-weight: 700;
+    }
+
+    .controls {
+      position: fixed;
+      right: 26px;
+      bottom: 24px;
+      z-index: 10;
+      display: flex;
+      gap: 8px;
+    }
+
+    .controls button {
+      border: 1px solid #475569;
+      border-radius: 6px;
+      padding: 9px 14px;
+      background: rgba(15, 23, 42, .94);
+      color: var(--white);
+      font: 700 13px Tahoma, sans-serif;
+      cursor: pointer;
+    }
+
+    .controls button:hover { border-color: var(--amber); color: var(--amber); }
+
+    @media (max-width: 900px) {
+      .deck { padding: 8px; }
+      .slide { width: min(calc(100vw - 16px), calc((100vh - 16px) * 16 / 9)); }
+      .controls { right: 14px; bottom: 12px; }
+    }
+
+    @media print {
+      @page { size: 13.333in 7.5in; margin: 0; }
+      html, body { background: white; overflow: visible; }
+      .deck { display: block; width: auto; height: auto; padding: 0; }
+      .slide, .slide.active {
+        display: block;
+        width: 13.333in;
+        height: 7.5in;
+        break-after: page;
+        box-shadow: none;
+      }
+      .controls { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <main class="deck" aria-label="ชุดสไลด์สรุปความต้องการลูกค้า">
+    <section class="slide dark active" data-title="ที่มาของโครงการ">
+      <div class="inner">
+        <div class="topline">
+          <div class="brand"><img src="../public/favicon.svg" alt="MediClearing"><span>MediClearing</span> Claim Intelligence</div>
+          <div class="section-no">เสียงจากผู้ใช้งาน</div>
+        </div>
+        <div class="hero-grid">
+          <div class="hero-copy">
+            <p class="eyebrow">ที่มาของโครงการ</p>
+            <h1>ข้อมูลมีอยู่<br>แต่ยังไม่ต่อเนื่องพอ<br><span class="accent">ที่จะรักษารายได้</span></h1>
+            <p class="on-dark-muted">เมื่อมองไม่เห็นงานค้าง การแก้ไข การส่งเบิก และเงินรับในภาพเดียวกัน โรงพยาบาลจึงเสี่ยงพลาดกำหนด สูญเสียรายได้ และใช้คนจำนวนมากกับงานติดตามข้อมูล</p>
+            <div class="claim-strip">โจทย์ไม่ใช่เพียง “ส่งเบิกได้” แต่ต้องติดตามได้จนเงินเข้าครบและปิดลูกหนี้ถูกต้อง</div>
+          </div>
+          <div class="signal">
+            <div class="signal-item"><strong>กำหนดส่ง</strong><span>รู้ช้าเมื่อเคสค้างจนใกล้หรือเลยเวลา</span></div>
+            <div class="signal-item"><strong>แรงงาน</strong><span>รวบรวมข้อมูลหลายแหล่งและตรวจซ้ำด้วยคน</span></div>
+            <div class="signal-item"><strong>กระแสเงินสด</strong><span>ชนยอดโอนกับรายการเบิกและกองทุนได้ยาก</span></div>
+          </div>
+        </div>
+        <div class="footer"><span>Customer Needs Summary</span><span>01 / 09</span></div>
+      </div>
+    </section>
+
+    <section class="slide" data-title="ภาพรวมจุดขาดตอน">
+      <div class="inner">
+        <div class="topline">
+          <div class="brand"><img src="../public/favicon.svg" alt="MediClearing"><span>MediClearing</span> Claim Intelligence</div>
+          <div class="section-no">ภาพรวมความต้องการ</div>
+        </div>
+        <p class="eyebrow">ภาพรวมกระบวนการ</p>
+        <h2>6 จุดขาดตอนทำให้รายได้ตกหล่นระหว่าง “รักษา” ถึง “รับเงิน”</h2>
+        <div class="journey">
+          <div class="journey-item"><div class="journey-no">1</div><h3>ก่อนส่งเบิก</h3><p>ไม่รู้จำนวนเคสค้าง สาเหตุ และอายุงาน</p></div>
+          <div class="journey-item"><div class="journey-no">2</div><h3>ตีกลับ</h3><p>ไม่มีสถิติสาเหตุและผลหลังแก้ไข</p></div>
+          <div class="journey-item"><div class="journey-no">3</div><h3>ส่งเบิก</h3><p>ตามสถานะรายตัวและการปิดลูกหนี้ไม่ครบ</p></div>
+          <div class="journey-item"><div class="journey-no">4</div><h3>รับเงิน</h3><p>ชนยอดโอนกับเคสและกองทุนได้ยาก</p></div>
+          <div class="journey-item"><div class="journey-no">5</div><h3>ส่งต่อ</h3><p>ต้นทุนภายนอกแยกจากรายจ่ายรายบุคคล</p></div>
+          <div class="journey-item"><div class="journey-no">6</div><h3>สรุปผล</h3><p>ทำข้อมูลช้าและไม่มั่นใจความถูกต้อง</p></div>
+        </div>
+        <div class="impact-bar">
+          <div><b>เวลา</b><span>เสียไปกับการค้นหาและรวมข้อมูล</span></div>
+          <div><b>รายได้</b><span>เสี่ยงเบิกไม่ได้ ตกหล่น หรือปิดไม่ครบ</span></div>
+          <div><b>ความมั่นใจ</b><span>สรุปผู้บริหารได้ช้าและตรวจสอบยาก</span></div>
+        </div>
+        <div class="footer"><span>Customer Needs Summary</span><span>02 / 09</span></div>
+      </div>
+    </section>
+
+    <section class="slide" data-title="ก่อนส่งเบิก">
+      <div class="inner">
+        <div class="topline">
+          <div class="brand"><img src="../public/favicon.svg" alt="MediClearing"><span>MediClearing</span> Claim Intelligence</div>
+          <div class="section-no">01 · Claim Readiness / Pre-Validate</div>
+        </div>
+        <p class="eyebrow">งานที่ 1 · ผู้ป่วยนอกและผู้ป่วยใน</p>
+        <h2>ก่อนส่งเบิก ต้องรู้ทันทีว่าเคสไหนติดอะไร และนานเกินไปหรือยัง</h2>
+        <div class="two-col">
+          <div class="problem-block">
+            <h3>ปัญหาปัจจุบัน</h3>
+            <ul class="clean-list">
+              <li>ไม่ทราบจำนวนเคสค้างจริง ณ ตอนนี้</li>
+              <li>ไม่เห็นสาเหตุ ผู้รับผิดชอบ และกำหนดส่งร่วมกัน</li>
+              <li>พบปัญหาเมื่อใกล้หมดเวลา หรือเลยกำหนดแล้ว</li>
+            </ul>
+          </div>
+          <div class="need-block">
+            <h3>ข้อมูลที่ระบบต้องทำให้เห็น</h3>
+            <ul class="clean-list">
+              <li>คิวงานกลาง แยก OPD / IPD / กองทุน</li>
+              <li>สาเหตุค้าง อายุงาน และผู้รับผิดชอบรายเคส</li>
+              <li>การแจ้งเตือนตามระดับความเสี่ยงก่อนหมดสิทธิ์เบิก</li>
+            </ul>
+          </div>
+        </div>
+        <div class="age-line">
+          <div class="age"><b>0-3 วัน</b><span>ติดตามตามรอบงาน</span></div>
+          <div class="age"><b>4-7 วัน</b><span>เริ่มมีความเสี่ยง</span></div>
+          <div class="age"><b>8-14 วัน</b><span>ต้องเร่งแก้ไข</span></div>
+          <div class="age"><b>ใกล้กำหนด</b><span>ยกระดับทันที</span></div>
+        </div>
+        <div class="footer"><span>Customer Needs Summary</span><span>03 / 09</span></div>
+      </div>
+    </section>
+
+    <section class="slide" data-title="วิเคราะห์การตีกลับ">
+      <div class="inner">
+        <div class="topline">
+          <div class="brand"><img src="../public/favicon.svg" alt="MediClearing"><span>MediClearing</span> Claim Intelligence</div>
+          <div class="section-no">02 · Rejection Intelligence / C-code</div>
+        </div>
+        <p class="eyebrow">งานที่ 2 · การตีกลับและแก้ไข</p>
+        <h2>การตีกลับต้องกลายเป็นข้อมูลเรียนรู้ ไม่ใช่งานแก้ซ้ำที่มองไม่เห็นผล</h2>
+        <div class="loop">
+          <div class="loop-step"><b>รับผลตีกลับ</b><span>เก็บรหัส สาเหตุ วันที่ และกองทุน</span></div>
+          <div class="loop-step"><b>จัดกลุ่มปัญหา</b><span>เห็นสาเหตุหลัก แนวโน้ม และหน่วยงานที่เกี่ยวข้อง</span></div>
+          <div class="loop-step"><b>แก้ไขและส่งใหม่</b><span>บันทึกสิ่งที่แก้ ผู้รับผิดชอบ และรอบส่ง</span></div>
+          <div class="loop-step"><b>วัดผลลัพธ์</b><span>ผ่านหรือไม่ผ่าน ใช้เวลากี่วัน และได้เงินเท่าไร</span></div>
+        </div>
+        <div class="question-line">
+          <span><b>ติดเรื่องใดมากที่สุด?</b> เพื่อแก้ที่ต้นเหตุ</span>
+          <span><b>แก้แล้วผ่านกี่เปอร์เซ็นต์?</b> เพื่อวัดคุณภาพงาน</span>
+          <span><b>วนกลับกี่รอบ?</b> เพื่อลดงานซ้ำ</span>
+        </div>
+        <div class="footer"><span>Customer Needs Summary</span><span>04 / 09</span></div>
+      </div>
+    </section>
+
+    <section class="slide" data-title="ส่งเบิกและปิดลูกหนี้">
+      <div class="inner">
+        <div class="topline">
+          <div class="brand"><img src="../public/favicon.svg" alt="MediClearing"><span>MediClearing</span> Claim Intelligence</div>
+          <div class="section-no">03 · Claim-to-Close</div>
+        </div>
+        <p class="eyebrow">งานที่ 3 · การส่งเบิกและลูกหนี้รายตัว</p>
+        <h2>การติดตามต้องต่อเนื่องตั้งแต่ส่งไฟล์ จนถึงปิดลูกหนี้รายตัวครบถ้วน</h2>
+        <div class="case-flow">
+          <div class="case-step" data-no="01"><b>พร้อมส่ง</b><p>ผ่านเงื่อนไขและเอกสารครบ</p></div>
+          <div class="case-step" data-no="02"><b>ส่งเบิกแล้ว</b><p>บันทึกรอบส่ง วันที่ และยอด</p></div>
+          <div class="case-step" data-no="03"><b>ตอบรับ</b><p>ตรวจผลรับเข้า ตีกลับ หรือรอตรวจ</p></div>
+          <div class="case-step" data-no="04"><b>ชำระเงิน</b><p>ผูกยอดรับกับเคสและกองทุน</p></div>
+          <div class="case-step" data-no="05"><b>ปิดลูกหนี้</b><p>ยืนยันยอดครบ ขาด เกิน หรือค้าง</p></div>
+        </div>
+        <div class="warning-band">ช่องว่างปัจจุบัน: ข้อมูลขาดช่วงระหว่างหน่วยส่งเบิก การเงิน และบัญชี ทำให้บางเคสตกหล่นจนติดตามย้อนหลังไม่ได้</div>
+        <div class="footer"><span>Customer Needs Summary</span><span>05 / 09</span></div>
+      </div>
+    </section>
+
+    <section class="slide" data-title="ชนยอดเงินรับ">
+      <div class="inner">
+        <div class="topline">
+          <div class="brand"><img src="../public/favicon.svg" alt="MediClearing"><span>MediClearing</span> Claim Intelligence</div>
+          <div class="section-no">04 · Remittance Reconciliation</div>
+        </div>
+        <p class="eyebrow">งานที่ 4 · การเงินและหลายกองทุน</p>
+        <h2>ยอดโอนต้องย้อนกลับไปหาเคส รอบส่ง และกองทุนได้ แม้ไม่ได้ชำระมาพร้อมกัน</h2>
+        <div class="reconcile">
+          <div class="funds">
+            <div class="fund">กองทุน A · รอบส่ง 01</div>
+            <div class="fund">กองทุน B · รอบส่ง 02</div>
+            <div class="fund">กองทุน C · จ่ายบางส่วน</div>
+            <div class="fund">รายการปรับปรุงย้อนหลัง</div>
+          </div>
+          <div class="bank">เงินโอน<br>เข้าบัญชี</div>
+          <div class="match-board">
+            <h3>ผลการกระทบยอดที่ต้องเห็น</h3>
+            <div class="match-row"><span>จับคู่เคสและกองทุนได้ครบ</span><b>ตรงยอด</b></div>
+            <div class="match-row"><span>รับเงินบางส่วน / หลายงวด</span><b>ติดตามต่อ</b></div>
+            <div class="match-row unmatched"><span>ยอดโอนยังไม่ทราบที่มา</span><b>ต้องตรวจสอบ</b></div>
+            <div class="match-row unmatched"><span>ส่งเบิกแล้วแต่ยังไม่พบเงิน</span><b>ค้างรับ</b></div>
+          </div>
+        </div>
+        <div class="footer"><span>Customer Needs Summary</span><span>06 / 09</span></div>
+      </div>
+    </section>
+
+    <section class="slide" data-title="ต้นทุนส่งต่อภายนอก">
+      <div class="inner">
+        <div class="topline">
+          <div class="brand"><img src="../public/favicon.svg" alt="MediClearing"><span>MediClearing</span> Claim Intelligence</div>
+          <div class="section-no">05 · Referral Cost</div>
+        </div>
+        <p class="eyebrow">งานที่ 5 · การส่งไปรักษาต่อภายนอก</p>
+        <h2>ต้นทุนส่งต่อภายนอกต้องอยู่ในรายจ่ายรายบุคคล เพื่อเห็นต้นทุนและสิทธิเรียกเก็บจริง</h2>
+        <div class="ledger">
+          <div class="cost-column">
+            <h3>ต้นทุนภายในโรงพยาบาล</h3>
+            <div class="cost-row"><span>ยาและเวชภัณฑ์</span><b>ต้นทุน</b></div>
+            <div class="cost-row"><span>ห้องตรวจ / หอผู้ป่วย</span><b>ต้นทุน</b></div>
+            <div class="cost-row"><span>หัตถการและบริการ</span><b>ต้นทุน</b></div>
+          </div>
+          <div class="plus">+</div>
+          <div class="cost-column">
+            <h3>ต้นทุนส่งต่อภายนอก</h3>
+            <div class="cost-row"><span>ค่ารักษาจากหน่วยรับส่งต่อ</span><b>ต้นทุน</b></div>
+            <div class="cost-row"><span>ค่าตรวจ / หัตถการภายนอก</span><b>ต้นทุน</b></div>
+            <div class="cost-row"><span>ค่าใช้จ่ายประกอบการส่งต่อ</span><b>ต้นทุน</b></div>
+          </div>
+          <div class="total"><div><b>ภาพเดียว</b><span>ต้นทุนรวมรายบุคคล<br>เทียบสิทธิและยอดที่เบิกได้จริง</span></div></div>
+        </div>
+        <div class="footer"><span>Customer Needs Summary</span><span>07 / 09</span></div>
+      </div>
+    </section>
+
+    <section class="slide" data-title="จาก Pain Point สู่ขอบเขตโครงการ">
+      <div class="inner">
+        <div class="topline">
+          <div class="brand"><img src="../public/favicon.svg" alt="MediClearing"><span>MediClearing</span> Claim Intelligence</div>
+          <div class="section-no">Delivery Scope · 11 ส.ค. 2569</div>
+        </div>
+        <p class="eyebrow">จาก Pain Point สู่ขอบเขตโครงการ</p>
+        <h2>วางฐานตรวจเคลมก่อนส่งแล้ว และต่อยอดสู่การติดตามรายได้ครบวงจร</h2>
+        <div class="scope-map">
+          <div class="scope-column">
+            <h3>ความสามารถที่พร้อมใช้และสาธิตได้</h3>
+            <div class="scope-row"><b>Pre-Validate 8 ชั้น</b><span>ประมาณ 30 จุดตรวจ พร้อมคำแนะนำแก้ไขและข้อเสนอแนะ 6 รูปแบบ</span></div>
+            <div class="scope-row"><b>คลังรหัสตีกลับ</b><span>แคตตาล็อก C-code 446 รหัส และแนวทางแก้ไขสำหรับรหัสที่ engine ใช้งาน</span></div>
+            <div class="scope-row"><b>นำเข้า IPD จริง</b><span>รองรับ 6 แฟ้มหลักจากชุด 16 แฟ้ม นำเข้าแล้วตรวจทันที พร้อมข้อมูล admission/coding/cost</span></div>
+          </div>
+          <div class="scope-column next">
+            <h3>ขอบเขตที่ต้องพัฒนาต่อเพื่อตอบโจทย์ครบ</h3>
+            <div class="scope-row"><b>OPD และกฎเชิงลึก</b><span>นำเข้าแฟ้ม OPD/AER/ADP และย้ายกฎนโยบาย 27 ข้อให้ execute จากฐานข้อมูล</span></div>
+            <div class="scope-row"><b>Claim-to-Close</b><span>ติดตามการส่งเบิก การตอบรับ เงินรับ และการปิดลูกหนี้รายตัวอย่างต่อเนื่อง</span></div>
+            <div class="scope-row"><b>Reconciliation & Cost</b><span>ชนยอดหลายกองทุนและรวมต้นทุนส่งต่อภายนอกในภาพรายบุคคล</span></div>
+          </div>
+        </div>
+        <div class="scope-note">หลักการนำเสนอ: แยก “สิ่งที่ระบบทำได้แล้ว” ออกจาก “ความต้องการและแผนพัฒนาถัดไป” ให้ชัดเจน</div>
+        <div class="footer"><span>อ้างอิงสถานะโครงการ: progress.md</span><span>08 / 09</span></div>
+      </div>
+    </section>
+
+    <section class="slide dark" data-title="ผลลัพธ์ที่ลูกค้าต้องการ">
+      <div class="inner">
+        <div class="topline">
+          <div class="brand"><img src="../public/favicon.svg" alt="MediClearing"><span>MediClearing</span> Claim Intelligence</div>
+          <div class="section-no">Target Operating Model</div>
+        </div>
+        <p class="eyebrow">ผลลัพธ์ที่ลูกค้าต้องการ</p>
+        <h2>ระบบต้องทำให้งานสั้นลง ตรวจสอบได้ และไม่ขึ้นกับคนใดคนหนึ่ง</h2>
+        <div class="outcomes">
+          <div class="outcome"><b>เห็นงานค้างทันที</b><span>รู้จำนวน สาเหตุ อายุงาน และเจ้าของงานจากข้อมูลชุดเดียว</span></div>
+          <div class="outcome"><b>แก้ที่ต้นเหตุ</b><span>ใช้สถิติการตีกลับและผลการแก้ไขปรับกระบวนการ</span></div>
+          <div class="outcome"><b>ตามรายได้จนจบ</b><span>เชื่อมการส่งเบิก เงินรับ และการปิดลูกหนี้รายตัว</span></div>
+          <div class="outcome"><b>ลดงาน Routine</b><span>ให้ระบบรวบรวม ตรวจเงื่อนไข แจ้งเตือน และสรุปข้อมูล</span></div>
+          <div class="outcome"><b>เชื่อถือข้อมูลได้</b><span>ตรวจสอบย้อนกลับได้และสรุปผู้บริหารโดยไม่ต้องทำมือใหม่</span></div>
+        </div>
+        <div class="closing">เป้าหมายปลายทาง: <span>เปลี่ยนการติดตามรายได้จาก “ตามเมื่อพบปัญหา” เป็น “ป้องกันก่อนรายได้สูญหาย”</span></div>
+        <div class="footer"><span>Customer Needs Summary</span><span>09 / 09</span></div>
+      </div>
+    </section>
+  </main>
+
+  <nav class="controls" aria-label="ควบคุมสไลด์">
+    <button type="button" id="prev">ก่อนหน้า</button>
+    <button type="button" id="next">ถัดไป</button>
+  </nav>
+
+  <script>
+    const slides = [...document.querySelectorAll('.slide')];
+    let current = 0;
+
+    function show(index) {
+      current = (index + slides.length) % slides.length;
+      slides.forEach((slide, i) => slide.classList.toggle('active', i === current));
+      document.title = `${current + 1}/${slides.length} · ${slides[current].dataset.title}`;
+    }
+
+    document.getElementById('prev').addEventListener('click', () => show(current - 1));
+    document.getElementById('next').addEventListener('click', () => show(current + 1));
+    document.addEventListener('keydown', (event) => {
+      if (['ArrowRight', 'PageDown', ' '].includes(event.key)) show(current + 1);
+      if (['ArrowLeft', 'PageUp'].includes(event.key)) show(current - 1);
+      if (event.key === 'Home') show(0);
+      if (event.key === 'End') show(slides.length - 1);
+    });
+  </script>
+</body>
+</html>

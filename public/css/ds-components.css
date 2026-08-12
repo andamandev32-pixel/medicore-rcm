@@ -249,6 +249,8 @@
 }
 .ds-dot-blue  { background: var(--primary); }
 .ds-dot-green { background: var(--status-success); }
+/* amber = รายการที่ผู้ใช้เพิ่มเอง ไม่ได้มากับระบบ (การ์ด "ชุดที่เพิ่มเอง" บน present-hub) */
+.ds-dot-amber { background: var(--brand-amber); }
 
 /* แถบปุ่มกลุ่ม — โผล่เมื่อเลือกรายการในตารางแล้ว */
 .ds-bulk-bar {
@@ -402,7 +404,12 @@
 .ds-toggle.is-on .ds-toggle-track { background: var(--blue); }
 .ds-toggle.is-on .ds-toggle-knob  { transform: translateX(13px); }
 
-/* ── ข้อความ validate / คำอธิบายใต้ field ── */
+/* ── ข้อความ validate / คำอธิบายใต้ field ──
+   ⚠️ กล่องพวกนี้เป็น flex container — <b>, <code>, <a> ที่วางไว้ตรง ๆ จะกลายเป็น
+      flex item คนละคอลัมน์ ไม่ใช่ข้อความไหลต่อกัน (จับได้จากภาพเรนเดอร์จริงบน present-hub)
+      ข้อความสั้น ๆ ที่มีแท็กเดียวยังดูปกติ จึงเป็นบั๊กที่ซ่อนอยู่จนกว่าเนื้อหาจะยาว
+      รูปแบบที่ถูก: <div class="ds-note"><i data-lucide="info" class="icon-sm"></i><span>…เนื้อความ…</span></div>
+      คือครอบเนื้อความทั้งก้อนด้วย <span> ให้เหลือ flex item แค่ ไอคอน + ข้อความ */
 .ds-block, .ds-warn, .ds-note {
     display: flex; align-items: flex-start; gap: 6px;
     margin: 6px 0; padding: 8px 10px; border-radius: 8px;

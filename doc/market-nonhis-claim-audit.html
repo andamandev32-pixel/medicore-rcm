@@ -1,0 +1,676 @@
+<title>ตลาดโปรแกรมเคลมนอก HIS &amp; เทียบ Sati — MediClearing</title>
+<style>
+:root {
+    --paper: #FAFBF9;
+    --ink: #1F2A2C;
+    --muted: #5C6B69;
+    --line: #DCE4E0;
+    --card: #FFFFFF;
+    --accent: #0E7C66;
+    --accent-deep: #0A5A4B;
+    --accent-wash: #EAF4F0;
+    --warn: #B45309;
+    --warn-wash: #FBF3E6;
+    --crit: #B3372F;
+    --crit-wash: #F9ECEA;
+    --ok-wash: #EAF4F0;
+    --code-bg: #EFF3F1;
+    /* เล่มนี้เพิ่มสีเดียว — หมึกของ "ฝั่งเขา"
+       ทุกอย่างที่เป็นคำกล่าวอ้างของคู่แข่งหรือของบุคคลที่สาม ใช้สีนี้
+       เพื่อไม่ให้ปนกับตัวเลขที่เราตรวจสอบเองได้ */
+    --rival: #3E5C7E;
+    --rival-wash: #EDF1F6;
+}
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+        --paper: #14201E;
+        --ink: #E4ECE9;
+        --muted: #93A5A1;
+        --line: #2A3A37;
+        --card: #1A2926;
+        --accent: #4BC0A5;
+        --accent-deep: #7BD6C0;
+        --accent-wash: #1D332E;
+        --warn: #E5A354;
+        --warn-wash: #33291A;
+        --crit: #E08078;
+        --crit-wash: #362220;
+        --ok-wash: #1D332E;
+        --code-bg: #22322F;
+        --rival: #8FAECD;
+        --rival-wash: #1E2A36;
+    }
+}
+:root[data-theme="dark"] {
+    --paper: #14201E;
+    --ink: #E4ECE9;
+    --muted: #93A5A1;
+    --line: #2A3A37;
+    --card: #1A2926;
+    --accent: #4BC0A5;
+    --accent-deep: #7BD6C0;
+    --accent-wash: #1D332E;
+    --warn: #E5A354;
+    --warn-wash: #33291A;
+    --crit: #E08078;
+    --crit-wash: #362220;
+    --ok-wash: #1D332E;
+    --code-bg: #22322F;
+    --rival: #8FAECD;
+    --rival-wash: #1E2A36;
+}
+
+* { box-sizing: border-box; }
+body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Segoe UI", "Leelawadee UI", "Noto Sans Thai", Tahoma, sans-serif;
+    line-height: 1.75;
+    font-size: 16px;
+}
+.wrap { max-width: 900px; margin: 0 auto; padding: 48px 24px 80px; }
+
+.eyebrow {
+    font-size: 12px; letter-spacing: .14em; text-transform: uppercase;
+    color: var(--accent); font-weight: 700; margin-bottom: 6px;
+}
+h1 { font-size: 30px; line-height: 1.35; margin: 0 0 8px; text-wrap: balance; }
+.sub { color: var(--muted); margin: 0 0 6px; font-size: 15px; }
+h2 {
+    font-size: 21px; margin: 56px 0 4px; padding-top: 20px;
+    border-top: 2px solid var(--accent); text-wrap: balance;
+}
+h2 .no { color: var(--accent); font-variant-numeric: tabular-nums; margin-right: 8px; }
+h3 { font-size: 16.5px; margin: 28px 0 8px; }
+p { margin: 10px 0; }
+a { color: var(--accent-deep); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+code {
+    font-family: Consolas, "Cascadia Mono", monospace; font-size: .88em;
+    background: var(--code-bg); padding: 1px 6px; border-radius: 4px;
+}
+.small { font-size: 13.5px; color: var(--muted); }
+b.n { font-variant-numeric: tabular-nums; }
+
+.tldr {
+    background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+    padding: 20px 24px; margin-top: 28px;
+    display: grid; gap: 14px;
+}
+.tldr .q { font-weight: 700; }
+.tldr .q span { color: var(--accent); margin-right: 6px; }
+.tldr p { margin: 2px 0 0; }
+
+table {
+    border-collapse: collapse; width: 100%; font-size: 14.5px;
+    background: var(--card);
+}
+.tblwrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; margin: 14px 0; }
+th {
+    text-align: left; font-size: 12.5px; letter-spacing: .06em; text-transform: uppercase;
+    color: var(--muted); padding: 10px 14px; border-bottom: 1px solid var(--line);
+    background: var(--code-bg); white-space: nowrap;
+}
+td { padding: 10px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+tr:last-child td { border-bottom: 0; }
+td.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+th.us, td.us { background: var(--accent-wash); }
+
+.chip {
+    display: inline-block; font-size: 12px; font-weight: 700; border-radius: 99px;
+    padding: 1px 10px; white-space: nowrap;
+}
+.chip.ok    { background: var(--ok-wash);    color: var(--accent-deep); }
+.chip.warn  { background: var(--warn-wash);  color: var(--warn); }
+.chip.crit  { background: var(--crit-wash);  color: var(--crit); }
+.chip.rival { background: var(--rival-wash); color: var(--rival); }
+
+/* กลุ่มผู้เล่นในตลาด — จัดตาม "ใครเป็นเจ้าของเครื่องมือ" ไม่ใช่ลำดับขั้น
+   จึงไม่ใส่เลข 1-2-3 เพราะไม่มีลำดับก่อนหลังจริง มีแต่เจ้าของที่ต่างกัน */
+.tiers { display: grid; gap: 10px; margin: 18px 0; }
+.tier {
+    background: var(--card); border: 1px solid var(--line);
+    border-left: 4px solid var(--muted); border-radius: 8px; padding: 14px 18px;
+}
+.tier.payer  { border-left-color: var(--crit); }
+.tier.comm   { border-left-color: var(--warn); }
+.tier.ai     { border-left-color: var(--rival); }
+.tier.his    { border-left-color: var(--rival); }
+.tier.ins    { border-left-color: var(--muted); }
+.tier .who {
+    font-size: 12px; letter-spacing: .08em; text-transform: uppercase;
+    font-weight: 700; color: var(--muted); margin-bottom: 2px;
+}
+.tier b.name { display: block; font-size: 16px; margin-bottom: 4px; }
+.tier .members { font-size: 14.5px; }
+.tier .verdict {
+    margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--line);
+    font-size: 14px;
+}
+
+.vendor {
+    background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+    padding: 18px 22px; margin: 14px 0;
+}
+.vendor h3 { margin: 0 0 2px; }
+.vendor .pos { color: var(--muted); font-size: 13.5px; margin-bottom: 10px; }
+.pm { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 20px; margin-top: 10px; }
+.pm div { font-size: 14.5px; }
+.pm b.plus  { color: var(--accent-deep); }
+.pm b.minus { color: var(--crit); }
+.pm ul { margin: 4px 0 0; padding-left: 20px; }
+.pm li { margin: 3px 0; }
+@media (max-width: 640px) { .pm { grid-template-columns: 1fr; } }
+
+/* อุปกรณ์เฉพาะเล่มนี้ — แยก "เขาบอกว่า" ออกจาก "ตรวจสอบได้แค่ไหน"
+   ทั้งเล่มมีหน้าที่เดียวคือแยกคำโฆษณาออกจากข้อเท็จจริง จึงให้มีรูปทรงของตัวเอง */
+.claims { display: grid; gap: 0; margin: 14px 0; border: 1px solid var(--line);
+          border-radius: 10px; overflow: hidden; background: var(--card); }
+.claims .head {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 0;
+    font-size: 12.5px; letter-spacing: .06em; text-transform: uppercase;
+    color: var(--muted); background: var(--code-bg);
+    border-bottom: 1px solid var(--line);
+}
+.claims .head > div { padding: 10px 16px; }
+.claims .head > div:first-child { border-right: 1px solid var(--line); }
+.claims .row { display: grid; grid-template-columns: 1fr 1fr; gap: 0;
+               border-bottom: 1px solid var(--line); font-size: 14.5px; }
+.claims .row:last-child { border-bottom: 0; }
+.claims .row > div { padding: 11px 16px; }
+.claims .said { border-right: 1px solid var(--line); color: var(--rival); font-weight: 600; }
+.claims .said .n { font-variant-numeric: tabular-nums; }
+@media (max-width: 640px) {
+    .claims .head { display: none; }
+    .claims .row { grid-template-columns: 1fr; }
+    .claims .said { border-right: 0; border-bottom: 1px dashed var(--line); }
+    .claims .said::before { content: "เขาบอกว่า — "; color: var(--muted); font-weight: 400; }
+}
+
+.battle { display: grid; gap: 10px; margin: 16px 0; }
+.bc {
+    background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+    padding: 14px 18px;
+}
+.bc .obj {
+    font-weight: 700; color: var(--rival); font-size: 15px;
+    display: block; margin-bottom: 6px;
+}
+.bc .obj::before { content: "“"; }
+.bc .obj::after  { content: "”"; }
+.bc .ans { font-size: 14.5px; }
+.bc .ans b { color: var(--accent-deep); }
+
+.swot { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 16px 0; }
+.swot > div { border-radius: 10px; padding: 14px 18px; border: 1px solid var(--line); background: var(--card); }
+.swot b { display: block; margin-bottom: 6px; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; }
+.swot .s b { color: var(--accent-deep); } .swot .w b { color: var(--crit); }
+.swot .o b { color: var(--accent-deep); } .swot .t b { color: var(--warn); }
+.swot ul { margin: 0; padding-left: 20px; font-size: 14.5px; }
+.swot li { margin: 4px 0; }
+@media (max-width: 640px) { .swot { grid-template-columns: 1fr; } }
+
+.note {
+    border-left: 4px solid var(--warn); background: var(--warn-wash);
+    border-radius: 0 8px 8px 0; padding: 10px 16px; margin: 14px 0; font-size: 14.5px;
+}
+.danger {
+    border-left: 4px solid var(--crit); background: var(--crit-wash);
+    border-radius: 0 8px 8px 0; padding: 10px 16px; margin: 14px 0; font-size: 14.5px;
+}
+.done {
+    border-left: 4px solid var(--accent); background: var(--accent-wash);
+    border-radius: 0 8px 8px 0; padding: 10px 16px; margin: 14px 0; font-size: 14.5px;
+}
+.stance {
+    background: var(--accent-wash); border: 1px solid var(--accent);
+    border-radius: 10px; padding: 18px 22px; margin: 18px 0;
+}
+.stance .lbl {
+    font-size: 12px; letter-spacing: .12em; text-transform: uppercase;
+    color: var(--accent-deep); font-weight: 700;
+}
+.stance p { font-size: 18px; line-height: 1.6; margin: 6px 0 0; text-wrap: balance; }
+
+footer { margin-top: 64px; padding-top: 16px; border-top: 1px solid var(--line); }
+footer ol { padding-left: 20px; font-size: 13.5px; color: var(--muted); }
+footer li { margin: 4px 0; }
+</style>
+
+<div class="wrap">
+<div class="eyebrow">MediClearing · Claim Intelligence · เล่ม 2</div>
+<h1>ตลาดโปรแกรมตรวจเวชระเบียนและส่งเบิกที่ “ไม่ใช่ส่วนเพิ่มของ HIS” — และการเทียบกับ บริษัท สาติ (Sati)</h1>
+<p class="sub">รายงานวิจัยตลาดและกลยุทธ์ · จัดทำ 12 สิงหาคม 2569 · เล่มต่อจาก “กฎมาตรฐานการกรองเคลม ฐานข้อมูลอ้างอิง และภูมิทัศน์คู่แข่ง” (11 ส.ค. 2569)</p>
+
+<div class="tldr">
+    <div>
+        <div class="q"><span>Q1</span>นอก HIS มีโปรแกรมที่ทำงาน “ตรวจเวชระเบียน + ส่งเบิก” อยู่จริงไหม?</div>
+        <p><b>มี และมีมากกว่าที่เล่มแรกประเมินไว้</b> — เล่มแรกมองตลาดเป็น “HIS vendor กับเรา” ซึ่งไม่ครบ ตลาดจริงมี <b>5 กลุ่มเจ้าของ</b> และกลุ่มที่ใหญ่ที่สุดคือ <b>เครื่องมือฟรีของผู้จ่ายเอง</b> (e-Claim, Single Audit Platform, SSOP, FDH, App-C) รองลงมาคือ <b>โปรแกรมชุมชนที่แจกกันเอง</b> เช่น RCM – Revenue Claim Manager ที่ รพ.สธ. ใช้อยู่วันนี้ — <b>ข้อสรุปเดิมที่ว่า “ยังไม่มีใครยืนตำแหน่งเดียวกับเรา” ต้องแก้</b></p>
+    </div>
+    <div>
+        <div class="q"><span>Q2</span>Sati คือใคร และเก่งเรื่องอะไรจริง ๆ?</div>
+        <p><b>คู่แข่งตรงที่สุดที่เล่มแรกไม่ได้พูดถึงเลย</b> — สตาร์ทอัพเชียงใหม่ ก่อตั้งโดยแพทย์ ใช้ NLP + LLM + Agentic AI อ่านเวชระเบียนที่เป็นข้อความอิสระแล้วให้รหัส ICD/DRG มีลูกค้า รพ.ตติยภูมิใหญ่ 5 แห่ง ต่อ HIS ได้ทุกยี่ห้อ (HOSxP ภายใน 4 สัปดาห์) และ <b>ขายแบบแบ่งรายได้ ไม่ต้องลงทุนก่อน</b> — จุดแข็งที่แท้จริงคือ <b>อ่านข้อความอิสระได้</b> ซึ่งเป็นสิ่งที่ rule engine ทำไม่ได้ ส่วนตัวเลข “62 ล้านบาท/รพ.” เป็นคำกล่าวอ้างของผู้ขาย ไม่มีการตรวจสอบอิสระ</p>
+    </div>
+    <div>
+        <div class="q"><span>Q2.5</span>อยากเห็นของจริงว่าใครทำอะไรได้?</div>
+        <p><b>มีเล่ม 3 เดินเคสให้ดูทีละชั้น</b> — เอาเคสผู้ป่วยในหนึ่งเคส (ปอดอักเสบ + เบาหวาน + ไตเรื้อรัง ฟอกเลือด) ยิงเข้า rule engine จริงแล้วเทียบชั้นต่อชั้น: <a href="https://claude.ai/code/artifact/5b9a12c4-894f-4b57-9b25-6697efc7ab87">เดินเคสจริง — เราทำอะไรได้ Sati ทำอะไรได้</a></p>
+    </div>
+    <div>
+        <div class="q"><span>Q3</span>แล้วเราสู้อย่างไร?</div>
+        <p><b>ไม่สู้ในสนามเดียวกัน</b> — Sati ขาย “เก็บได้เพิ่ม” (แก้ Underclaim) ในตลาดที่ผู้จ่ายกำลังขยายการ <b>เรียกเงินคืน</b> อย่างรุนแรง: สุ่มตรวจ 3% แล้วขยายผลได้ถึง <b>33 เท่า</b>, <b>&gt;80% ของ รพ. มีค่า RW ลดลงหลัง audit</b>, บอร์ด สปสช. อนุมัติ Audit 100% รพ.เอกชน และ สปสช. ลงทุน AI ตรวจจับของตัวเอง 24 ล้านบาท — ตำแหน่งของเราคือ <b>“เก็บให้ครบ แล้วต้องไม่ถูกเรียกคืน”</b> ซึ่งเป็นคนละงานและ <b>เสริมกันได้</b>มากกว่าชนกัน</p>
+    </div>
+</div>
+
+<h2><span class="no">1</span>แผนที่ตลาด — 5 กลุ่ม แบ่งตามว่าใครเป็นเจ้าของเครื่องมือ</h2>
+<p>เล่มแรกเปรียบเทียบเราเฉพาะกับ HIS vendor ซึ่งทำให้ตลาดดู “ว่าง” กว่าความจริง เมื่อค้นข้อมูลฝั่งโปรแกรมที่<b>แยกออกมาจาก HIS</b> โดยตรง พบว่าผู้เล่นแบ่งได้ 5 กลุ่มตามเจ้าของเครื่องมือ ไม่ใช่ตามลำดับขั้น — และแต่ละกลุ่มกินคุณค่าของเราคนละส่วน</p>
+
+<div class="tiers">
+
+<div class="tier payer">
+    <div class="who">กลุ่ม ก · เจ้าของคือผู้จ่าย — ฟรี และบังคับใช้</div>
+    <b class="name">เครื่องมือของ สปสช. / สกส. / กสธ.</b>
+    <div class="members">
+        โปรแกรม <b>e-Claim</b> (<a href="https://eclaim.nhso.go.th/webComponent/">eclaim.nhso.go.th</a>) — คีย์ทีละเคสหรือ import 16 แฟ้ม ·
+        <b>NHSO Digital Platform</b> (<a href="https://serviceunit-nhsodp.nhso.go.th/claim">serviceunit-nhsodp</a>) ระบบใหม่ที่กำลังแทนที่ ·
+        <b>Single Audit Platform</b> (<a href="https://singleaudit.nhso.go.th/">singleaudit.nhso.go.th</a>) — ระบบตรวจสอบเวชระเบียนอิเล็กทรอนิกส์ ·
+        <b>ระบบจัดการเวชระเบียนอิเล็กทรอนิกส์</b> (audit.nhso.go.th/mrm) และ <b>ระบบอุทธรณ์ออนไลน์</b> (audit.nhso.go.th/ema) ·
+        <b>SSOP</b> ของ สกส. สำหรับประกันสังคม/กรมบัญชีกลาง (<a href="https://www.chi.or.th/ssop/downloads.html">chi.or.th/ssop</a>) ·
+        <b>FDH</b> ของ กสธ. · <b>App-C</b> เครื่องมือช่วยแก้ติด C ระดับเขต (<a href="https://udonthani.nhso.go.th/app-c/index.php">สปสช.เขตอุดรธานี</a>) ·
+        <b>DRG Seeker / TDRG grouper</b> จาก สกส.
+    </div>
+    <div class="verdict"><span class="chip crit">คู่แข่งตัวจริงของฟีเจอร์พื้นฐาน</span>
+        <span class="small"> — ฟรี ทุก รพ. มีอยู่แล้ว และบางตัวใช้แทนไม่ได้เพราะเป็นช่องทางส่งตามกฎหมาย · ทุกฟีเจอร์ที่เราทำแล้ว “ซ้ำกับของฟรี” จะขายไม่ออก</span></div>
+</div>
+
+<div class="tier comm">
+    <div class="who">กลุ่ม ข · เจ้าของคือชุมชนผู้ใช้ — ฟรี/แชร์แวร์ ไม่มี support</div>
+    <b class="name">โปรแกรมที่นักพัฒนาอิสระและ รพ. ทำแจกกันเอง</b>
+    <div class="members">
+        <b>RCM – Revenue Claim Manager</b> (<a href="https://rcmwebsite.com/">rcmwebsite.com</a>) — มีทั้งรุ่น RCM และ RCMplus แจกผ่าน Google Drive อัปเดตล่าสุด 11 ธ.ค. 2568 ใช้จริงใน รพ.สธ. เช่น <a href="https://buenghos.moph.go.th/index.php/2018-09-25-07-24-26/item/89-rcm">รพ.บึงสามัคคี</a> และมีงานวิจัยประเมินผลการใช้ใน รพ. ไทย ·
+        <b>โปรแกรม Data Audit</b> ที่ใช้คู่ HOSxP PCU XE ตรวจข้อมูลก่อนส่ง FDH ·
+        <b>JSON Check Code รหัสติด C</b> ของสิทธิข้าราชการ ที่มีคนทำเป็น <a href="https://gist.github.com/MoreMeng/551ba3a323d2fbf196d05649ce47ca9d">open source บน GitHub</a>
+    </div>
+    <div class="verdict"><span class="chip warn">นี่คือสิ่งที่ลูกค้าเป้าหมายเราใช้อยู่วันนี้</span>
+        <span class="small"> — ราคา 0 บาท คือคู่แข่งที่ยากที่สุด แต่จุดอ่อนคือไม่มีคนดูแล ไม่มีธรรมาภิบาลกฎ ไม่มีสายตรวจย้อนกลับ และตามประกาศไม่ทัน</span></div>
+</div>
+
+<div class="tier ai">
+    <div class="who">กลุ่ม ค · เจ้าของคือ AI vendor — ชั้นเสริมนอก HIS</div>
+    <b class="name">Sati (สาติ) — คู่แข่งตรงที่สุด</b>
+    <div class="members">
+        ChartSum™ · AI Pre-Audit™ · AI Claim Platform™ — วิเคราะห์เต็มในหัวข้อ 2
+    </div>
+    <div class="verdict"><span class="chip rival">ตำแหน่งใกล้เคียงเรามากที่สุด</span>
+        <span class="small"> — “ต่อกับ HIS ทุกยี่ห้อ” + “ตรวจก่อนส่งเบิก” เป็นคำเดียวกับที่เราใช้ แต่กลไกและเป้าหมายต่างกันโดยสิ้นเชิง</span></div>
+</div>
+
+<div class="tier his">
+    <div class="who">กลุ่ม ง · เจ้าของคือ HIS vendor — โมดูลในตัวระบบ</div>
+    <b class="name">BMS i-Claim · HA.OS · MEDcury</b>
+    <div class="members">
+        วิเคราะห์ไว้แล้วในเล่มแรก — แต่มีข้อมูลใหม่: <b>MEDcury จับมือ Sati ตั้งแต่ 13 ก.พ. 2568</b> ฝัง ChartSum เข้า MEDHIS
+    </div>
+    <div class="verdict"><span class="chip warn">เส้นแบ่ง “HIS vendor vs ชั้นนอก HIS” กำลังละลาย</span>
+        <span class="small"> — ดีลนี้แปลว่า HIS vendor ไม่ต้องพัฒนา AI เองแล้ว แค่ซื้อมาฝัง สมมติฐานเดิมที่ว่า “HIS vendor ตามไม่ทัน” ใช้ไม่ได้อีก</span></div>
+</div>
+
+<div class="tier ins">
+    <div class="who">กลุ่ม จ · เจ้าของคือฝั่งผู้รับประกัน — เอกสาร/OCR</div>
+    <b class="name">AI อ่านเอกสารสำหรับประกันและ TPA</b>
+    <div class="members">
+        <a href="https://aigencorp.com/en/insurance/">AIGEN</a> — AI-Powered OCR ไทย/อังกฤษ รวมลายมือ ใช้กับใบรับรองแพทย์ ใบรายงานแพทย์ เคสอ้างอิงคือเมืองไทยประกันชีวิต
+    </div>
+    <div class="verdict"><span class="chip ok">ยังไม่ชนตรง</span>
+        <span class="small"> — แต่ถ้าขยับมาฝั่ง รพ. จะกินงาน “อ่านเอกสาร” ได้ทันที และ Sati เองก็มีสินค้าฝั่งผู้จ่ายอยู่แล้ว (AI Claim Platform)</span></div>
+</div>
+
+</div>
+
+<div class="note"><b>สิ่งที่ต้องแก้จากเล่มแรก:</b> ข้อสรุป Q3 ของเล่มแรกที่ว่า <i>“ยังไม่มีใครยืนตำแหน่งเดียวกับเรา … ช่องว่างของตลาดคือชั้นควบคุมเคลมที่ไม่ผูกกับ HIS”</i> <b>ไม่เป็นความจริงแล้ว</b> — Sati ยืนตำแหน่งนั้นอยู่ก่อนเรา และมีลูกค้าจริงแล้ว สิ่งที่ยังว่างจริงคือ <b>ธรรมาภิบาลกฎ + สายหลักฐานที่ตรวจย้อนกลับได้ + การปิดวงจรถึงเงินเข้าบัญชี</b> ซึ่งแคบกว่าที่เคยอ้างไว้มาก</div>
+
+<h2><span class="no">2</span>บริษัท สาติ จำกัด (Sati) — โปรไฟล์คู่แข่ง</h2>
+
+<div class="vendor">
+    <h3>Sati Co., Ltd. — “Pioneering AI for Smarter Healthcare Operation”</h3>
+    <div class="pos">สตาร์ทอัพเชียงใหม่ · ก่อตั้งโดยแพทย์ · <a href="https://www.sati.co.th/">sati.co.th</a></div>
+    <p style="font-size:14.5px">
+        CEO คือ <b>นพ.รพีพัฒน์ ศรีจันทร์</b> ศัลยแพทย์ออร์โธปิดิกส์และที่ปรึกษาด้าน AI ของคณะแพทยศาสตร์ มหาวิทยาลัยเชียงใหม่ ร่วมกับแพทย์อีก 3 คน
+        หนุนหลังโดย NIA, Med CMU, MedChic, STEP CMU และ TED Fund · ระบุว่าได้ AWS / ISO / AiAT certification ·
+        รองรับทั้ง On-Premise และ On-Cloud · ปกปิดและ de-identify ข้อมูลตาม PDPA
+    </p>
+
+    <h3 style="margin-top:18px">ผลิตภัณฑ์ 3 ตัว — และตัวที่สามน่าสนใจที่สุด</h3>
+    <div class="tblwrap"><table>
+    <tr><th>ผลิตภัณฑ์</th><th>ทำอะไร</th><th>ขายให้ใคร</th></tr>
+    <tr>
+        <td><b>ChartSum™</b></td>
+        <td>NLP + LLM + <b>Agentic AI</b> อ่านเวชระเบียน (เอกสารสแกนหรือ EMR) → สรุป discharge summary + ให้รหัส <b>ICD-9 / ICD-10 / SNOMED-CT</b> อัตโนมัติ · อ้างประมวลผลต่ำกว่า 1 วินาที/เคส · ลดเวลาทบทวนชาร์ต 40%</td>
+        <td>Coder · เวชสถิติ · แพทย์</td>
+    </tr>
+    <tr>
+        <td><b>AI Pre-Audit™</b></td>
+        <td>ตรวจก่อนส่งเบิก — แนะรหัสวินิจฉัย/หัตถการ<b>พร้อมหลักฐานเชิงคลินิก</b> · cross-check ยากับการวินิจฉัย · ตรวจรายการเรียกเก็บและหัตถการกับกฎคลินิกและ DRG · ตรวจผลแล็บ · คำนวณ AdjRW</td>
+        <td>เจ้าหน้าที่เคลม · รพ.</td>
+    </tr>
+    <tr>
+        <td><b>AI Claim Platform™</b></td>
+        <td><b>Fraud Detection</b> วิเคราะห์รูปแบบเคลมทั้งเครือข่ายหาความผิดปกติ · <b>Clinical Audit</b> ตรวจความจำเป็นทางการแพทย์ · <b>Policy Check</b> ตรวจกับสิทธิประโยชน์และข้อยกเว้นของสมาชิก — คำว่า “intake to <b>payout</b>” และ “member policies, benefits, exclusions” บอกชัดว่า<b>นี่คือสินค้าฝั่งผู้จ่าย</b></td>
+        <td><span class="chip rival">ประกัน / TPA / กองทุน</span></td>
+    </tr>
+    </table></div>
+
+    <div class="danger"><b>ข้อสังเกตเชิงกลยุทธ์ที่สำคัญที่สุดของหัวข้อนี้:</b> Sati ขายทั้ง<b>ฝั่ง รพ.</b> (ช่วยเบิกให้ได้มากขึ้น) และ<b>ฝั่งผู้จ่าย</b> (จับ fraud, ตรวจความจำเป็นทางการแพทย์) พร้อมกัน — ถ้าเขาขาย AI Claim Platform ให้กองทุนหรือประกันได้สำเร็จ เขาจะอยู่ทั้งสองข้างของโต๊ะ ซึ่งเป็น<b>ทั้งจุดแข็งด้านข้อมูลและประเด็นความขัดแย้งทางผลประโยชน์ที่ รพ. ควรถาม</b></div>
+
+    <h3 style="margin-top:18px">ลูกค้าอ้างอิง</h3>
+    <p style="font-size:14.5px">
+        รพ.มหาราชนครเชียงใหม่ (1,400 เตียง · ตติยภูมิ) · ศูนย์ศรีพัฒน์ คณะแพทยศาสตร์ มช. (170 เตียง · เอกชน) ·
+        รพ.เชียงรายประชานุเคราะห์ (760 เตียง · ตติยภูมิ) · รพ.มหาราชนครราชสีมา · รพ.น่าน
+        <span class="small">— ทั้งหมดเป็น รพ. ขนาดใหญ่ที่มีทีม coder อยู่แล้ว ไม่ใช่ รพ.ชุมชน</span>
+    </p>
+
+    <div class="pm">
+        <div><b class="plus">จุดแข็ง (ที่แข็งจริง)</b><ul>
+            <li><b>อ่านข้อความอิสระได้</b> — ข้อมูลการแพทย์ 80% เป็น unstructured ซึ่ง rule engine แตะไม่ถึงเลย นี่คือความสามารถที่เราไม่มีและเลียนแบบยาก</li>
+            <li><b>โมเดล revenue-sharing</b> — ไม่ต้องลงทุนก่อน ทำลายข้อโต้แย้งเรื่องงบประมาณทั้งหมด และเหมาะกับ รพ. ที่กำลังขาดทุนพอดี</li>
+            <li>ต่อ HOSxP เสร็จภายใน <b>4 สัปดาห์</b> — เร็วกว่าโครงการ IT โรงพยาบาลทั่วไปมาก</li>
+            <li>ก่อตั้งโดยแพทย์ + หนุนหลังโดย มช. — ความน่าเชื่อถือทางคลินิกสูงในวงการ</li>
+            <li>มีเคสจริงในโรงเรียนแพทย์และ รพ.ศูนย์ ซึ่งเป็นกลุ่มอ้างอิงที่ รพ. อื่นเชื่อ</li>
+        </ul></div>
+        <div><b class="minus">จุดอ่อน / ช่องว่าง</b><ul>
+            <li><b>ไม่มีร่องรอยการยึดแคตตาล็อกทางการของไทย</b> — เว็บทั้งไซต์ไม่กล่าวถึงรหัสติด C, 16/15 แฟ้ม, FDH, กองทุน UC/ปกส./กรมบัญชีกลาง เลยแม้แต่คำเดียว ใช้คำสากล (clinical best practices, reimbursement rules)</li>
+            <li><b>เอาต์พุตเป็นการ “แนะนำ” ไม่ใช่ “คำตัดสินที่อ้างเลขกฎได้”</b> — เมื่อถูก audit ต้องตอบว่าอ้างอิงประกาศฉบับไหน ข้อไหน AI ที่ให้เหตุผลเชิงคลินิกตอบคำถามนั้นไม่ได้โดยตรง</li>
+            <li><b>ไม่มีธรรมาภิบาลกฎ</b> — รพ. เขียน ทดสอบ อนุมัติ และย้อนดูเวอร์ชันกฎเองไม่ได้ กฎอยู่ในโมเดลของ vendor</li>
+            <li><b>จบที่ส่งเบิก</b> — ไม่มีงานกระทบยอด บันทึกรับ ตัดยอดลูกหนี้ จนเงินเข้าบัญชี</li>
+            <li>ลูกค้าเป็น รพ.ใหญ่ทั้งหมด — โมเดล revenue-share ต้องมีฐานรายได้ใหญ่พอ จึงยังไม่พิสูจน์กับ รพ.ชุมชน</li>
+            <li><b>ทิศทางที่ขายสวนกับทิศทางที่ผู้จ่ายกำลังเดิน</b> — ดูหัวข้อ 3</li>
+        </ul></div>
+    </div>
+</div>
+
+<h3>ตัวเลขที่ Sati อ้าง — แยกจากสิ่งที่ตรวจสอบได้</h3>
+<p>ตัวเลขต่อไปนี้มาจากเว็บไซต์ผู้ขาย ข่าวประชาสัมพันธ์ และบทสัมภาษณ์ <b>ยังไม่พบการตรวจสอบโดยบุคคลที่สาม การตีพิมพ์แบบ peer-review หรือรายงานผลจาก รพ. ลูกค้าโดยตรง</b> — ต้องอ่านโดยรู้ที่มา</p>
+
+<div class="claims">
+    <div class="head"><div>เขาบอกว่า</div><div>ตรวจสอบได้แค่ไหน</div></div>
+    <div class="row">
+        <div class="said">รายได้เรียกเก็บเพิ่มเฉลี่ย <span class="n">62 ล้านบาท</span> ต่อโรงพยาบาล</div>
+        <div>เป็นค่าเฉลี่ยจากฐานลูกค้าที่เป็น รพ.ตติยภูมิ 1,400 / 760 เตียง — ไม่ระบุจำนวน รพ. ที่ใช้คำนวณ ไม่ระบุช่วงเวลา ไม่ระบุวิธีนับ (ยอดเรียกเก็บ หรือยอดที่ผ่านการอนุมัติจริง) และ<b>ไม่ระบุว่าผ่านการตรวจสอบหลังจ่ายแล้วหรือยัง</b></div>
+    </div>
+    <div class="row">
+        <div class="said">รายได้จากการเบิกจ่ายเพิ่มขึ้นถึง <span class="n">62%</span></div>
+        <div>บทสัมภาษณ์ใน ThaiPBS PolicyWatch ระบุช่วงจริงคือ <b>5–62%</b> ขึ้นกับฐานเดิมของแต่ละ รพ. — ตัวเลข 62% ที่ใช้โฆษณาคือ<b>ปลายบนสุด</b> ไม่ใช่ค่าที่คาดหวังได้</div>
+    </div>
+    <div class="row">
+        <div class="said">ระบุรหัสโรคเร็วขึ้น <span class="n">71%</span> · คำนวณ DRG เร็วขึ้น <span class="n">97%</span> · ลดเวลาทำงาน <span class="n">9,057</span> ชม. คิดเป็น <span class="n">76%</span></div>
+        <div>เป็นตัวชี้วัด<b>ความเร็ว/ภาระงาน</b> ซึ่งน่าเชื่อถือกว่าตัวชี้วัดรายได้ เพราะวัดได้ตรงและไม่ขึ้นกับผลการ audit ภายหลัง — นี่คือคุณค่าที่แข็งที่สุดของเขาและควรยอมรับตรง ๆ</div>
+    </div>
+    <div class="row">
+        <div class="said">ประมวลผลแล้ว <span class="n">600K+</span> เคส · ลดเวลาทบทวนชาร์ต <span class="n">40%</span></div>
+        <div>ตัวเลขปริมาณการใช้งาน สมเหตุสมผลกับฐานลูกค้า รพ.ใหญ่ 5 แห่ง</div>
+    </div>
+    <div class="row">
+        <div class="said">Underclaim เกิดราว <span class="n">20%</span> ของเคส · Overclaim จากบันทึกไม่ครบราว <span class="n">60%</span> · ข้อมูลการแพทย์ <span class="n">80%</span> เป็น unstructured · แพทย์ใช้เวลา ~<span class="n">60%</span> ไปกับการกรอกข้อมูล</div>
+        <div>เป็นการวางกรอบปัญหาของ Sati เอง ไม่ใช่สถิติจากหน่วยงานกลาง — แต่<b>ทิศทางสอดคล้องกับข้อมูลราชการ</b> เรื่องคุณภาพการบันทึกเวชระเบียน จึงใช้เป็นสมมติฐานได้ แต่อ้างเป็นข้อเท็จจริงไม่ได้</div>
+    </div>
+</div>
+
+<div class="note"><b>บทเรียนสำหรับเรา:</b> ตัวเลขที่ Sati ใช้ขายได้ผลที่สุดคือ <b>ชั่วโมงงานที่ลดลง</b> ไม่ใช่บาท เพราะพิสูจน์ได้ทันทีและไม่มีใครมาเรียกคืนทีหลัง · ตัวเลขของเราในเอกสารนำเสนอตอนนี้ยังเป็น mock ทั้งหมด (reject 12%→7%, 450,000 บาท/ไตรมาส) — <b>ห้ามเอาไปวางเทียบกับตัวเลขของ Sati</b> เพราะจะแพ้ทันทีทั้งด้านน้ำหนักและด้านความน่าเชื่อถือ สิ่งที่เราใช้เทียบได้จริงคือของที่นับได้ในระบบ: รหัสติด C <b>446 รหัส</b> (ทวนแล้ว 440), rule coverage <b>10/21 = 48%</b>, validator <b>8 ชั้น ~30 checks</b></div>
+
+<h2><span class="no">3</span>แรงขับตลาด — และเหตุผลที่ทิศทางของ Sati มีความเสี่ยง</h2>
+
+<h3>ก. โรงพยาบาลไม่มีเงิน — นี่คือเหตุผลที่ทั้งเราและ Sati ขายได้</h3>
+<div class="tblwrap"><table>
+<tr><th>ข้อเท็จจริง</th><th class="num">ตัวเลข</th><th>แหล่ง</th></tr>
+<tr><td>รพ. สังกัด สธ. ที่เงินบำรุงติดลบ</td><td class="num"><b>400 แห่ง</b><br>ขาดดุลรวม <b>12,218 ล้านบาท</b></td><td><a href="https://www.hfocus.org/content/2026/07/38666">Hfocus ก.ค. 2569</a></td></tr>
+<tr><td>เงินบำรุงคงเหลือทั้งระบบ</td><td class="num">18,978.36 ล้านบาท</td><td>แหล่งเดียวกัน</td></tr>
+<tr><td>รพ.สระบุรี ขาดทุนสะสม (ก.ย. 2568)</td><td class="num">&gt; 120 ล้านบาท</td><td><a href="https://www.thaipbs.or.th/news/content/357848">Thai PBS</a></td></tr>
+<tr><td>งบกองทุนบัตรทองปี 2568</td><td class="num">179,000 ล้านบาท<br>จ่ายให้หน่วยบริการ 41,977 แห่ง</td><td><a href="https://www.hfocus.org/content/2026/08/38991">Hfocus ส.ค. 2569</a></td></tr>
+<tr><td>หนี้ค่ายาที่ถูกอ้างถึงในระบบ</td><td class="num">~60,000 ล้านบาท</td><td><a href="https://www.hfocus.org/content/2026/03/37453">Hfocus มี.ค. 2569</a> (สพศท. ระบุว่าเกิดจากการจัดสรรงบไม่สอดคล้องต้นทุน ไม่ใช่ สปสช. จ่ายช้า)</td></tr>
+</table></div>
+
+<h3>ข. แต่ความเสี่ยงถูกเรียกเงินคืนกำลังโตเร็วกว่าโอกาสเก็บเพิ่ม</h3>
+<p>นี่คือข้อมูลที่เปลี่ยนการวิเคราะห์ทั้งหมด และเป็นสิ่งที่เล่มแรกไม่มี:</p>
+
+<div class="tblwrap"><table>
+<tr><th>สิ่งที่ผู้จ่ายกำลังทำ</th><th>ผลต่อโรงพยาบาล</th></tr>
+<tr>
+    <td><b>สุ่มตรวจเวชระเบียนผู้ป่วยใน 3%</b> แล้วใช้ผลนั้นประเมินงบทั้งก้อน (ปีงบ 2569)</td>
+    <td class="num"><span class="chip crit">หักจ่ายได้ถึง 20%<br>หรือขยายผล 33 เท่า</span><br><span class="small">ความผิดจากตัวอย่าง 3% ถูกขยายไปทั้งหมด</span></td>
+</tr>
+<tr>
+    <td><b>ผลการตรวจสอบหลังจ่ายที่ผ่านมา</b></td>
+    <td class="num"><span class="chip crit">&gt;80% ของ รพ. ในระบบบัตรทอง<br>มีค่า RW หลัง audit <b>ต่ำกว่า</b> ก่อน audit</span></td>
+</tr>
+<tr>
+    <td><b>บอร์ด สปสช. อนุมัติ Audit 100%</b> ของ รพ.เอกชนที่รับผู้ป่วยบัตรทอง + วางระบบตรวจเวชระเบียน IPD ของทุกหน่วยบริการในปี 2569 (<a href="https://www.hfocus.org/content/2025/11/35878">Hfocus พ.ย. 2568</a>)</td>
+    <td>ไม่ใช่การสุ่มอีกต่อไปสำหรับกลุ่มเอกชน</td>
+</tr>
+<tr>
+    <td><b>สปสช. ลงทุน AI ตรวจสอบเบิกจ่ายของตัวเอง 24 ล้านบาท</b> จับข้อมูลต้องสงสัยแบบ real-time (<a href="https://www.thecoverage.info/news/content/1549">TheCoverage</a>) และมีการใช้ <b>AI-Audit</b> ตัดรหัส ICD-10/ICD-9 ที่ไม่ถูกหลักเกณฑ์แล้วคำนวณ DRG ใหม่ (<a href="https://www.uckkpho.com/wp-content/uploads/2024/04/%E0%B9%81%E0%B8%99%E0%B8%A7%E0%B8%97%E0%B8%B2%E0%B8%87%E0%B8%81%E0%B8%B2%E0%B8%A3%E0%B8%95%E0%B8%A3%E0%B8%A7%E0%B8%88%E0%B8%AA%E0%B8%AD%E0%B8%9A-coding-audit-67.25.04.67.pdf">แนวทางการตรวจสอบหลังการจ่าย</a>)</td>
+    <td><span class="chip crit">AI ปะทะ AI</span> <span class="small">ผู้จ่ายมี AI ฝั่งตรงข้ามแล้ว และเห็นข้อมูลทั้งประเทศ ซึ่ง รพ. เดียวไม่มีทางเห็น</span></td>
+</tr>
+<tr>
+    <td><b>สธ. และ 4 องค์กรแพทย์ยื่นค้าน</b>เกณฑ์สุ่มตรวจ เสนอ 6 แนวทาง (<a href="https://www.hfocus.org/content/2025/07/34711">Hfocus ก.ค. 2568</a>, <a href="https://policywatch.thaipbs.or.th/article/life-173">PolicyWatch</a>, <a href="https://www.hfocus.org/content/2025/08/34890">Hfocus ส.ค. 2568</a>)</td>
+    <td>ยืนยันว่านี่คือ<b>ความเจ็บปวดอันดับหนึ่ง</b>ของ รพ. ตอนนี้ — ไม่ใช่การเบิกได้น้อย แต่คือการถูกเรียกคืน</td>
+</tr>
+</table></div>
+
+<div class="danger">
+<b>ข้อสรุปที่สำคัญที่สุดของรายงานฉบับนี้</b><br>
+Sati ขาย <b>“ดัน RW ขึ้น เพื่อเก็บให้ได้มากขึ้น”</b> ในตลาดที่ข้อมูลราชการบอกว่า <b>&gt;80% ของ รพ. มี RW ตกลงหลังถูกตรวจ</b> และผู้จ่ายกำลังขยายอำนาจเรียกคืนถึง <b>33 เท่า</b> พร้อม AI ของตัวเอง —
+รายได้ที่ AI ดันขึ้นมาโดยไม่มีสายหลักฐานที่ตรวจย้อนกลับได้ จึงไม่ใช่รายได้ แต่คือ <b>หนี้ที่รอวันถูกทวง</b> และเนื่องจาก Sati คิดค่าบริการแบบแบ่งรายได้ล่วงหน้า
+<b>ความเสี่ยงในการเรียกคืนตกอยู่กับโรงพยาบาลฝ่ายเดียว</b> — นี่คือคำถามที่ รพ. ต้องถามผู้ขายทุกรายรวมทั้งเรา
+</div>
+
+<h3>ค. หน้าต่างเวลา — NHSO Digital Platform</h3>
+<p>ยังเป็นโอกาสตามที่เล่มแรกระบุ และมีข้อมูลเพิ่ม: รพ.สต. ทั่วประเทศเริ่ม <b>1 เม.ย. 2569</b> (<a href="https://www.hfocus.org/content/2025/10/35655">Hfocus</a>) · ระดับโรงพยาบาล Go-Live <b>16 ก.ย. 2569</b> (308 หน่วย ตามเอกสาร Communication V4) · และ <b>การส่งเบิกบริการปีงบ 2569 ต้องยื่นภายใน 31 ธ.ค. 2569 มิฉะนั้นหมดสิทธิ์รับค่าใช้จ่ายทันที</b> — เส้นตายนี้คือแรงกดดันที่ใช้เปิดการขายได้ตรงที่สุด</p>
+<p class="small">สปสช. ระบุเองว่าระบบใหม่ “เน้นข้อมูลจาก HIS ของหน่วยบริการ ให้เชื่อมโยงได้โดยไม่ต้องคีย์ซ้ำ และตรวจสอบข้อผิดพลาดก่อนส่งได้” — <b>ข้อความนี้เป็นทั้งโอกาสและภัยคุกคาม</b> เพราะ “ตรวจก่อนส่ง” คือคำเดียวกับที่เราใช้ขาย ถ้าแพลตฟอร์มใหม่ทำให้ฟรีได้ดีพอ ชั้นตรวจ format พื้นฐานของเราจะหมดคุณค่าทันที (สอดคล้องกับ Threat ที่เล่มแรกระบุไว้แล้ว)</p>
+
+<h2><span class="no">4</span>ตารางเทียบ</h2>
+
+<h3>ก. Sati vs MediClearing — เทียบตรง</h3>
+<div class="tblwrap"><table>
+<tr><th>ประเด็น</th><th>Sati</th><th class="us">MediClearing (เรา)</th></tr>
+<tr><td><b>ปัญหาที่แก้</b></td>
+    <td>Underclaim — เก็บได้ไม่ครบเพราะบันทึกไม่ครบ</td>
+    <td class="us">Denial + Clawback — ส่งไม่ผ่าน และเก็บได้แล้วโดนเรียกคืน</td></tr>
+<tr><td><b>กลไก</b></td>
+    <td>LLM/NLP/Agentic AI อ่านข้อความอิสระ → เสนอรหัส (probabilistic)</td>
+    <td class="us">Rule engine 8 ชั้น ~30 checks จากแคตตาล็อกทางการ (deterministic)</td></tr>
+<tr><td><b>อ้างอิงอะไรเวลาตอบ</b></td>
+    <td>หลักฐานเชิงคลินิกในชาร์ต</td>
+    <td class="us">รหัสติด C 446 รหัส + เลขกฎ + เวอร์ชัน + เอกสารต้นทาง (หลักการ BR-03: ทุกผลลัพธ์ต้องสาวกลับได้)</td></tr>
+<tr><td><b>ทิศของ RW</b></td>
+    <td><span class="chip rival">ดันขึ้น</span></td>
+    <td class="us"><span class="chip ok">ตรวจว่าที่ขึ้นมีเอกสารรองรับ</span><br><span class="small">ตัวเสนอแนะคืนเป็น <code>rw_delta</code> เท่านั้น ไม่คืนเป็นบาท และติดป้าย “ต้องมีเอกสารรองรับ” ทุกครั้ง</span></td></tr>
+<tr><td><b>ครอบคลุมถึงไหน</b></td>
+    <td>จบที่ส่งเบิก</td>
+    <td class="us">ถึงบันทึกรับ–ตัดยอด–คงค้าง (ทะเบียนลูกหนี้รายบุคคล + กระทบยอด)</td></tr>
+<tr><td><b>ธรรมาภิบาลกฎ</b></td>
+    <td><span class="chip crit">กฎอยู่ในโมเดลของ vendor</span></td>
+    <td class="us"><span class="chip ok">maker–checker · versioning · backtest · แยกตามกองทุนและประเภทบริการ</span></td></tr>
+<tr><td><b>ความซื่อสัตย์ของตัวเลข</b></td>
+    <td>อ้าง 62 ล้าน/รพ. ไม่มีการตรวจสอบอิสระ</td>
+    <td class="us">ประกาศ coverage <b>48%</b> ของกฎที่ตรวจอัตโนมัติได้จริง ผ่าน API ที่เปิดให้เรียกดู และ<b>ไม่คืนผล PASS โดยไม่ได้ตรวจ</b></td></tr>
+<tr><td><b>โมเดลราคา</b></td>
+    <td><span class="chip rival">revenue-sharing — ไม่ลงทุนก่อน</span></td>
+    <td class="us"><span class="chip warn">ยังไม่กำหนด</span> — ต้องตอบเรื่องนี้ก่อนเข้าตลาด</td></tr>
+<tr><td><b>สถานะวันนี้</b></td>
+    <td><span class="chip ok">ลูกค้า รพ.ตติยภูมิ 5 แห่ง</span></td>
+    <td class="us"><span class="chip crit">ต้นแบบ 24 หน้าจอ · ยังไม่มี รพ. นำร่อง</span></td></tr>
+</table></div>
+
+<h3>ข. เทียบทั้งตลาด</h3>
+<div class="tblwrap"><table>
+<tr>
+    <th>ความสามารถ</th>
+    <th>e-Claim /<br>NHSO DP<br><span class="small">(ฟรี)</span></th>
+    <th>RCM<br>freeware</th>
+    <th>Sati</th>
+    <th>BMS<br>i-Claim</th>
+    <th>HA.OS</th>
+    <th class="us">เรา</th>
+</tr>
+<tr><td>ใช้ได้โดยไม่เปลี่ยน HIS</td>
+    <td><span class="chip ok">ได้</span></td><td><span class="chip ok">ได้</span></td><td><span class="chip ok">ได้</span></td>
+    <td><span class="chip crit">ผูก HOSxP</span></td><td><span class="chip crit">ผูก HA.OS</span></td><td class="us"><span class="chip ok">ได้</span></td></tr>
+<tr><td>ตรวจก่อนส่ง (format / ติด C)</td>
+    <td><span class="chip warn">บางส่วน</span></td><td><span class="chip warn">บางส่วน</span></td><td><span class="chip ok">มี</span></td>
+    <td><span class="chip ok">มี</span></td><td><span class="chip ok">มี (ที่จุดสั่ง)</span></td><td class="us"><span class="chip ok">แกนของระบบ</span></td></tr>
+<tr><td>อ่านเวชระเบียนที่เป็นข้อความอิสระ</td>
+    <td><span class="chip crit">ไม่มี</span></td><td><span class="chip crit">ไม่มี</span></td><td><span class="chip ok">จุดแข็งหลัก</span></td>
+    <td><span class="chip crit">ไม่มี</span></td><td><span class="chip crit">ไม่มี</span></td><td class="us"><span class="chip crit">ไม่มี</span></td></tr>
+<tr><td>ตรวจคุณภาพเวชระเบียนตามเกณฑ์ MRA</td>
+    <td><span class="chip warn">ฝั่งผู้ตรวจ</span></td><td><span class="chip crit">ไม่มี</span></td><td><span class="chip warn">โดยอ้อม</span></td>
+    <td><span class="chip crit">ไม่มี</span></td><td><span class="chip crit">ไม่มี</span></td><td class="us"><span class="chip ok">MR1–MR12 ตามเกณฑ์ 2563</span></td></tr>
+<tr><td>ธรรมาภิบาลกฎ (maker-checker, version, backtest)</td>
+    <td><span class="chip crit">ไม่มี</span></td><td><span class="chip crit">ไม่มี</span></td><td><span class="chip crit">ไม่มี</span></td>
+    <td><span class="chip crit">ไม่มี</span></td><td><span class="chip crit">ไม่มี</span></td><td class="us"><span class="chip ok">มี</span></td></tr>
+<tr><td>ปิดวงจรถึงเงินเข้าบัญชี (รับ–ตัดยอด–คงค้าง)</td>
+    <td><span class="chip warn">ให้ statement</span></td><td><span class="chip ok">จุดแข็งหลัก</span></td><td><span class="chip crit">ไม่มี</span></td>
+    <td><span class="chip warn">บางส่วน</span></td><td><span class="chip ok">มี</span></td><td class="us"><span class="chip ok">มี</span></td></tr>
+<tr><td>ประกาศความครอบคลุมของกฎอย่างตรงไปตรงมา</td>
+    <td><span class="chip crit">ไม่</span></td><td><span class="chip crit">ไม่</span></td><td><span class="chip crit">ไม่</span></td>
+    <td><span class="chip crit">ไม่</span></td><td><span class="chip crit">ไม่</span></td><td class="us"><span class="chip ok">48% — เปิดผ่าน API</span></td></tr>
+<tr><td>ใช้จริงในโรงพยาบาลวันนี้</td>
+    <td><span class="chip ok">ทุกแห่ง</span></td><td><span class="chip ok">หลายแห่ง</span></td><td><span class="chip ok">5 แห่ง</span></td>
+    <td><span class="chip ok">หลายร้อยแห่ง</span></td><td><span class="chip ok">มีลูกค้าจริง</span></td><td class="us"><span class="chip crit">ยังไม่มี</span></td></tr>
+<tr><td>ราคา</td>
+    <td class="num">0</td><td class="num">0</td><td>แบ่งรายได้</td>
+    <td>ในสัญญา HIS</td><td>ในสัญญา HIS</td><td class="us"><span class="chip warn">ยังไม่กำหนด</span></td></tr>
+</table></div>
+
+<div class="note"><b>อ่านตารางนี้ให้ถูก:</b> เรามีเครื่องหมายเขียวมากที่สุดในคอลัมน์ “ความสามารถ” แต่<b>แถวล่างสุดสองแถวคือแถวที่ตัดสินการขาย</b> — ทุกคนมีลูกค้าจริงแล้ว เรายังไม่มี และทุกคนมีคำตอบเรื่องราคาแล้ว เรายังไม่มี ความได้เปรียบเชิงฟีเจอร์ไม่ชนะความได้เปรียบเชิงหลักฐาน</div>
+
+<h2><span class="no">5</span>กลยุทธ์สู้</h2>
+
+<div class="stance">
+    <div class="lbl">คำวางตำแหน่ง</div>
+    <p>AI ช่วยให้ <b>เบิกได้มากขึ้น</b> · MediClearing ทำให้เงินที่เบิกไปแล้ว <b>อยู่กับโรงพยาบาลจริง</b> — ตรวจก่อนส่งด้วยกฎที่อ้างประกาศได้ทีละข้อ เก็บสายหลักฐานไว้ตอบวันถูก audit และตามต่อจนเงินเข้าบัญชี</p>
+</div>
+
+<p>เหตุผลที่ต้องวางแบบนี้ ไม่ใช่วางว่า “เราเป็น AI ที่ดีกว่า”: เราไม่มีความสามารถอ่านข้อความอิสระ และการไล่สร้างตามจะใช้เวลาเป็นปีเพื่อไปแข่งในสนามที่เขานำอยู่แล้ว ขณะที่<b>สนามการกันเงินถูกเรียกคืนยังไม่มีใครยืน</b> ทั้งที่เป็นความเจ็บปวดที่ดังที่สุดของ รพ. ในตอนนี้ (ถึงขั้นมี 4 องค์กรแพทย์ยื่นหนังสือค้าน)</p>
+
+<h3>Battle card — 5 ข้อโต้แย้งที่จะเจอ และคำตอบ</h3>
+<div class="battle">
+
+<div class="bc">
+    <span class="obj">Sati ไม่ต้องลงทุนก่อน แบ่งรายได้เอา แล้วทำไมต้องจ่ายให้คุณ</span>
+    <div class="ans">ข้อโต้แย้งที่หนักที่สุด และ<b>ตอบด้วยฟีเจอร์ไม่ได้ ต้องตอบด้วยโมเดลราคา</b> — ข้อเสนอคือคิดแบบ outcome-based เช่นกัน แต่ผูกกับ<b>ตัวชี้วัดที่ไม่ถูกเรียกคืนทีหลัง</b>: อัตราผ่านรอบแรก (first-pass) · จำนวนเคสติด C ที่ลดลง · ยอดค้างเกิน 90 วันที่ปิดได้ · ผลการ audit ที่ไม่ถูกหักเงิน — ต่างจากการแบ่งจาก “รายได้ที่เพิ่ม” ซึ่งวัดตอนส่ง แต่ความเสี่ยงมาถึงตอนถูกตรวจ ปีถัดไป</div>
+</div>
+
+<div class="bc">
+    <span class="obj">AI มันฉลาดกว่ากฎที่เขียนตายตัวอยู่แล้วนี่</span>
+    <div class="ans">ถูกต้องสำหรับงานอ่านและสรุป — <b>เรายอมรับตรง ๆ และไม่แข่งตรงนั้น</b> แต่เวลาถูกเรียกเงินคืน คำถามไม่ใช่ “AI คิดว่าอย่างไร” แต่คือ <b>“อ้างประกาศฉบับไหน ข้อไหน ณ วันให้บริการนั้น”</b> ระบบเราเลือกกฎตามวันที่ให้บริการ + กองทุน + ประเภทบริการ ไม่ใช่ “เอาฉบับล่าสุด” และผลทุกข้อสาวกลับไปถึงเลขกฎ เวอร์ชัน และเอกสารต้นทางได้ · เสริมด้วยหลักที่เราบังคับตัวเอง: กฎที่ยังไม่มีตัวตรวจจะคืนค่า <code>NOT_IMPLEMENTED</code> กฎที่รอเอกสารทางการคืน <code>BLOCKED_BY_DOC</code> — <b>ไม่มีทางคืนผล “ผ่าน” โดยไม่ได้ตรวจจริง</b></div>
+</div>
+
+<div class="bc">
+    <span class="obj">สปสช. ก็มีระบบตรวจก่อนส่งให้ฟรีแล้ว บนแพลตฟอร์มใหม่ด้วย</span>
+    <div class="ans">จริง และเราไม่ควรขายชั้นที่ซ้ำกับของฟรี — <b>ของฟรีตรวจ “รูปแบบข้อมูล” ส่วนเงินหายที่ชั้นเงื่อนไขสิทธิประโยชน์รายบริการและคุณภาพการบันทึก</b> ซึ่งเป็นชั้นที่ใหญ่ที่สุดของแคตตาล็อกรหัส C (ช่วง C421–C652) และเป็นชั้นที่ผู้จ่ายไม่ได้ตรวจให้ก่อน แต่ตรวจ<b>ทีหลัง</b>แล้วเรียกคืน · เพิ่มเติม: ผู้จ่ายไม่มีวันสร้างเครื่องมือที่ช่วย รพ. เถียงกับผู้จ่าย — งานอุทธรณ์และสายหลักฐานจึงต้องอยู่ฝั่ง รพ. เสมอ</div>
+</div>
+
+<div class="bc">
+    <span class="obj">เราใช้ RCM ฟรีที่โหลดมาก็อยู่ได้ ไม่ต้องซื้ออะไร</span>
+    <div class="ans">ใช้ได้จนถึงวันที่ประกาศเปลี่ยน — โปรแกรมแจกไม่มีใครรับผิดชอบเมื่อ <b>NHSO Digital Platform เปลี่ยนโครงสร้างเป็น 15 แฟ้ม 160 data points และมีรหัสตอบกลับชุดใหม่</b> (P124, L205, P061…) และไม่มีทั้งประวัติการเปลี่ยนกฎ ผู้อนุมัติ และเหตุผล ซึ่งเป็นสิ่งที่ผู้ตรวจถามหา · คำถามที่ควรถามกลับคือ <b>“ถ้าถูกเรียกคืนเงินจากผลสุ่มตรวจ ใครช่วยหาหลักฐานย้อนหลังให้”</b></div>
+</div>
+
+<div class="bc">
+    <span class="obj">ทำไมไม่ซื้อโมดูลเคลมจากเจ้าของ HIS ที่ใช้อยู่ไปเลย</span>
+    <div class="ans">ทำได้ ถ้า รพ. ใช้ HIS เจ้าเดียวทั้งระบบและยอมให้กฎเป็นของ vendor — แต่ <b>MEDcury เพิ่งซื้อ AI จาก Sati มาฝัง แทนที่จะพัฒนาเอง</b> ซึ่งบอกว่าแม้แต่ HIS vendor ก็ยอมรับว่าชั้นนี้เป็นงานเฉพาะทาง · จุดที่โมดูลใน HIS ทำไม่ได้คือ <b>รพ. เขียนและอนุมัติกฎของตัวเองแบบ maker–checker ไม่ได้</b> และเมื่อ รพ. มีหลาย HIS (รพ.สต. ในเครือข่าย ระบบเก่า ระบบที่เขียนเอง) ก็ได้เครื่องมือคนละชุด</div>
+</div>
+
+</div>
+
+<h3>เส้นทางร่วมมือ — ไม่ใช่ทุกกรณีต้องชน</h3>
+<p>Sati แก้ปัญหา <b>“ข้อความอิสระ → ข้อมูลมีโครงสร้าง”</b> ส่วนเราแก้ <b>“ข้อมูลมีโครงสร้าง → ผ่านกฎ → เก็บเงินได้ → ไม่ถูกเรียกคืน”</b> สองอย่างนี้ต่อกันเป็นสายเดียว ไม่ทับกัน ทางร่วมมือที่เป็นไปได้จริง:</p>
+<div class="tblwrap"><table>
+<tr><th>รูปแบบ</th><th>เราได้อะไร</th><th>ข้อควรระวัง</th></tr>
+<tr><td><b>รับเอาต์พุตของ ChartSum เป็นอินพุตของ validator</b> — ให้ AI ถอดรหัสจากชาร์ต แล้วให้กฎเราตรวจว่ารหัสนั้นผ่านเงื่อนไขกองทุนหรือไม่</td>
+    <td>ปิดจุดอ่อนใหญ่ที่สุดของเรา (ไม่มีข้อมูลที่ต้นทาง) ได้ทันทีโดยไม่ต้องสร้าง NLP เอง</td>
+    <td>ต้องกำหนดให้ชัดว่าเมื่อ AI เสนอรหัสที่กฎไม่ผ่าน <b>กฎเป็นฝ่ายชนะ</b> ไม่ใช่ AI</td></tr>
+<tr><td><b>เป็นชั้นกำกับให้ AI ของเจ้าไหนก็ได้</b> — ขายในฐานะ “ตัวตรวจการบ้านของ AI” พร้อมสายหลักฐาน</td>
+    <td>ตำแหน่งที่เป็นกลาง ขายได้กับทุก รพ. ที่กำลังจะซื้อ AI ตัวใดตัวหนึ่ง และได้ประโยชน์จากกระแส AI โดยไม่ต้องสร้าง AI</td>
+    <td>ต้องมีลูกค้านำร่องก่อน ไม่งั้นไม่มีน้ำหนักพอจะกำกับใคร</td></tr>
+<tr><td><b>แข่งตรงในกลุ่ม รพ.ชุมชนและ รพ.ทั่วไป</b> ที่โมเดลแบ่งรายได้ของ Sati ไม่คุ้ม</td>
+    <td>ตลาดที่คู่แข่งยังไม่ลง และเป็นกลุ่มที่ขาดทุนหนักที่สุด (400 แห่งติดลบ)</td>
+    <td>กลุ่มนี้จ่ายน้อย ต้องออกแบบให้ต้นทุนติดตั้งต่ำมาก</td></tr>
+</table></div>
+
+<h3>SWOT ฉบับปรับปรุงหลังพบ Sati</h3>
+<div class="swot">
+    <div class="s"><b>Strengths</b><ul>
+        <li>สายหลักฐานตรวจย้อนกลับได้ — เลขกฎ เวอร์ชัน เอกสารต้นทาง ตรงกับสิ่งที่ผู้ตรวจถามหาพอดี</li>
+        <li>ธรรมาภิบาลกฎครบ — ไม่มีคู่แข่งรายใดในตารางมี รวมทั้ง Sati</li>
+        <li>ปิดวงจรถึงเงินเข้าบัญชี — Sati จบที่ส่งเบิก</li>
+        <li>ความซื่อสัตย์เป็นฟีเจอร์: ประกาศ coverage 48% และไม่คืนผลผ่านโดยไม่ได้ตรวจ — ขายได้กับผู้บริหารที่เคยถูกตัวเลขสวยหลอกมาแล้ว</li>
+        <li>ยึดแคตตาล็อกทางการไทยเป็นแกน (446 รหัส C, MRA 2563, 15 แฟ้ม × 12 กองทุน) ซึ่งไม่ปรากฏในสื่อสารของ Sati เลย</li>
+    </ul></div>
+    <div class="w"><b>Weaknesses</b><ul>
+        <li><b>อ่านข้อความอิสระไม่ได้</b> — ปิดประตูตัวเองจาก 80% ของข้อมูลในเวชระเบียน</li>
+        <li>ยังไม่มี รพ. นำร่องแม้แต่แห่งเดียว ขณะที่คู่แข่งมีโรงเรียนแพทย์อ้างอิง</li>
+        <li>ยังไม่มีคำตอบเรื่องราคา ขณะที่คู่แข่งเสนอ “ไม่ต้องลงทุนก่อน”</li>
+        <li>ข้อมูลอ้างอิงหลายชุดยังเป็นค่าจำลอง — DRG/RW, อัตราต่อ RW รายกองทุน, TMT, ICD ยังไม่ครบชุดจริง</li>
+        <li>กฎที่ตรวจอัตโนมัติได้จริงเพียง 10 จาก 21 ข้อที่บังคับใช้</li>
+        <li>เกณฑ์ MRA ลงรายละเอียดครบเฉพาะ MR1 อีก 11 องค์ประกอบยังไม่ครบ</li>
+    </ul></div>
+    <div class="o"><b>Opportunities</b><ul>
+        <li><b>ความกลัวถูกเรียกเงินคืนคือความเจ็บปวดอันดับหนึ่ง</b> และยังไม่มีใครขายของที่ตอบเรื่องนี้ตรง ๆ</li>
+        <li>เส้นตายส่งเบิกปีงบ 2569 ภายใน 31 ธ.ค. 2569 + Go-Live 16 ก.ย. 2569 = หน้าต่างการขายที่บีบทุก รพ. พร้อมกัน</li>
+        <li>รพ.ชุมชน/ทั่วไปที่โมเดลแบ่งรายได้ไม่คุ้ม ยังไม่มีใครลง</li>
+        <li>เป็นชั้นกำกับให้ AI เจ้าอื่น — ได้ประโยชน์จากกระแส AI โดยไม่ต้องแข่งสร้าง AI</li>
+    </ul></div>
+    <div class="t"><b>Threats</b><ul>
+        <li><b>Sati เพิ่มชั้นกฎ + สายหลักฐานเข้าไปใน AI Pre-Audit</b> — ทำได้ไม่ยากและปิดช่องว่างของเราทั้งหมด นี่คือภัยคุกคามอันดับหนึ่ง</li>
+        <li>โมเดลแบ่งรายได้กลายเป็นมาตรฐานของตลาด แล้วการขายแบบมีค่าติดตั้งกลายเป็นสิ่งที่ขายไม่ได้</li>
+        <li>HIS vendor ซื้อ AI มาฝังต่อ ๆ กัน (MEDcury ทำแล้ว) จนชั้นนอก HIS ไม่มีที่ยืน</li>
+        <li>สปสช. ทำ pre-validation ให้ฟรีบนแพลตฟอร์มใหม่ได้ดีพอ</li>
+        <li>ผู้จ่ายมี AI ที่เห็นข้อมูลทั้งประเทศ — ความได้เปรียบด้านข้อมูลไม่มีทางไล่ทัน จึงต้องไม่แข่งด้านทำนาย แต่แข่งด้านหลักฐาน</li>
+    </ul></div>
+</div>
+
+<h2><span class="no">6</span>สิ่งที่ควรทำต่อ — เรียงตามผลต่อการแข่งขัน</h2>
+<div class="tblwrap"><table>
+<tr><th class="num">#</th><th>งาน</th><th>เหตุผลเชิงแข่งขัน</th></tr>
+<tr><td class="num">1</td>
+    <td><b>ตอบเรื่องโมเดลราคาให้ได้ก่อนเข้าตลาด</b> — outcome-based ที่ผูกกับ first-pass rate / เคสติด C ที่ลดลง / ยอดค้างที่ปิดได้ / ผล audit ที่ไม่ถูกหัก</td>
+    <td>เป็นข้อโต้แย้งเดียวที่ฟีเจอร์ตอบไม่ได้ ถ้าไม่มีคำตอบ จะแพ้ตั้งแต่ประโยคแรกของการขาย</td></tr>
+<tr><td class="num">2</td>
+    <td><b>หา รพ. นำร่อง 1 แห่ง แล้วเก็บ baseline จริง</b> — อัตราตีกลับ เวลาตรวจ ยอดค้าง และผลการสุ่มตรวจย้อนหลัง</td>
+    <td>ตารางเทียบทั้งหมดของเราเป็นสีเขียวยกเว้นแถว “ใช้จริงวันนี้” — แถวนั้นแถวเดียวที่ปิดดีลได้ และเป็นสิ่งเดียวที่แทนที่ตัวเลข mock ในเอกสารนำเสนอได้</td></tr>
+<tr><td class="num">3</td>
+    <td><b>สร้างโมดูล “เตรียมรับการสุ่มตรวจ”</b> — รวมเคสที่มีความเสี่ยงถูกหัก จัดชุดหลักฐานตามเกณฑ์ MRA และประเมินผลกระทบถ้าถูกขยายผล 33 เท่า</td>
+    <td>ตรงกับความเจ็บปวดอันดับหนึ่งที่ไม่มีคู่แข่งรายใดขาย และใช้ของที่เรามีอยู่แล้ว (MRA + rule engine + ทะเบียนหลักฐาน) ไม่ต้องสร้างใหม่</td></tr>
+<tr><td class="num">4</td>
+    <td><b>ดันตัวเลข coverage 48% ให้สูงขึ้น</b> — เติมตัวตรวจให้กฎที่เหลือ 11 ข้อ (dx↔procedure, ชุดกฎการส่งต่อ, ฟิลด์บังคับรายแฟ้ม)</td>
+    <td>ตัวเลขนี้เป็นทั้งจุดขายและจุดอ่อน — ถ้าประกาศแล้วไม่ขยับ จะกลายเป็นหลักฐานว่าระบบยังไม่พร้อม</td></tr>
+<tr><td class="num">5</td>
+    <td><b>เติมเกณฑ์ MRA ให้ครบ MR2–MR12</b> จากคู่มือฉบับ 2563</td>
+    <td>เป็นความสามารถที่ไม่มีใครในตารางมีเลย และเป็นภาษาเดียวกับที่ผู้ตรวจใช้จริง — ทิ้งไว้ครึ่งทางแล้วอ้างว่ามีไม่ได้</td></tr>
+<tr><td class="num">6</td>
+    <td><b>ปลดป้าย “ค่าจำลอง”</b> — โหลด Thai DRG จาก สกส. และ Master TMT ฉบับจริง</td>
+    <td>เมื่อคุยกับ รพ. ที่มี coder จริง ค่าจำลองถูกจับได้ทันทีและทำลายความน่าเชื่อถือทั้งการนำเสนอ</td></tr>
+<tr><td class="num">7</td>
+    <td><b>ทำ importer ฝั่ง OPD</b> ให้ครบ (ตอนนี้รองรับเฉพาะ IPD)</td>
+    <td>ปริมาณเคสส่วนใหญ่และรหัสติด C จำนวนมากอยู่ฝั่ง OPD — ขาดไปแล้วเดโมได้ไม่ครบวงจร</td></tr>
+<tr><td class="num">8</td>
+    <td><b>ตัดสินใจเรื่อง Sati: ชน หรือ ต่อท่อ</b> — ถ้าเลือกต่อท่อ ควรออกแบบให้รับเอาต์พุตรหัสจากภายนอกได้ตั้งแต่ตอนนี้</td>
+    <td>ยิ่งตัดสินใจช้า ยิ่งเสี่ยงที่ Sati จะเติมชั้นกฎเองแล้วไม่เหลือเหตุผลให้ร่วมมือ</td></tr>
+</table></div>
+
+<footer>
+<b class="small">แหล่งอ้างอิง</b>
+<ol>
+<li><b>Sati:</b> <a href="https://www.sati.co.th/">sati.co.th</a> · <a href="https://www.sati.co.th/product">ChartSum</a> · <a href="https://www.sati.co.th/ai-pre-audit">AI Pre-Audit</a> · <a href="https://www.sati.co.th/v4/ai-claim-platform">AI Claim Platform</a> · <a href="https://www.facebook.com/sati.co.ltd/">Facebook — SATI สาติ Healthtech (เชียงใหม่)</a></li>
+<li><b>Sati × MEDcury (13 ก.พ. 2568):</b> <a href="https://www.medcury.health/en/post/medcury-partners-with-sati-to-enhance-medical-services-with-ai-reducing-healthcare-professionals-w">MEDcury</a> · <a href="https://www.nationthailand.com/pr-news/pr-news/40046270">The Nation</a> · <a href="https://www.mitihoon.com/2025/02/11/522380/">มิติหุ้น</a></li>
+<li><b>บทวิเคราะห์ ChartSum กับปัญหาขาดทุนบัตรทอง:</b> <a href="https://policywatch.thaipbs.or.th/article/life-217">Thai PBS PolicyWatch — “AI อาจเป็นคำตอบ? ช่วย รพ. จัดระบบข้อมูล แก้ขาดทุนบัตรทอง”</a> (แหล่งของตัวเลข 5–62%, underclaim 20%, unstructured 80%, โมเดล revenue-sharing, ต่อ HOSxP 4 สัปดาห์)</li>
+<li><b>เครื่องมือของผู้จ่าย:</b> <a href="https://eclaim.nhso.go.th/webComponent/">e-Claim</a> · <a href="https://serviceunit-nhsodp.nhso.go.th/claim">NHSO Digital Platform</a> · <a href="https://singleaudit.nhso.go.th/">Single Audit Platform</a> · <a href="https://www.chi.or.th/ssop/downloads.html">SSOP — สกส.</a> · <a href="https://udonthani.nhso.go.th/app-c/index.php">App-C</a> · <a href="https://www.nhso.go.th/th/agency-th/online-service">บริการออนไลน์ สปสช.</a></li>
+<li><b>โปรแกรมชุมชน:</b> <a href="https://rcmwebsite.com/">RCM – Revenue Claim Manager</a> · <a href="https://buenghos.moph.go.th/index.php/2018-09-25-07-24-26/item/89-rcm">การใช้งานที่ รพ.บึงสามัคคี</a> · <a href="https://mednacea.ict.mahidol.ac.th/project/2561000787">งานวิจัยประสิทธิผลของโปรแกรม RCM</a> · <a href="https://gist.github.com/MoreMeng/551ba3a323d2fbf196d05649ce47ca9d">JSON Check Code รหัสติด C</a></li>
+<li><b>การตรวจสอบและเรียกเงินคืน:</b> <a href="https://www.thecoverage.info/news/content/9302">TheCoverage — จี้ สปสช. ทบทวนการสุ่มตรวจเวชระเบียน 3%</a> · <a href="https://www.hfocus.org/content/2025/11/35878">Hfocus — เตรียมตัว Audit 100%</a> · <a href="https://www.hfocus.org/content/2025/07/34711">Hfocus — สธ. ค้านเกณฑ์สุ่มตรวจ เสนอ 6 แนวทาง</a> · <a href="https://www.hfocus.org/content/2025/08/34890">Hfocus — ยื่นค้านการขยายผลสุ่มตรวจ</a> · <a href="https://policywatch.thaipbs.or.th/article/life-173">PolicyWatch — 4 องค์กรแพทย์ร่อนจดหมายค้าน</a> · <a href="https://www.uckkpho.com/wp-content/uploads/2024/04/%E0%B9%81%E0%B8%99%E0%B8%A7%E0%B8%97%E0%B8%B2%E0%B8%87%E0%B8%81%E0%B8%B2%E0%B8%A3%E0%B8%95%E0%B8%A3%E0%B8%A7%E0%B8%88%E0%B8%AA%E0%B8%AD%E0%B8%9A-coding-audit-67.25.04.67.pdf">แนวทางการตรวจสอบหลังการจ่าย (Coding Audit)</a> · <a href="https://www.thecoverage.info/news/content/1549">TheCoverage — สปสช. ทุ่ม 24 ล้าน พัฒนา AI ตรวจสอบเบิกจ่าย</a></li>
+<li><b>สถานะการเงินโรงพยาบาลและงบกองทุน:</b> <a href="https://www.hfocus.org/content/2026/07/38666">Hfocus — เงินบำรุง รพ.สธ. ขาดดุลกว่า 1.2 หมื่นล้าน</a> · <a href="https://www.hfocus.org/content/2026/08/38991">Hfocus — งบบัตรทองปี 68 จ่าย 1.79 แสนล้าน ให้หน่วยบริการ 41,977 แห่ง</a> · <a href="https://www.thaipbs.or.th/news/content/357848">Thai PBS — รพ.สระบุรี ขาดทุน 120 ล้าน</a> · <a href="https://www.hfocus.org/content/2026/03/37453">Hfocus — หนี้ค่ายา 60,000 ล้าน</a> · <a href="https://policywatch.thaipbs.or.th/article/life-202">PolicyWatch — เปิดงบบัตรทอง รายจ่ายท่วมรายได้</a></li>
+<li><b>NHSO Digital Platform:</b> <a href="https://www.hfocus.org/content/2025/10/35655">Hfocus — เริ่มใช้กับ รพ.สต. ทั่วประเทศ 1 เม.ย. 69</a> · <a href="https://www.thecoverage.info/news/content/9862">TheCoverage</a> · <a href="https://www.hfocus.org/content/2025/02/33240">Hfocus — 3 รพ.ชุมชนจาก 107 แห่ง ใช้ FDH แก้ปัญหาติดรหัส C</a></li>
+<li><b>คุณภาพการบันทึกเวชระเบียน (MRA):</b> <a href="https://nhso-elearning.dreamnolimit.com/course/detail/83">หลักสูตรการตรวจประเมินคุณภาพการบันทึกเวชระเบียน — สปสช.</a> · <a href="https://mooc-backend.kwunjai.com/statics/assets/chapter/doc/129_%E0%B8%84%E0%B8%B9%E0%B9%88%E0%B8%A1%E0%B8%B7%E0%B8%AD_MRA_2563.pdf">คู่มือ MRA ฉบับ 2563</a> · <a href="https://spd.moph.go.th/wp-content/uploads/2025/09/Audit_1.pdf">มาตรฐานการเก็บรวบรวมและบันทึกข้อมูลในสถานพยาบาล พ.ศ. 2559</a></li>
+<li><b>ฝั่งประกัน/TPA:</b> <a href="https://aigencorp.com/en/insurance/">AI GEN — AI in insurance</a> · <a href="https://aigencorp.com/en/healthcare/">AI GEN — โซลูชัน AI สำหรับธุรกิจโรงพยาบาล</a></li>
+</ol>
+<p class="small"><b>วิธีอ่านรายงานฉบับนี้:</b> ตัวเลขที่พิมพ์ด้วยสีของ “ฝั่งเขา” คือคำกล่าวอ้างของผู้ขายซึ่งยังไม่มีการตรวจสอบอิสระ · ตัวเลขของ MediClearing ที่อ้างในเล่มนี้ (446 รหัส C, coverage 48%, 8 ชั้น ~30 checks, MRA MR1–MR12) นับจากฐานข้อมูลและโค้ดจริงในระบบ ไม่ใช่ค่าประมาณการ · ตัวเลข before/after ในเอกสารนำเสนอชุดเดิมยังเป็นค่าสมมติเพื่อสาธิตรูปแบบรายงาน จึงไม่ถูกนำมาใช้ในรายงานฉบับนี้</p>
+</footer>
+</div>

@@ -68,17 +68,78 @@
             <div id="deckCards"></div>
         </div>
 
+        <!-- รายงานฉบับเต็ม — เอกสารอ่านยาว ไม่ใช่สไลด์ จึงแยก section
+             การ์ดทุกใบ generate จาก DS_REPORTS ใน ds-navbar.js (ทะเบียนเดียวกับที่เมนู "นำเสนอ" อ่าน) -->
+        <div class="section-card">
+            <div class="section-header">
+                <div class="section-title">
+                    <i data-lucide="file-text" class="mi"></i> รายงานวิเคราะห์ฉบับเต็ม
+                </div>
+                <div class="section-actions" id="reportCount"></div>
+            </div>
+            <div class="ds-note" style="margin-bottom:12px">
+                <i data-lucide="info" class="icon-sm"></i>
+                <span>เอกสารอ่านยาวฉบับเต็ม เปิดแท็บใหม่เสมอ — ส่งลิงก์ให้ลูกค้าอ่านเองได้
+                (ทั้งสามเล่มตั้งค่าแชร์แบบ “ใครมีลิงก์ก็เปิดได้” แล้ว) ·
+                ถ้าจะ<b>นำเสนอบนจอ</b>ให้ใช้ชุดสไลด์ด้านบนแทน เนื้อหาเดียวกันแต่จัดมาให้ฉายแล้ว</span>
+            </div>
+            <div id="reportCards"></div>
+        </div>
+
+        <!-- ชุดที่ผู้ใช้เพิ่มเอง — ทั้ง section ซ่อนเมื่อยังไม่มีรายการ (PresentHub.render) -->
+        <div class="section-card" id="userDeckSection" style="display:none">
+            <div class="section-header">
+                <div class="section-title">
+                    <i data-lucide="bookmark" class="mi"></i> ชุดที่เพิ่มเอง
+                </div>
+                <div class="section-actions">
+                    <!-- ป้ายนับเขียนทับด้วย innerHTML ทุกรอบ render จึงต้องอยู่ใน span ของตัวเอง
+                         ไม่งั้นปุ่ม "ล้างทั้งหมด" จะถูกล้างทิ้งไปด้วย -->
+                    <span id="userDeckCount"></span>
+                    <button class="btn btn-outline" onclick="PresentHub.clearUserDecks()">
+                        <i data-lucide="trash-2" class="icon-sm"></i> ล้างทั้งหมด
+                    </button>
+                </div>
+            </div>
+            <div id="userDeckDupeNote"></div>
+            <div id="userDeckCards"></div>
+        </div>
+
         <div class="section-card">
             <div class="section-header">
                 <div class="section-title">
                     <i data-lucide="plus-circle" class="mi"></i> เพิ่มชุดสไลด์ใหม่
                 </div>
+                <div class="section-actions">
+                    <button class="btn btn-primary" onclick="PresentHub.openAdd()">
+                        <i data-lucide="plus" class="icon-sm"></i> เพิ่มชุดสไลด์
+                    </button>
+                </div>
             </div>
+
+            <!-- ⚠️ เนื้อความต้องอยู่ใน <span> ก้อนเดียว — .ds-note เป็น flex container
+                 ถ้าปล่อย <b>/<code> ลอย จะกลายเป็นคอลัมน์คนละช่อง (ดูคอมเมนต์ใน ds-components.css) -->
+            <div class="ds-note" style="margin-bottom:12px">
+                <i data-lucide="bookmark" class="icon-sm"></i>
+                <span><b>ทางลัด — ปุ่ม “เพิ่มชุดสไลด์” ด้านบน</b> ใช้ตอนมีสไลด์หรือเอกสารใหม่ระหว่างเตรียมนำเสนอ
+                แล้วยังไม่อยากรอ deploy · กรอกชื่อกับลิงก์แล้วขึ้นทั้งการ์ดในหน้านี้และเมนู
+                <b>“นำเสนอ”</b> ทันที · ลิงก์ใส่ได้ทั้งไฟล์ในระบบ (เช่น <code>present-report-1.html</code>)
+                และ URL ภายนอก (ขึ้นต้นด้วย <code>https://</code> จะเปิดแท็บใหม่ให้เอง)</span>
+            </div>
+            <div class="ds-warn" style="margin-bottom:16px">
+                <i data-lucide="alert-triangle" class="icon-sm"></i>
+                <span><b>ชุดที่เพิ่มด้วยปุ่มเก็บใน localStorage ของเบราว์เซอร์เครื่องนี้เท่านั้น</b> —
+                ไม่ sync ข้ามเครื่อง ไม่ได้ commit ลง repo และหายถ้าล้างข้อมูลเบราว์เซอร์ ·
+                ถ้าเปิดสไลด์บนโน้ตบุ๊กเครื่องอื่นตอนนำเสนอ จะไม่เห็นชุดที่เพิ่มไว้ ·
+                <b>ชุดที่ต้องอยู่ถาวรและให้ทุกคนเห็น ต้องลงทะเบียนใน <code>DS_DECKS</code>
+                ตามขั้นตอนด้านล่าง</b></span>
+            </div>
+
             <div class="ds-note" style="margin-bottom:12px">
                 <i data-lucide="lightbulb" class="icon-sm"></i>
-                เวลามีเรื่องเฉพาะที่ต้องทำสไลด์แยก (เจาะโมดูลเดียว · วาระประชุมหนึ่ง ๆ ·
+                <span><b>วิธีถาวร</b> — เวลามีเรื่องเฉพาะที่ต้องทำสไลด์แยก (เจาะโมดูลเดียว · วาระประชุมหนึ่ง ๆ ·
                 สรุปให้ผู้ฟังกลุ่มใดกลุ่มหนึ่ง) ให้ทำ 3 อย่างนี้ แล้วสไลด์จะขึ้นทั้งที่เมนู
-                <b>“นำเสนอ”</b> และการ์ดด้านบนเอง
+                <b>“นำเสนอ”</b> และการ์ดด้านบนเอง</span>
             </div>
             <div class="ds-stepper">
                 <div class="ds-step completed">
@@ -99,12 +160,57 @@
             </div>
             <div class="ds-warn" style="margin-top:12px">
                 <i data-lucide="alert-triangle" class="icon-sm"></i>
-                <b>ห้ามโหลดไฟล์สไลด์สองไฟล์ในหน้าเดียว</b> — ทุกไฟล์ประกาศตัวแปรชื่อ
+                <span><b>ห้ามโหลดไฟล์สไลด์สองไฟล์ในหน้าเดียว</b> — ทุกไฟล์ประกาศตัวแปรชื่อ
                 <code>PRESENT_SLIDES</code> เหมือนกัน โหลดซ้อนกันเมื่อไรหน้าจะขาวทั้งหน้า ·
-                ถ้าสไลด์มีผัง SVG ต้องโหลด <code>present-flows.js</code> ก่อนไฟล์สไลด์เสมอ
+                ถ้าสไลด์มีผัง SVG ต้องโหลด <code>present-flows.js</code> ก่อนไฟล์สไลด์เสมอ</span>
             </div>
         </div>
 
+    </div>
+
+    <!-- ── modal เพิ่ม/แก้ไขชุดสไลด์ ──────────────────────────────────
+         ใช้ตัวเดียวทั้งเพิ่มและแก้ไข — PresentHub.openAdd(id) สลับหัวเรื่องและค่าในฟอร์ม
+         id ที่กำลังแก้เก็บไว้ที่ #deckEditId (hidden) ว่าง = โหมดเพิ่มใหม่ -->
+    <div class="modal-overlay" id="deckModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="deckModalTitle">เพิ่มชุดสไลด์</h3>
+                <button class="modal-close" onclick="PresentHub.closeAdd()">✕</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="deckEditId">
+                <div class="form-group">
+                    <label>ชื่อชุด <span style="color:var(--danger)">*</span></label>
+                    <input id="deckLabel" maxlength="80" placeholder="เช่น สรุปให้ผู้บริหาร รพ.นำร่อง">
+                </div>
+                <div class="form-group">
+                    <label>ลิงก์ <span style="color:var(--danger)">*</span></label>
+                    <input id="deckHref" maxlength="500"
+                           placeholder="present-report-1.html หรือ https://...">
+                </div>
+                <div class="form-group">
+                    <label>คำอธิบาย</label>
+                    <textarea id="deckDesc" rows="2" maxlength="400"
+                              placeholder="ชุดนี้ใช้ตอนไหน เล่าอะไร"></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>จำนวนหน้า</label>
+                        <input id="deckCount" type="number" min="0" max="999" placeholder="เช่น 12">
+                    </div>
+                    <div class="form-group">
+                        <label>ป้ายกำกับ (คั่นด้วยจุลภาค)</label>
+                        <input id="deckTags" maxlength="200" placeholder="ผู้บริหาร, การเงิน">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" onclick="PresentHub.closeAdd()">ยกเลิก</button>
+                <button class="btn btn-primary" onclick="PresentHub.saveAdd()">
+                    <i data-lucide="save" class="icon-sm"></i> บันทึก
+                </button>
+            </div>
+        </div>
     </div>
 
     <div id="toastContainer" class="toast-container"></div>

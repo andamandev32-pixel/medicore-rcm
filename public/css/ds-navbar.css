@@ -124,6 +124,10 @@
 .mc-di-badge.new  { background: var(--status-warning-soft); color: var(--status-warning-strong); }
 .mc-di-badge.live { background: #dcfce7; color: #166534; }
 
+/* ↗ ท้ายรายการที่ลิงก์ออกนอกระบบ (external:true ใน DS_MENU) — บอกล่วงหน้าว่าจะเปิดแท็บใหม่
+   margin-left:auto เหมือน .mc-di-badge เพื่อดันไปชิดขวา · รายการที่มีทั้งคู่จะเรียง ↗ แล้วตามด้วยป้าย */
+.mc-di-ext { margin-left: auto; font-size: 11px; color: var(--slate); }
+
 .mc-dd-sep        { height: 1px; background: var(--brand-bg-strong); margin: 4px 0; }
 .mc-dd-sep-strong { height: 2px; background: var(--brand-border-strong); margin: 6px 0; }
 

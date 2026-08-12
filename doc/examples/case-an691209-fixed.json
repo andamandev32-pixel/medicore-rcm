@@ -1,0 +1,24 @@
+{
+  "fund_key": "IP",
+  "files_present": [1,2,3,4,5,6,7,8,14],
+  "patient": { "name": "สมชาย ใจดี", "birth_date": "2497-03-14", "sex": "M",
+               "cid": "1101700254615", "hn": "00512347", "an": "691209" },
+  "admission": { "admit_date": "2569-07-03", "discharge_date": "2569-07-12",
+                 "los": 9, "leave_days": 1 },
+  "diagnosis": { "pdx": "J18.9", "sdx": ["E11.6", "N18.3"] },
+  "procedures": ["39.95"],
+  "drugs": [
+    { "tmt_id": "100002", "qty": 20, "price": 2.00 },
+    { "tmt_id": "100004", "qty": 6,  "price": 25.00 }
+  ],
+  "charges": {
+    "total": 44600,
+    "items": [
+      { "name": "ค่าห้องและค่าอาหาร", "billgrcs": "02", "qty": 9,  "amount": 10800 },
+      { "name": "ค่ายา",              "billgrcs": "03", "qty": 26, "amount": 12200 },
+      { "name": "ค่าบริการฟอกเลือด",   "billgrcs": "09", "qty": 3,  "amount": 12600 },
+      { "name": "ค่าตรวจทางห้องปฏิบัติการ", "billgrcs": "05", "qty": 18, "amount": 9000 }
+    ]
+  },
+  "drg": { "code": "04530" }
+}

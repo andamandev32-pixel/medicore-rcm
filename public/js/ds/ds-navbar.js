@@ -81,22 +81,118 @@ const DS_ICONS = {
 /* ลำดับในอาร์เรย์ = ลำดับที่โชว์ทั้งบนเมนูและหน้า present-hub
    ฉบับย่อผู้บริหารอยู่บนสุดโดยตั้งใจ — เป็นชุดที่หยิบไปใช้บ่อยที่สุด */
 const DS_DECKS = [
-    { href: 'present-exec.html', label: 'ฉบับย่อผู้บริหาร', icon: 'gauge', count: 16,
+    { href: 'present-exec.html', label: 'ฉบับย่อผู้บริหาร', icon: 'gauge', count: 18,
       desc: 'ที่มาของโครงการจากเสียงหน้างาน · แกน “ของเดิม / ของใหม่ / ที่ปรับปรุงขึ้น” · ' +
-            'ผังเป็นอินโฟกราฟิก · แผนพัฒนา 6 เดือน — จบใน 15–20 นาที',
-      tags: ['ที่มาจากหน้างาน', 'เปรียบเทียบก่อน–หลัง', 'ควบคุมการส่งต่อ', 'ติดตามผู้ป่วยใน', 'แผน 6 เดือน'] },
+            'ผังเป็นอินโฟกราฟิก · ภูมิทัศน์คู่แข่งในตลาด · แผนพัฒนา 6 เดือน — จบใน 15–20 นาที',
+      tags: ['ที่มาจากหน้างาน', 'เปรียบเทียบก่อน–หลัง', 'ควบคุมการส่งต่อ', 'ติดตามผู้ป่วยใน',
+             'คู่แข่งในตลาด', 'แผน 6 เดือน'] },
 
-    { href: 'present-modules.html', label: 'สรุปงานรายส่วน', icon: 'listChecks', count: 24,
+    { href: 'present-modules.html', label: 'สรุปงานรายส่วน', icon: 'listChecks', count: 28,
       badge: { text: 'New', type: 'new' },
       desc: 'เริ่มจากสิ่งที่หน้างานบอกมา แล้วไล่ทีละส่วนงาน — มีฟีเจอร์อะไร ทำงานอย่างไร ' +
-            'จะได้อะไร และปิดจุดบอดอะไร พร้อมผังขั้นตอนของทุกโมดูล',
-      tags: ['ที่มาจากหน้างาน', 'ภาพรวมผู้บริหาร', 'Claim', 'ผู้ป่วยใน (IPD)', 'ส่งต่อผู้ป่วย', 'ส่งเบิก NHSO'] },
+            'จะได้อะไร และปิดจุดบอดอะไร พร้อมผังขั้นตอนของทุกโมดูล ' +
+            'ปิดท้ายด้วยผังการไหลของข้อมูลตอนตรวจเวชระเบียน แยกผู้ป่วยใน/นอก และรายกองทุน',
+      tags: ['ที่มาจากหน้างาน', 'ภาพรวมผู้บริหาร', 'Claim', 'ผู้ป่วยใน (IPD)', 'ส่งต่อผู้ป่วย',
+             'ส่งเบิก NHSO', 'ตรวจเวชระเบียน'] },
 
-    { href: 'present.html', label: 'ฉบับเต็ม', icon: 'bookOpen', count: 30,
-      desc: 'ที่มาจากเสียงหน้างาน 6 ข้อ · บริบท สปสช. · สองวงจรย้อนกลับ · สถาปัตยกรรม · ' +
-            'สองโมดูลใหม่ · แผนส่งมอบ 4 ระยะ · ตัวชี้วัด',
-      tags: ['ที่มาจากหน้างาน', 'SRS', 'NHSO Digital Platform', 'สถาปัตยกรรม', 'ควบคุมการส่งต่อ', 'ติดตามผู้ป่วยใน'] },
+    { href: 'present.html', label: 'ฉบับเต็ม', icon: 'bookOpen', count: 31,
+      desc: 'ที่มาจากเสียงหน้างาน 6 ข้อ · บริบท สปสช. · สองวงจรย้อนกลับ · ความเสี่ยงถูกเรียกเงินคืน · ' +
+            'สถาปัตยกรรม · สองโมดูลใหม่ · แผนส่งมอบ 4 ระยะ · ตัวชี้วัด',
+      tags: ['ที่มาจากหน้างาน', 'SRS', 'NHSO Digital Platform', 'สถาปัตยกรรม', 'ควบคุมการส่งต่อ',
+             'ติดตามผู้ป่วยใน', 'ความเสี่ยงเรียกเงินคืน'] },
+
+    /* ── ชุดรายงานวิเคราะห์ เล่ม 1–3 ────────────────────────────────────
+       ต่างจากสามชุดบน: ยกเนื้อหารายงานมาทั้งเล่ม ไม่สรุป และแยกคนละชุดต่อหนึ่งเล่ม
+       จึงไม่มีส่วนเกริ่น "ที่มาของโครงการ" และไม่โหลด present-flows*.js
+       (PAGE-GUIDE §7B-1 ระบุข้อยกเว้นนี้ไว้แล้ว)
+       ⚠️ count ต้องตรงกับจำนวนสมาชิกจริงใน PRESENT_SLIDES ของแต่ละไฟล์ */
+    { href: 'present-report-1.html', label: 'รายงาน เล่ม 1 · กฎกรองเคลม', icon: 'shield', count: 12,
+      badge: { text: 'New', type: 'new' },
+      desc: 'กฎมาตรฐานการกรองเคลม ฐานข้อมูลอ้างอิง และภูมิทัศน์คู่แข่ง (11 ส.ค. 2569) — ' +
+            'กฎกรองเคลม 6 ชั้น · เทียบมาตรฐานสากล WEDI/NCCI · แหล่งดาวน์โหลดฐานข้อมูลกฎและสถานะจริงในระบบ · ' +
+            'คู่แข่ง 4 ราย · SWOT · ข้อเสนอถัดไป',
+      tags: ['กฎกรองเคลม 6 ชั้น', 'รหัสติด C 446', 'ฐานข้อมูลอ้างอิง', 'คู่แข่ง HIS vendor', 'SWOT'] },
+
+    { href: 'present-report-2.html', label: 'รายงาน เล่ม 2 · ตลาดและ Sati', icon: 'search', count: 18,
+      badge: { text: 'New', type: 'new' },
+      desc: 'ตลาดโปรแกรมเคลมที่ไม่ใช่ส่วนเพิ่มของ HIS และการเทียบกับ บริษัท สาติ (12 ส.ค. 2569) — ' +
+            'แผนที่ตลาด 5 กลุ่มเจ้าของ · โปรไฟล์ Sati และการแยกคำโฆษณาออกจากข้อเท็จจริง · ' +
+            'ความเสี่ยงถูกเรียกเงินคืน · ตารางเทียบทั้งตลาด · battle card 5 ข้อ · SWOT · 8 สิ่งที่ควรทำต่อ',
+      tags: ['แผนที่ตลาด 5 กลุ่ม', 'เทียบ Sati', 'ความเสี่ยงเรียกเงินคืน', 'battle card', 'กลยุทธ์'] },
+
+    { href: 'present-report-3.html', label: 'รายงาน เล่ม 3 · เดินเคสจริง', icon: 'clipboard', count: 10,
+      badge: { text: 'New', type: 'new' },
+      desc: 'เดินเคสผู้ป่วยในหนึ่งเคส (AN 691209) เข้า rule engine จริงสองรอบ (12 ส.ค. 2569) — ' +
+            'ผลรันดิบจาก POST /api/reference/validate รอบก่อนแก้ (FAIL) และหลังแก้ (PASS) · ' +
+            'บันไดชั้นงาน 7 ชั้นว่าใครทำอะไรได้ · ตัวเลข coverage ที่ระบบบังคับตัวเองให้เปิดเผย',
+      tags: ['ผลรันจริง', 'AN 691209', 'rule engine 8 ชั้น', 'บันได 7 ชั้น', 'coverage 48%'] },
 ];
+
+/* ══════════════════════════════════════════════════════════
+   1B. รายงานวิเคราะห์ฉบับเต็ม — ลิงก์ภายนอก
+
+   คนละอย่างกับ DS_DECKS: นั่นคือ "ชุดสไลด์ในระบบ" ส่วนนี่คือ "เอกสารฉบับเต็มบนเว็บ"
+   จึงไม่นับรวมใน pct/จำนวนหน้าของ present-hub และเปิดแท็บใหม่เสมอ (external: true)
+
+   ⚠️ ลิงก์เหล่านี้ชี้ออกนอกระบบ — สำเนาในเครื่องอยู่ที่ doc/ แต่ express.static
+      เสิร์ฟเฉพาะ public/ จึงเปิดผ่านเว็บไม่ได้ · เล่ม 1 ไม่มีสำเนาใน repo
+   ══════════════════════════════════════════════════════════ */
+const DS_REPORTS = [
+    { href: 'https://claude.ai/code/artifact/cb207927-6e5b-4e95-98fc-d216263f4bd7',
+      label: 'เล่ม 1 · กฎกรองเคลม ฐานข้อมูลอ้างอิง คู่แข่ง', icon: 'shield',
+      title: 'กฎมาตรฐานการกรองเคลม ฐานข้อมูลอ้างอิง และภูมิทัศน์คู่แข่ง',
+      date: '11 ส.ค. 2569', deck: 'present-report-1.html',
+      desc: 'รายงานวิจัยประกอบการพัฒนา Rule Engine · ข้อมูลจากแหล่งทางการ สปสช. / กสธ. / สมสท. / สกส.' },
+
+    { href: 'https://claude.ai/code/artifact/f1d336be-2194-479f-b702-389441447f63',
+      label: 'เล่ม 2 · ตลาดนอก HIS และการเทียบ Sati', icon: 'search',
+      title: 'ตลาดโปรแกรมตรวจเวชระเบียนและส่งเบิกที่ “ไม่ใช่ส่วนเพิ่มของ HIS” และการเทียบกับ บริษัท สาติ',
+      date: '12 ส.ค. 2569', deck: 'present-report-2.html',
+      desc: 'รายงานวิจัยตลาดและกลยุทธ์ · เล่มต่อจากเล่ม 1 และแก้ข้อสรุปเรื่องคู่แข่งของเล่ม 1' },
+
+    { href: 'https://claude.ai/code/artifact/5b9a12c4-894f-4b57-9b25-6697efc7ab87',
+      label: 'เล่ม 3 · เดินเคสจริง AN 691209', icon: 'clipboard',
+      title: 'เดินเคสจริงหนึ่งเคส — ชั้นไหนเราทำได้ ชั้นไหน Sati ทำได้ และชั้นไหนไม่มีใครทำ',
+      date: '12 ส.ค. 2569', deck: 'present-report-3.html',
+      desc: 'ภาคผนวกของรายงานวิเคราะห์ตลาด · ผลฝั่ง MediClearing ทุกบรรทัดมาจากการยิง API จริง' },
+];
+
+
+/* ══════════════════════════════════════════════════════════
+   1C. ชุดสไลด์ที่ผู้ใช้เพิ่มเอง — เก็บใน localStorage
+
+   ต่างจาก DS_DECKS ตรงที่ไม่ต้องแก้โค้ด: กดปุ่ม "เพิ่มชุดสไลด์" บน present-hub
+   แล้วกรอกชื่อกับลิงก์ · ใช้ตอนมีสไลด์หรือเอกสารใหม่ระหว่างเตรียมนำเสนอ
+   แล้วยังไม่อยากรอ deploy
+
+   ⚠️ ข้อจำกัดที่ต้องบอกผู้ใช้ตรง ๆ (หน้า present-hub เขียนไว้แล้ว):
+      เก็บใน localStorage ของเบราว์เซอร์เครื่องนี้เท่านั้น — ไม่ sync ข้ามเครื่อง
+      ไม่ได้ commit ลง repo และหายถ้าล้างข้อมูลเบราว์เซอร์
+      ชุดที่ต้องอยู่ถาวรและให้คนอื่นเห็นด้วย ต้องลงทะเบียนที่ DS_DECKS
+
+   ⚠️ ทั้ง ds-navbar (เมนู) และ present-hub (การ์ด) อ่านจากฟังก์ชันคู่นี้ที่เดียว
+      อย่าอ่าน localStorage ตรง ๆ ที่อื่น ไม่งั้นรูปแบบข้อมูลจะแตกกัน
+   ══════════════════════════════════════════════════════════ */
+const DS_USER_DECKS_KEY = 'mc.userDecks.v1';
+
+/** อ่านทะเบียนชุดที่เพิ่มเอง — คืนอาร์เรย์ว่างเสมอเมื่ออ่านไม่ได้ (private mode / JSON เสีย) */
+function dsUserDecks() {
+    try {
+        const arr = JSON.parse(localStorage.getItem(DS_USER_DECKS_KEY) || '[]');
+        if (!Array.isArray(arr)) return [];
+        // กันข้อมูลเก่า/เสียหลุดไปถึงชั้นเรนเดอร์ — ต้องมีทั้งชื่อและลิงก์จึงจะแสดง
+        return arr.filter(d => d && typeof d.href === 'string' && d.href && d.label);
+    } catch { return []; }
+}
+
+/** เขียนทะเบียน — คืน true เมื่อบันทึกได้ (localStorage เต็มหรือถูกปิดจะคืน false) */
+function dsSaveUserDecks(list) {
+    try { localStorage.setItem(DS_USER_DECKS_KEY, JSON.stringify(list || [])); return true; }
+    catch { return false; }
+}
+
+/** ลิงก์ออกนอกระบบไหม — ใช้ตัดสินว่าต้องเปิดแท็บใหม่หรือไม่ */
+function dsIsExternal(href) { return /^https?:\/\//i.test(String(href || '')); }
 
 
 /* ══════════════════════════════════════════════════════════
@@ -256,6 +352,21 @@ const DS_MENU = [
                 icon:  d.icon,
                 badge: d.badge,
             })),
+            /* ชุดที่ผู้ใช้เพิ่มเองจากปุ่มบน present-hub — ขึ้นเฉพาะเมื่อมีจริง
+               ลิงก์ที่ขึ้นต้นด้วย http เปิดแท็บใหม่อัตโนมัติ */
+            ...(dsUserDecks().length
+                ? [{ sep: true }, { section: 'ชุดที่เพิ่มเอง (เก็บในเบราว์เซอร์นี้)' },
+                   ...dsUserDecks().map(d => ({
+                       href: d.href, label: d.label, icon: d.icon || 'presentation',
+                       external: dsIsExternal(d.href),
+                   }))]
+                : []),
+
+            { sep: true },
+            /* รายงานฉบับเต็ม — เอกสารบนเว็บ ไม่ใช่สไลด์ จึง generate จาก DS_REPORTS
+               และบังคับ external:true ให้เปิดแท็บใหม่ ไม่พาผู้นำเสนอหลุดออกจากระบบกลางเวที */
+            { section: 'รายงานวิเคราะห์ฉบับเต็ม (เปิดแท็บใหม่)' },
+            ...DS_REPORTS.map(r => ({ ...r, external: true })),
             { sep: 'strong' },
             { href: 'present-hub.html', label: 'ศูนย์รวมสไลด์ทั้งหมด', icon: 'box' },
         ],
@@ -386,8 +497,12 @@ const DSNavbar = {
         const items = (e.items || []).map(it => {
             if (it.section) return `<div class="mc-dd-section">${dsEsc(it.section)}</div>`;
             if (it.sep)     return `<div class="mc-dd-sep${it.sep === 'strong' ? ' mc-dd-sep-strong' : ''}"></div>`;
-            return `<a class="mc-dd-item" href="${it.href}" ${dsGate(it.roles)}>
+            // external:true = ลิงก์ออกนอกระบบ (เอกสารฉบับเต็ม) — เปิดแท็บใหม่เสมอ
+            // ห้ามพาผู้นำเสนอหลุดออกจากระบบกลางเวที แล้วต้องกด back กลับมา
+            return `<a class="mc-dd-item" href="${it.href}" ${dsGate(it.roles)}
+                       ${it.external ? 'target="_blank" rel="noopener"' : ''}>
                         <span class="mc-di-icon">${DS_ICONS[it.icon] || ''}</span> ${dsEsc(it.label)}
+                        ${it.external ? '<span class="mc-di-ext" aria-hidden="true">↗</span>' : ''}
                         ${it.badge ? `<span class="mc-di-badge ${it.badge.type || 'new'}">${dsEsc(it.badge.text)}</span>` : ''}
                     </a>`;
         }).join('\n');
@@ -544,5 +659,9 @@ function dsSlug(href) {
 window.DSNavbar = DSNavbar;
 window.DS_ICONS = DS_ICONS;
 window.DS_DECKS = DS_DECKS;   /* present-hub.js อ่านต่อ — ทะเบียนสไลด์อยู่ที่เดียว */
+window.DS_REPORTS = DS_REPORTS;   /* ทะเบียนรายงานฉบับเต็ม — แยกจาก DS_DECKS โดยตั้งใจ */
+window.dsUserDecks     = dsUserDecks;      /* present-hub.js อ่าน/เขียนผ่านคู่นี้ที่เดียว */
+window.dsSaveUserDecks = dsSaveUserDecks;
+window.dsIsExternal    = dsIsExternal;
 
 document.addEventListener('DOMContentLoaded', () => DSNavbar.init());

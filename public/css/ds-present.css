@@ -284,6 +284,30 @@ html, body {
 .pr-code .k { color: var(--brand-amber); font-weight: 700; }
 .pr-code .hl { background: rgba(251, 191, 36, .22); color: #fff; border-radius: 3px; padding: 0 2px; }
 
+/* ── สีในผลรันจริง (ใช้กับ .pr-code ที่วางผลลัพธ์ API ดิบ) ────────────────
+   ชุดสีเดียวกับรายงานเล่ม 3 (doc/case-walkthrough-vs-sati.html) เพื่อให้คนที่
+   เคยอ่านรายงานแล้วเห็นสไลด์จำได้ว่าเป็นผลรันเดียวกัน ไม่ใช่ตารางที่พิมพ์เอง
+   ⚠️ ค่าสีเขียนตรง ๆ ไม่ใช้ token — พื้นหลังเป็นน้ำเงินเข้มคงที่ (--brand-navy)
+      token สถานะของ DS ปรับมาสำหรับพื้นขาว ใช้บนพื้นนี้แล้วอ่านไม่ออก */
+.pr-code b    { color: #FFFFFF; font-weight: 700; }
+.pr-code .e   { color: #F0938B; font-weight: 700; }   /* ERROR   */
+.pr-code .w   { color: #E9B872; font-weight: 700; }   /* WARNING */
+.pr-code .i   { color: #8FAECD; font-weight: 700; }   /* INFO    */
+.pr-code .s   { color: #7FD8BE; font-weight: 700; }   /* SUGGEST */
+.pr-code .ok  { color: #7FD8BE; font-weight: 700; }   /* PASS    */
+.pr-code .dim { color: #7B8F8A; font-weight: 400; }   /* คำอธิบายประกอบ */
+
+/* บรรทัดคำสั่งเหนือผลรัน — ให้เห็นว่าตัวเลขมาจากการยิง API จริง */
+.pr-cmd {
+    font-family: var(--font-mono); font-size: calc(.98 * var(--u)); line-height: 1.5;
+    background: #0E1817; color: #8FCFBB;
+    border-radius: calc(.5 * var(--u)) calc(.5 * var(--u)) 0 0;
+    padding: calc(.4 * var(--u)) calc(.7 * var(--u));
+    border-bottom: 1px solid rgba(255, 255, 255, .12);
+    white-space: pre-wrap; word-break: break-all;
+}
+.pr-cmd + .pr-code { border-radius: 0 0 calc(.5 * var(--u)) calc(.5 * var(--u)); }
+
 .pr-open {
     display: inline-flex; align-items: center; gap: 5px; text-decoration: none;
     background: var(--primary); color: #fff; border-radius: calc(.42 * var(--u));

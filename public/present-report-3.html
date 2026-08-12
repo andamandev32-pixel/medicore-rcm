@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<!-- =========================================================================
+  สไลด์รายงานวิเคราะห์ เล่ม 3 — เดินเคสจริง AN 691209
+
+  ชุดรายงาน (present-report-1/2/3) ต่างจาก deck นำเสนออีกสามชุดตรงที่
+  ยกเนื้อหารายงานมาทั้งเล่ม ไม่สรุป และไม่มีส่วนเกริ่น "ที่มาของโครงการ"
+  (PAGE-GUIDE §7B-1 ระบุข้อยกเว้นนี้ไว้) จึงไม่โหลด present-flows*.js เลย —
+  ไม่มีผัง SVG ในชุดนี้ มีแต่ตาราง การ์ด และบล็อกผลรันจริง
+
+  ต้นฉบับ: doc/case-walkthrough-vs-sati.html · doc/examples/case-an691209-*.json
+
+  ปุ่มลูกศร / PageUp-PageDown (presenter clicker) / Home-End เลื่อนสไลด์
+  Ctrl+P ได้ PDF A4 แนวนอน หน้าละสไลด์
+  ========================================================================= -->
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>MediClearing — รายงานวิเคราะห์ เล่ม 3</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+
+    <link rel="stylesheet" href="css/ds-tokens.css">
+    <link rel="stylesheet" href="css/ds-present.css">
+</head>
+<body>
+
+<div class="pr-app">
+
+    <header class="pr-topbar">
+        <div class="pr-brand">
+            <span class="pr-brand-mark">+</span>
+            <span>MediClearing</span>
+            <span class="pr-brand-sub">รายงานวิเคราะห์ เล่ม 3 · เดินเคสจริง AN 691209 ทีละชั้น · 12 ส.ค. 2569</span>
+        </div>
+        <div class="pr-top-actions">
+            <button class="pr-btn" type="button" onclick="Deck.toggleFullscreen()">เต็มจอ</button>
+            <button class="pr-btn" type="button" onclick="window.print()">พิมพ์ / PDF</button>
+            <a class="pr-btn" href="present-hub.html">สไลด์ทั้งหมด</a>
+            <a class="pr-btn accent" href="https://claude.ai/code/artifact/5b9a12c4-894f-4b57-9b25-6697efc7ab87" target="_blank" rel="noopener">รายงานฉบับเต็ม</a>
+        </div>
+    </header>
+
+    <div class="pr-viewport">
+        <div class="pr-deck" id="deck"><!-- สไลด์ render ด้วย present.js --></div>
+    </div>
+
+    <div class="pr-controls">
+        <button class="pr-nav-btn" id="prev" type="button" aria-label="สไลด์ก่อนหน้า">&#8249;</button>
+        <div class="pr-dots" id="dots"></div>
+        <span class="pr-counter" id="counter">1 / 1</span>
+        <button class="pr-nav-btn" id="next" type="button" aria-label="สไลด์ถัดไป">&#8250;</button>
+        <span class="pr-hint">ใช้ปุ่ม ← → หรือ presenter clicker</span>
+    </div>
+
+</div>
+
+<script src="js/present-report-3-slides.js"></script>
+<script src="js/present.js"></script>
+</body>
+</html>

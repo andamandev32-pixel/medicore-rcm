@@ -91,8 +91,16 @@ const Landing = {
         }
 
         this.startClock();
+        this.fillDeckCount();     // ไม่พึ่ง API — การ์ดสไลด์ต้องถูกแม้ตอน loadStats ล้ม
         this.loadStats();
         refreshIcons();
+    },
+
+    /** จำนวนชุดสไลด์บนการ์ด "สไลด์นำเสนอ" — derive จาก DS_DECKS ไม่พิมพ์ค้างไว้
+        (PAGE-GUIDE §7B-1: ทะเบียนชุดสไลด์อยู่ที่ DS_DECKS ที่เดียว) */
+    fillDeckCount() {
+        const el = document.getElementById('modDecks');
+        if (el && Array.isArray(window.DS_DECKS)) el.textContent = DS_DECKS.length;
     },
 
     startClock() {
