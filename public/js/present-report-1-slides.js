@@ -25,7 +25,7 @@ const R1_FOOT = 'รายงานวิเคราะห์ เล่ม 1 ·
 function r1Layer(n, title, body, src) {
     return `
     <div class="pr-card" style="display:grid;grid-template-columns:calc(2.6*var(--u)) 1fr;
-         gap:calc(.8*var(--u));border-left:calc(.28*var(--u)) solid var(--primary)">
+         gap:calc(.8*var(--u));border-color:var(--primary)">
         <div style="font-size:calc(2.1*var(--u));font-weight:800;color:var(--primary);
              font-variant-numeric:tabular-nums;line-height:1.1">${n}</div>
         <div>

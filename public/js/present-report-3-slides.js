@@ -70,7 +70,7 @@ const PRESENT_SLIDES = [
                 คอลัมน์ฝั่งเราเขียนจากโค้ดและผลรันจริง ที่ไหนยังทำไม่ได้จะเขียนว่าทำไม่ได้</div>
         </div>
 
-        <div class="pr-card" style="border-left:calc(.28*var(--u)) solid var(--status-success-strong)">
+        <div class="pr-card" style="border-color:var(--status-success-strong)">
             <h3>AN 691209 · ผู้ป่วยใน กองทุน IP (บัตรทอง)</h3>
             <div class="pr-grid pr-g2" style="gap:calc(.1*var(--u)) calc(1.4*var(--u))">
                 <div class="pr-kv"><span style="color:var(--text-muted)">ผู้ป่วย</span> —

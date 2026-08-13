@@ -21,7 +21,7 @@ const R2_FOOT = 'รายงานวิเคราะห์ เล่ม 2 ·
 /** กลุ่มผู้เล่นในตลาด — จัดตาม "ใครเป็นเจ้าของเครื่องมือ" ไม่ใช่ลำดับขั้น จึงไม่ใส่เลข */
 function r2Tier(who, name, members, verdictChip, verdictText, accent) {
     return `
-    <div class="pr-card" style="border-left:calc(.28*var(--u)) solid ${accent}">
+    <div class="pr-card" style="border-color:${accent}">
         <div class="pr-cap" style="margin:0 0 calc(.1*var(--u))">${who}</div>
         <strong style="font-size:calc(1.38*var(--u));color:var(--brand-navy)">${name}</strong>
         <div class="pr-kv" style="margin-top:calc(.15*var(--u))">${members}</div>

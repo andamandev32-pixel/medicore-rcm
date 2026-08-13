@@ -55,17 +55,16 @@ html, body {
     width: min(1760px, calc((100vh - 128px) * 1.7778), calc(100vw - 28px));
     aspect-ratio: 16 / 9; position: relative;
 }
+/* กรอบสไลด์ — เส้นหนาเท่ากันทั้งสี่ด้าน
+   เดิมเป็นแถบไล่สีตั้งที่ขอบซ้ายอย่างเดียว (.pr-slide::before) ตัดออกแล้ว
+   สีกรอบคือตัวบอกชนิดสไลด์แทนแถบเดิม: ฟ้า = หน้าปกติ · เหลือง = .accent */
 .pr-slide {
     position: absolute; inset: 0; display: none; overflow: hidden;
-    background: #fff; border: 1px solid var(--brand-border);
+    background: #fff; border: 3px solid var(--primary);
     border-radius: 14px; box-shadow: 0 18px 50px rgba(15, 23, 42, .28);
 }
 .pr-slide.active { display: block; animation: prAppear .24s ease-out; }
-.pr-slide::before {
-    content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 7px;
-    background: linear-gradient(var(--brand-navy), var(--primary));
-}
-.pr-slide.accent::before { background: linear-gradient(var(--brand-amber-600), var(--brand-amber)); }
+.pr-slide.accent { border-color: var(--brand-amber); }
 @keyframes prAppear { from { opacity: .2; transform: translateX(14px); } to { opacity: 1; transform: none; } }
 
 /* ══════════════════════════════════════════════════════════
@@ -87,7 +86,13 @@ html, body {
     .pr-inner { --u: calc(.95vw * var(--k)); }
 }
 
-.pr-inner { height: 100%; padding: 3.1% 3.8% 2.6%; display: flex; flex-direction: column; }
+/* --pr-bw = ความหนาของกรอบทุกกล่องในสไลด์ (การ์ด · หมายเหตุ · หัวข้อย่อย · ตาราง)
+   ทุกกล่องใช้ค่าเดียวกันและใส่ครบสี่ด้าน — ไม่มีกล่องไหนหนาเฉพาะขอบซ้ายอีก
+   อิง --u เพื่อให้หนาขึ้นตามขนาดสไลด์ (โหมดพิมพ์ override เป็น pt ในบล็อก @media print) */
+.pr-inner {
+    height: 100%; padding: 3.1% 3.8% 2.6%; display: flex; flex-direction: column;
+    --pr-bw: calc(.13 * var(--u));
+}
 
 .pr-eyebrow {
     font-size: calc(1.12 * var(--u)); font-weight: 800; letter-spacing: .1em;
@@ -114,7 +119,7 @@ html, body {
 .pr-g5     { grid-template-columns: repeat(5, 1fr); }
 
 .pr-card {
-    background: var(--brand-bg); border: 1px solid var(--brand-border);
+    background: var(--brand-bg); border: var(--pr-bw, 2px) solid var(--brand-border);
     border-radius: calc(.62 * var(--u)); padding: calc(.72 * var(--u)) calc(.88 * var(--u));
     min-height: 0;
 }
@@ -141,11 +146,15 @@ html, body {
 .pr-card.stack { display: flex; flex-direction: column; }
 .pr-pts {
     flex: 1; min-height: 0; display: flex; flex-direction: column;
-    justify-content: space-between; gap: calc(.42 * var(--u));
+    justify-content: space-between; gap: calc(.34 * var(--u));
 }
+/* กล่องหัวข้อย่อย — กรอบครบสี่ด้าน (เดิมเป็นเส้นคั่นซ้ายอย่างเดียว)
+   ⚠️ ระยะบน–ล่างตั้งไว้บางโดยตั้งใจ: การ์ดชุดนี้แน่นอยู่แล้ว และ .pr-body เป็น
+      overflow:hidden — เพิ่ม padding แนวตั้งอีกแล้วบรรทัดท้ายการ์ดจะหายเงียบ ๆ */
 .pr-pt {
-    border-left: calc(.2 * var(--u)) solid var(--brand-border-strong);
-    padding-left: calc(.52 * var(--u));
+    border: var(--pr-bw, 2px) solid var(--brand-border-strong);
+    border-radius: calc(.42 * var(--u));
+    padding: calc(.16 * var(--u)) calc(.52 * var(--u));
 }
 .pr-pt > b {
     display: block; font-size: calc(1.17 * var(--u)); line-height: 1.44;
@@ -216,7 +225,7 @@ html, body {
       ถ้าจะยัด 6 แถวในหน้าเดียวต้องลดกลับมาราว .95u–1.05u ถึงจะไม่ล้น */
 .pr-tbl-wrap {
     height: 100%; overflow: auto;
-    border: 1px solid var(--brand-border); border-radius: calc(.75 * var(--u));
+    border: var(--pr-bw, 2px) solid var(--brand-border); border-radius: calc(.75 * var(--u));
     background: #fff;
 }
 .pr-table.clean { border-collapse: separate; border-spacing: 0; table-layout: fixed; }
@@ -245,10 +254,12 @@ html, body {
     border-radius: 999px; background: var(--brand-navy); color: #fff;
     font-size: calc(1.24 * var(--u)); font-weight: 800;
 }
-/* คำพูดของโรงพยาบาล — คั่นซ้ายบาง ๆ ให้เห็นว่าเป็นคำอ้างอิง ไม่ใช่ข้อความเรียบเรียงเอง */
+/* คำพูดของโรงพยาบาล — กรอบแดงครบสี่ด้าน ให้เห็นว่าเป็นคำอ้างอิง ไม่ใช่ข้อความเรียบเรียงเอง
+   (เดิมเป็นเส้นคั่นซ้ายอย่างเดียว) ระยะบน–ล่างบาง เพราะอยู่ในช่องตารางที่ความสูงจำกัด */
 .pr-quote {
-    display: block; border-left: calc(.2 * var(--u)) solid var(--status-danger);
-    padding-left: calc(.6 * var(--u));
+    display: block; border: var(--pr-bw, 2px) solid var(--status-danger);
+    border-radius: calc(.45 * var(--u));
+    padding: calc(.16 * var(--u)) calc(.55 * var(--u));
     font-size: calc(1.45 * var(--u)); line-height: 1.46; color: var(--status-danger-strong);
 }
 .pr-tbl-t {
@@ -315,12 +326,13 @@ html, body {
 }
 .pr-open:hover { background: var(--primary-dark); }
 
+/* หมายเหตุท้ายสไลด์ — กรอบครบสี่ด้าน มุมมนทุกมุม (เดิมเป็นแถบซ้ายกับมุมมนแค่ฝั่งขวา) */
 .pr-note {
     font-size: calc(1.14 * var(--u)); color: var(--text-secondary); line-height: 1.55;
-    background: var(--brand-amber-50); border-left: calc(.2 * var(--u)) solid var(--brand-amber);
-    padding: calc(.5 * var(--u)) calc(.7 * var(--u)); border-radius: 0 7px 7px 0;
+    background: var(--brand-amber-50); border: var(--pr-bw, 2px) solid var(--brand-amber);
+    padding: calc(.5 * var(--u)) calc(.7 * var(--u)); border-radius: calc(.62 * var(--u));
 }
-.pr-note.strong { background: var(--status-danger-soft); border-left-color: var(--status-danger); }
+.pr-note.strong { background: var(--status-danger-soft); border-color: var(--status-danger); }
 
 /* ══════════════════════════════════════════════════════════
    ผังการทำงาน (SVG) — ดู js/present-flows.js
@@ -382,7 +394,9 @@ html, body {
         animation: none;
     }
     .pr-slide:last-child { page-break-after: auto; }
-    .pr-inner { padding: 10mm 12mm 8mm; }
+    /* กรอบกล่องในโหมดพิมพ์ตั้งเป็น pt เหมือนขนาดตัวอักษร — ไม่พึ่ง cqw ใน paged media
+       (กรอบสไลด์ตัวนอกยังตัดออกเหมือนเดิม เพราะขอบกระดาษถูกเครื่องพิมพ์กินอยู่แล้ว) */
+    .pr-inner { padding: 10mm 12mm 8mm; --pr-bw: 1.4pt; }
     .pr-slide h1 { font-size: 32pt; } .pr-slide h2 { font-size: 26.5pt; }
     .pr-slide h3 { font-size: 15pt; } .pr-lead { font-size: 13.5pt; }
     .pr-kv, .pr-ul { font-size: 11.5pt; }
@@ -400,14 +414,14 @@ html, body {
     .pr-chip, .pr-stat-label { font-size: 10pt; }
     .pr-code { font-size: 9.5pt; }
     .pr-card, .pr-chip, .pr-note, .pr-code, .pr-table th, .pr-table tr.bad td, .pr-table tr.good td,
-    .pr-tbl-n, .pr-file, .pr-shot-bar, .pr-slide::before {
+    .pr-tbl-n, .pr-file, .pr-shot-bar, .pr-quote {
         -webkit-print-color-adjust: exact; print-color-adjust: exact;
     }
 }
 
 /* ── ภาพจำลองหน้าจอ ── */
 .pr-shot {
-    border: 1px solid var(--brand-border-strong); border-radius: calc(.5 * var(--u)); overflow: hidden;
+    border: var(--pr-bw, 2px) solid var(--brand-border-strong); border-radius: calc(.5 * var(--u)); overflow: hidden;
     background: #fff; display: flex; flex-direction: column; min-height: 0;
 }
 .pr-shot-bar {
