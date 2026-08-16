@@ -28,12 +28,23 @@
 #    ยิง 35 request รวดเดียวได้ 404 (x-render-routing: no-server) ทั้งที่ instance ปกติดี
 #    เว้นจังหวะสัก 400ms แล้วผ่านครบ — อย่าตกใจว่าเว็บพัง ให้ดู header ก่อน
 #
+# ── ตอนเปลี่ยนชื่อระบบเป็น MediClear (16 ส.ค. 2569) ──
+#
+# 5) subdomain .onrender.com ใช้ร่วมกันทุกบัญชีทั่วโลก ไม่ใช่แค่ในบัญชีเรา
+#    ขอชื่อ mediclear ไม่ได้ — บัญชีอื่นจองไปแล้วและมีแอปรันอยู่จริง
+#    Render ไม่ error แต่ต่อท้ายสุ่มให้เงียบ ๆ เป็น mediclear-dzpz.onrender.com
+#    เลยลบทิ้งแล้วสร้างใหม่ชื่อ mediclear-rcm ซึ่งว่างอยู่ → ได้ URL สะอาดตามต้องการ
+#    วิธีเช็คก่อนสร้าง: curl ดู header ถ้าได้ x-render-routing: no-server = ชื่อนั้นยังว่าง
+#
+#    service เดิม mediclearing ยังเปิดอยู่และ deploy จาก main เหมือนกัน — ปิดได้เมื่อ
+#    มั่นใจว่าไม่มีใครถือลิงก์เก่าอยู่แล้ว (ลบแล้ว hostname ค้างที่ edge ตามข้อ 2)
+#
 # ค่า secret (DB_PASSWORD / JWT_SECRET) ตั้ง sync:false → ไม่เก็บลงไฟล์นี้
 # เพื่อไม่ให้ความลับหลุดเข้า git (repo นี้เป็น public)
 
 services:
   - type: web
-    name: mediclearing         # = https://mediclearing.onrender.com (ห้ามเปลี่ยน ดูข้อ 1-2 ข้างบน)
+    name: mediclear-rcm        # = https://mediclear-rcm.onrender.com (ห้ามเปลี่ยน ดูข้อ 1-2 และ 5)
     runtime: node
     plan: free
     region: singapore          # ใกล้ไทยสุด (ลด latency ไป DB)
