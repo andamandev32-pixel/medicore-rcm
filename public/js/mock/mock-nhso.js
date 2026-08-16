@@ -522,7 +522,7 @@ const MOCK_NHSO_API = {
     environment: 'TEST',
     endpoint:    'https://api.nhso.go.th/dp/v2/claims',
     last_sync:   '2569-08-06T08:31',
-    vendor:      'MediClearing (ขึ้นทะเบียนแล้ว)',
+    vendor:      'MediClear (ขึ้นทะเบียนแล้ว)',
 };
 
 

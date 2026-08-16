@@ -18,7 +18,7 @@
    ──────────────────────────────────────────────────────── */
 
 const REPORT_3_URL = 'https://claude.ai/code/artifact/5b9a12c4-894f-4b57-9b25-6697efc7ab87';
-const R3_FOOT = 'รายงานวิเคราะห์ เล่ม 3 · 12 ส.ค. 2569 · ผลฝั่ง MediClearing ทุกบรรทัดมาจากการยิง API จริง';
+const R3_FOOT = 'รายงานวิเคราะห์ เล่ม 3 · 12 ส.ค. 2569 · ผลฝั่ง MediClear ทุกบรรทัดมาจากการยิง API จริง';
 
 /**
  * บันไดชั้นงานหนึ่งขั้น — Sati ซ้าย / เรา ขวา
@@ -44,7 +44,7 @@ function r3Rung(n, title, tag, tagType, them, us) {
             </div>
             <div style="padding:calc(.5*var(--u)) calc(.7*var(--u))">
                 <div style="font-size:calc(1.02*var(--u));letter-spacing:.07em;text-transform:uppercase;
-                     font-weight:800;color:var(--status-success-strong);margin-bottom:calc(.15*var(--u))">MediClearing</div>
+                     font-weight:800;color:var(--status-success-strong);margin-bottom:calc(.15*var(--u))">MediClear</div>
                 <div class="pr-kv">${us}</div>
             </div>
         </div>
@@ -58,10 +58,10 @@ const PRESENT_SLIDES = [
 {
     accent: true,
     k: .88,
-    eyebrow: 'MediClearing · Claim Intelligence · เล่ม 3',
+    eyebrow: 'MediClear · Claim Intelligence · เล่ม 3',
     title: 'เดินเคสจริงหนึ่งเคส — ชั้นไหนเราทำได้ ชั้นไหน Sati ทำได้ และชั้นไหนไม่มีใครทำ',
     lead: 'ภาคผนวกของรายงานวิเคราะห์ตลาด · จัดทำ 12 สิงหาคม 2569 · '
-        + 'ผลฝั่ง MediClearing ทุกบรรทัดมาจากการยิง API จริงบนระบบ ไม่ใช่ภาพจำลอง',
+        + 'ผลฝั่ง MediClear ทุกบรรทัดมาจากการยิง API จริงบนระบบ ไม่ใช่ภาพจำลอง',
     body: `
     <div style="display:flex;flex-direction:column;gap:calc(.55*var(--u));height:100%">
         <div class="pr-card good" style="flex:none">
@@ -402,7 +402,7 @@ DRG       <span class="i">INFO</span>    ENG-DRG-SRC   ตาราง DRG ท�
     accent: true,
     k: .96,
     eyebrow: 'หัวข้อ 6 · สรุปเคสนี้เป็นประโยคเดียว',
-    title: 'ถ้ามีแต่ Sati vs ถ้ามีแต่ MediClearing',
+    title: 'ถ้ามีแต่ Sati vs ถ้ามีแต่ MediClear',
     body: `
     <div style="display:flex;flex-direction:column;gap:calc(.6*var(--u));height:100%">
         <div class="pr-grid pr-g2">
@@ -415,7 +415,7 @@ DRG       <span class="i">INFO</span>    ENG-DRG-SRC   ตาราง DRG ท�
                     และเมื่อถูกสุ่มตรวจ ยังต้องหาเอกสารเองว่าตอนนั้นใช้เกณฑ์อะไร</div>
             </div>
             <div class="pr-card good">
-                <h3 style="color:var(--status-success-strong)">ถ้ามีแต่ MediClearing</h3>
+                <h3 style="color:var(--status-success-strong)">ถ้ามีแต่ MediClear</h3>
                 <div class="pr-kv">จับ 4 error + 3 คำเตือนก่อนกดส่ง แก้จบในรอบเดียว
                     ตามเงินได้จนเข้าบัญชี และตอบผู้ตรวจได้ว่าอ้างกฎข้อไหนฉบับไหน —
                     แต่<b>ต้องมีคนถอดรหัสจากชาร์ตมาให้ก่อน</b>
@@ -436,7 +436,7 @@ DRG       <span class="i">INFO</span>    ENG-DRG-SRC   ตาราง DRG ท�
 
         <div class="pr-note" style="flex:none;display:flex;align-items:center;gap:calc(.8*var(--u))">
             <span style="flex:1"><strong>ที่มาของตัวเลขในเอกสารนี้</strong> —
-            ผลรันฝั่ง MediClearing ทั้งสองรอบมาจากการยิง <code>POST /api/reference/validate</code>
+            ผลรันฝั่ง MediClear ทั้งสองรอบมาจากการยิง <code>POST /api/reference/validate</code>
             และ <code>GET /api/rules/coverage</code> บนระบบจริงเมื่อ 12 ส.ค. 2569
             (จัดรูปแบบให้อ่านง่ายขึ้น เนื้อความไม่แก้) · ข้อมูลอ้างอิงบางชุด (DRG/RW, ICD, TMT)
             ยังเป็นชุดคัดย่อหรือค่าจำลองที่ <code>verified=0</code> —

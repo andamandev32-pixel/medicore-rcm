@@ -1,5 +1,5 @@
 -- ============================================================
--- MediClearing — ผู้ป่วยใน (IPD Admission จริง)
+-- MediClear — ผู้ป่วยใน (IPD Admission จริง)
 --
 -- แทนที่ MockDB('ipd_stays') ฝั่ง browser — เก็บ admission + การลงรหัส
 -- (Pdx/Sdx ICD-10 · หัตถการ ICD-9-CM · ค่าใช้จ่ายราย item BILLGRCS)

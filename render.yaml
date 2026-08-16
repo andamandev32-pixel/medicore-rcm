@@ -1,4 +1,4 @@
-# Render Blueprint — MediClearing (Express + MySQL)
+# Render Blueprint — MediClear (Express + MySQL)
 #
 # ⚠️ อ่านก่อนแก้ไฟล์นี้ — service ที่ใช้งานจริง "ไม่ได้" สร้างจาก Blueprint
 #    สร้างผ่าน Render REST API (POST /v1/services) ค่าจริงจึงอยู่ที่ dashboard

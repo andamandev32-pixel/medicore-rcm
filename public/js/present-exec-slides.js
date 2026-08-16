@@ -22,7 +22,7 @@ const PRESENT_SLIDES = [
 {
     accent: true,
     eyebrow: 'เสนอผู้บริหาร',
-    title: 'MediClearing — ระบบครอบคลุมงานอะไรบ้าง',
+    title: 'MediClear — ระบบครอบคลุมงานอะไรบ้าง',
     lead: 'ระบบบริหารวงจรรายได้โรงพยาบาล (RCM) — 4 เส้นงานที่มาจบที่คิวส่งเบิกเดียวกัน ' +
           'แล้วต่อด้วยงานการเงินจนเงินเข้าบัญชี',
     body: `<div class="pr-flow">${prfCoverage()}</div>`,
@@ -502,7 +502,7 @@ const PRESENT_SLIDES = [
                 </div>
             </div>
             <div class="pr-card good stack">
-                <h3>MediClearing — สิ่งที่เราตอบได้และเขาตอบไม่ได้</h3>
+                <h3>MediClear — สิ่งที่เราตอบได้และเขาตอบไม่ได้</h3>
                 <table class="pr-table">
                     <tr><td><b>กลไก</b></td><td>กฎที่ตรวจได้จริงจากแคตตาล็อกทางการ —
                         รหัสติด C 446 รหัส ตรวจ 8 ชั้น</td></tr>

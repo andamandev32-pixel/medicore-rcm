@@ -40,7 +40,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MediClearing — ชื่อหน้า</title>
+    <title>MediClear — ชื่อหน้า</title>
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
 
     <!-- ลำดับ CSS มาตรฐาน (อย่าสลับ — ds-tokens ต้องมาก่อนเสมอ) -->

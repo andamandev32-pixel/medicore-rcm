@@ -47,7 +47,7 @@ const PRESENT_SLIDES = [
 {
     accent: true,
     k: .9,
-    eyebrow: 'MediClearing · Claim Intelligence · เล่ม 2',
+    eyebrow: 'MediClear · Claim Intelligence · เล่ม 2',
     title: 'ตลาดโปรแกรมตรวจเวชระเบียนและส่งเบิกที่ “ไม่ใช่ส่วนเพิ่มของ HIS” และการเทียบกับ บริษัท สาติ (Sati)',
     lead: 'รายงานวิจัยตลาดและกลยุทธ์ · จัดทำ 12 สิงหาคม 2569 · เล่มต่อจาก “กฎมาตรฐานการกรองเคลม '
         + 'ฐานข้อมูลอ้างอิง และภูมิทัศน์คู่แข่ง” (11 ส.ค. 2569)',
@@ -491,16 +491,16 @@ const PRESENT_SLIDES = [
     foot: R2_FOOT,
 },
 
-/* 11 ── ตาราง Sati vs MediClearing ────────────────────── */
+/* 11 ── ตาราง Sati vs MediClear ────────────────────── */
 {
     k: .8,
     eyebrow: 'หัวข้อ 4 ก · ตารางเทียบ',
-    title: 'Sati vs MediClearing — เทียบตรงทีละประเด็น',
+    title: 'Sati vs MediClear — เทียบตรงทีละประเด็น',
     body: `
     <div style="height:100%">
         <table class="pr-table">
             <tr><th style="width:20%">ประเด็น</th><th style="width:36%">Sati</th>
-                <th style="width:44%;background:var(--brand-navy);color:#fff">MediClearing (เรา)</th></tr>
+                <th style="width:44%;background:var(--brand-navy);color:#fff">MediClear (เรา)</th></tr>
             <tr><td><b>ปัญหาที่แก้</b></td>
                 <td>Underclaim — เก็บได้ไม่ครบเพราะบันทึกไม่ครบ</td>
                 <td>Denial + Clawback — ส่งไม่ผ่าน และเก็บได้แล้วโดนเรียกคืน</td></tr>
@@ -635,7 +635,7 @@ const PRESENT_SLIDES = [
         <div class="pr-card good">
             <div style="font-size:calc(1.75*var(--u));line-height:1.5;color:var(--brand-navy)">
                 AI ช่วยให้ <b>เบิกได้มากขึ้น</b> ·
-                MediClearing ทำให้เงินที่เบิกไปแล้ว <b>อยู่กับโรงพยาบาลจริง</b> —
+                MediClear ทำให้เงินที่เบิกไปแล้ว <b>อยู่กับโรงพยาบาลจริง</b> —
                 ตรวจก่อนส่งด้วยกฎที่อ้างประกาศได้ทีละข้อ
                 เก็บสายหลักฐานไว้ตอบวันถูก audit และตามต่อจนเงินเข้าบัญชี
             </div>
@@ -889,7 +889,7 @@ const PRESENT_SLIDES = [
         <div class="pr-note strong" style="flex:none;display:flex;align-items:center;gap:calc(.8*var(--u))">
             <span style="flex:1"><strong>วิธีอ่านรายงานฉบับนี้</strong> —
             ตัวเลขที่กำกับว่า “เขาบอกว่า” คือคำกล่าวอ้างของผู้ขายซึ่ง<b>ยังไม่มีการตรวจสอบอิสระ</b> ·
-            ตัวเลขของ MediClearing ที่อ้างในเล่มนี้ (446 รหัส C · coverage 48% · 8 ชั้น ~30 checks ·
+            ตัวเลขของ MediClear ที่อ้างในเล่มนี้ (446 รหัส C · coverage 48% · 8 ชั้น ~30 checks ·
             MRA MR1–MR12) <b>นับจากฐานข้อมูลและโค้ดจริงในระบบ ไม่ใช่ค่าประมาณการ</b> ·
             ตัวเลข before/after ในเอกสารนำเสนอชุดเดิมยังเป็นค่าสมมติเพื่อสาธิตรูปแบบรายงาน
             จึงไม่ถูกนำมาใช้ในรายงานฉบับนี้</span>

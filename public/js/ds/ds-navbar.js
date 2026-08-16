@@ -154,7 +154,7 @@ const DS_REPORTS = [
       label: 'เล่ม 3 · เดินเคสจริง AN 691209', icon: 'clipboard',
       title: 'เดินเคสจริงหนึ่งเคส — ชั้นไหนเราทำได้ ชั้นไหน Sati ทำได้ และชั้นไหนไม่มีใครทำ',
       date: '12 ส.ค. 2569', deck: 'present-report-3.html',
-      desc: 'ภาคผนวกของรายงานวิเคราะห์ตลาด · ผลฝั่ง MediClearing ทุกบรรทัดมาจากการยิง API จริง' },
+      desc: 'ภาคผนวกของรายงานวิเคราะห์ตลาด · ผลฝั่ง MediClear ทุกบรรทัดมาจากการยิง API จริง' },
 ];
 
 
@@ -407,7 +407,7 @@ const DSNavbar = {
 
     /* ── ปรับแต่งได้จากหน้า (เรียกก่อน DOMContentLoaded) ── */
     opts: {
-        brand:    'MediClearing',
+        brand:    'MediClear',
         brandSub: 'RCM',
         homeHref: 'index.html',
         menu:     null,          // null = ใช้ DS_MENU

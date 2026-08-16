@@ -67,7 +67,7 @@ const PRESENT_SLIDES = [
 {
     accent: true,
     k: .92,
-    eyebrow: 'MediClearing · Claim Intelligence · เล่ม 1',
+    eyebrow: 'MediClear · Claim Intelligence · เล่ม 1',
     title: 'กฎมาตรฐานการกรองเคลม ฐานข้อมูลอ้างอิง และภูมิทัศน์คู่แข่ง',
     lead: 'รายงานวิจัยประกอบการพัฒนา Rule Engine · จัดทำ 11 สิงหาคม 2569 — ตอบสามคำถามตั้งต้นก่อนลงมือเขียนตัวตรวจ',
     body: `
@@ -87,7 +87,7 @@ const PRESENT_SLIDES = [
             <strong style="font-size:calc(1.36*var(--u))">
                 <span style="color:var(--primary)">Q2</span>
                 หาฐานข้อมูลกฎได้ไหม</strong>
-            <div class="pr-kv"><b>ได้ และโหลดเข้าระบบเราแล้ว</b> — MySQL ของ MediClearing มีตาราง
+            <div class="pr-kv"><b>ได้ และโหลดเข้าระบบเราแล้ว</b> — MySQL ของ MediClear มีตาราง
                 <code>ref_*</code> 10 ตาราง บรรจุรหัสติด C จริง
                 <b>446 รหัส ครอบคลุมแคตตาล็อกทั้งหมดของแหล่ง (ทวนซ้ำ ≥2 รอบ 440 รหัส)</b> ·
                 โครงสร้าง 15 แฟ้ม · เมทริกซ์ 12 กองทุน×แฟ้ม พร้อม API ·
@@ -396,7 +396,7 @@ const PRESENT_SLIDES = [
             <tr>
                 <th style="width:32%">ความสามารถ</th>
                 <th class="c">BMS i-Claim</th><th class="c">HA.OS</th><th class="c">MEDcury</th>
-                <th class="c" style="background:var(--brand-navy);color:#fff">MediClearing (เรา)</th>
+                <th class="c" style="background:var(--brand-navy);color:#fff">MediClear (เรา)</th>
             </tr>
             <tr><td>ใช้ได้โดยไม่เปลี่ยน HIS</td>
                 <td class="c"><span class="pr-chip red">ผูก HOSxP</span></td>

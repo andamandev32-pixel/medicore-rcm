@@ -1,5 +1,5 @@
 -- ============================================================
--- MediClearing — คลังกฎ (Rule Repository) + บันทึกการประมวลผลกฎ
+-- MediClear — คลังกฎ (Rule Repository) + บันทึกการประมวลผลกฎ
 --
 -- ยกกฎเชิงนโยบายจาก public/js/mock/mock-rules.js ขึ้นมาเป็นข้อมูลจริง
 -- และทำให้ "รันได้" ผ่าน src/services/rule-runner.js
