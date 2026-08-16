@@ -39,6 +39,17 @@
 #    service เดิม mediclearing ยังเปิดอยู่และ deploy จาก main เหมือนกัน — ปิดได้เมื่อ
 #    มั่นใจว่าไม่มีใครถือลิงก์เก่าอยู่แล้ว (ลบแล้ว hostname ค้างที่ edge ตามข้อ 2)
 #
+# 6) ⚠️ autoDeploy: yes ตั้งไว้ก็จริง แต่ "ไม่เคยทำงาน" — push แล้วเว็บไม่เปลี่ยนเอง
+#    ประวัติ deploy ทุกครั้งของทั้งสอง service เป็น trigger manual/api ล้วน
+#    ไม่มี webhook สักครั้งเดียว แปลว่า GitHub App ของ Render ยังไม่ได้ผูกกับ repo นี้
+#    (Render clone ได้เพราะ repo เป็น public แต่ไม่มีสิทธิ์รับ webhook)
+#
+#    → หลัง push ต้องสั่ง deploy เองทุกครั้ง:
+#      curl -X POST -H "Authorization: Bearer $RENDER_API_KEY" \
+#           -H "Content-Type: application/json" -d '{}' \
+#           https://api.render.com/v1/services/<serviceId>/deploys
+#      ถ้าอยากให้ deploy เองได้จริง ต้องไปติดตั้ง Render GitHub App บน repo ก่อน
+#
 # ค่า secret (DB_PASSWORD / JWT_SECRET) ตั้ง sync:false → ไม่เก็บลงไฟล์นี้
 # เพื่อไม่ให้ความลับหลุดเข้า git (repo นี้เป็น public)
 
